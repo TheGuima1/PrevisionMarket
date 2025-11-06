@@ -451,6 +451,18 @@ export class DatabaseStorage implements IStorage {
         undefined,
         fillPrice
       );
+
+      // Update market prices based on last traded price
+      const yesPrice = newOrder.type === "yes" ? fillPrice.toFixed(4) : (1 - fillPrice).toFixed(4);
+      const noPrice = newOrder.type === "no" ? fillPrice.toFixed(4) : (1 - fillPrice).toFixed(4);
+      
+      await db
+        .update(markets)
+        .set({
+          yesPrice,
+          noPrice,
+        })
+        .where(eq(markets.id, newOrder.marketId));
     }
 
     await db
