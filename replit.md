@@ -4,25 +4,29 @@
 MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspirada na Polymarket, desenvolvida especificamente para o mercado brasileiro com suporte a Pix e crypto.
 
 ## Status do Projeto
-**Fase Atual**: Refatoração em Progresso 🚧 | Preparando Landing Page Pública
+**Fase Atual**: Landing Page Pública Concluída ✅ | MVP Completo
 
-### Tarefas Recentes Concluídas
+### Tarefas Recentes Concluídas (06 Nov 2025)
+- ✅ **Task 5**: Landing Page Pública Polymarket-Style (COMPLETO)
+  - ✅ Homepage pública (sem auth required)
+  - ✅ PublicNavbar com Login/Sign Up buttons
+  - ✅ 14 category pills (All Markets + 13 Polymarket categories)
+  - ✅ Tag-based filtering system
+  - ✅ Category + Tag combined filters
+  - ✅ E2E test passed: Public browse → Register → Username setup → Trading
+
 - ✅ **Task 4**: Reestruturação Polymarket Categories
   - Schema atualizado com 13 categorias (trending, breaking, new, politics, sports, finance, crypto, geopolitics, tech, culture, world, economy, elections)
   - Sistema de tags implementado (text[] array)
   - Seed data migrado para novas categorias
   - Database reseeded com sucesso
 
-### Em Andamento
-- 🚧 **Task 5**: Landing Page Pública (próximo)
-  - Permitir browsing de markets sem autenticação
-  - Navbar estilo Polymarket com categorias
-  - Filtros por categoria e tags
-
-### Backlog
-- ⏳ Frontend updates para novas categorias
-- ⏳ Public market browsing
-- ⏳ Username uniqueness real-time validation
+### Backlog (Pós-MVP)
+- ⏳ Real-time notifications (WebSockets)
+- ⏳ Price history charts
+- ⏳ Trader leaderboard
+- ⏳ Decentralized oracle system
+- ⏳ Real Pix/Crypto integration
 
 ## Arquitetura
 
@@ -52,11 +56,14 @@ MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspira
    - Username único e imutável
    - Protected routes com ensureUsername middleware
 
-2. **Dashboard de Mercados**
-   - Grid categorizado (PRECISA UPDATE para 13 categorias Polymarket)
-   - Filtros por categoria (PRECISA UPDATE)
-   - Cards com odds em tempo real
-   - Quick actions (Comprar SIM/NÃO)
+2. **Landing Page Pública Polymarket-Style**
+   - ✅ Homepage pública sem autenticação
+   - ✅ PublicNavbar com Login/Sign Up
+   - ✅ 14 category pills (All + 13 Polymarket categories)
+   - ✅ Tag-based filtering system
+   - ✅ Category + Tag combined filters
+   - ✅ Grid de markets com odds em tempo real
+   - ✅ MarketCards com category badges coloridos
 
 3. **Página de Detalhes do Mercado**
    - Informações completas do mercado
@@ -176,19 +183,21 @@ Todos os componentes seguem rigorosamente o design_guidelines.md:
 - AI Assistant usa Replit AI Integrations (sem API key própria)
 - Design guidelines devem ser seguidos religiosamente
 
-## User Journey Principal
-1. Usuário navega markets publicamente (SEM login required) - 🚧 TODO
-2. Decide se cadastrar → registro com email + password
-3. Após primeiro login → define username único via modal
-4. Deposita fundos (mockado) via Pix ou USDC
-5. Navega por mercados categorizados (13 categorias Polymarket)
-6. Filtra por categoria ou tags
-7. Visualiza detalhes e analisa odds em múltiplos formatos
-8. Faz ordem de compra (SIM ou NÃO)
-9. Participa de discussões por mercado
-10. Monitora posições no portfólio
-11. Recebe pagamento quando mercado é resolvido
-12. Saca fundos (mockado)
+## User Journey Principal (E2E Validado ✅)
+1. ✅ Usuário navega markets publicamente (SEM login required)
+2. ✅ Filtra por 14 categorias Polymarket (All + Trending, Elections, Sports, etc.)
+3. ✅ Filtra por tags (Brazil, Lula, Bitcoin, etc.)
+4. ✅ Decide se cadastrar → clica Login/Sign Up
+5. ✅ Registro com email + password
+6. ✅ Após primeiro login → define username único via modal
+7. ✅ Deposita fundos (mockado) via Pix ou USDC
+8. ✅ Navega por mercados categorizados
+9. ✅ Visualiza detalhes e analisa odds em múltiplos formatos
+10. ✅ Faz ordem de compra (SIM ou NÃO)
+11. ✅ Participa de discussões por mercado
+12. ✅ Monitora posições no portfólio
+13. ✅ Recebe pagamento quando mercado é resolvido
+14. ✅ Saca fundos (mockado)
 
 ## Contato com IA Assistant
 O assistente IA pode:
