@@ -438,8 +438,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalRequired = estimatedCost + estimatedFee;
 
       const user = await storage.getUser(userId);
-      if (!user || parseFloat(user.balanceBrl) < totalRequired) {
-        return res.status(400).send("Insufficient balance");
+      if (!user) {
+        return res.status(400).send("User not found");
+      }
+
+      // Calculate reserved funds from open BUY orders
+      const userOpenOrders = await storage.getUserOpenOrders(userId);
+      const reservedFunds = userOpenOrders
+        .filter(o => o.action === "buy")
+        .reduce((sum, o) => {
+          const remainingShares = parseFloat(o.shares) - parseFloat(o.filledShares);
+          const reservedCost = remainingShares * parseFloat(o.price);
+          return sum + reservedCost;
+        }, 0);
+
+      const availableBalance = parseFloat(user.balanceBrl) - reservedFunds;
+      
+      if (availableBalance < totalRequired) {
+        return res.status(400).send(`Insufficient balance. Available: ${availableBalance.toFixed(2)}, Required: ${totalRequired.toFixed(2)}`);
       }
 
       const order = await storage.createOrder(userId, validated);
@@ -486,8 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/clob/my-orders", ensureUsername, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const allOrders = await storage.getOrdersByMarket("");
-      const myOrders = allOrders.filter(o => o.userId === userId && o.status === "open");
+      const myOrders = await storage.getUserOpenOrders(userId);
       
       res.json(myOrders);
     } catch (error) {

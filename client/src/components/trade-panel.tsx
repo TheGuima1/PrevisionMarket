@@ -371,6 +371,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
             </div>
 
             <Button
+              type="button"
               onClick={handleLimitOrder}
               disabled={!shares || !limitPrice || limitOrderMutation.isPending}
               className="w-full"

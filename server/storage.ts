@@ -19,7 +19,7 @@ import {
   type InsertTransaction,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, or, desc, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -281,6 +281,20 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(orders.createdAt));
   }
 
+  async getUserOpenOrders(userId: string): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .where(and(
+        eq(orders.userId, userId),
+        or(
+          eq(orders.status, "open"),
+          eq(orders.status, "partially_filled")
+        )
+      ))
+      .orderBy(desc(orders.createdAt));
+  }
+
   async getOpenOrders(marketId: string, type: "yes" | "no", action: "buy" | "sell"): Promise<Order[]> {
     return await db
       .select()
@@ -290,7 +304,7 @@ export class DatabaseStorage implements IStorage {
           eq(orders.marketId, marketId),
           eq(orders.type, type),
           eq(orders.action, action),
-          eq(orders.status, "open")
+          or(eq(orders.status, "open"), eq(orders.status, "partially_filled"))
         )
       )
       .orderBy(
@@ -299,15 +313,56 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  async getOrderBook(marketId: string): Promise<{ bids: Order[]; asks: Order[] }> {
+  async getOrderBook(marketId: string): Promise<{ 
+    bids: { price: string; totalShares: number; numOrders: number }[]; 
+    asks: { price: string; totalShares: number; numOrders: number }[] 
+  }> {
     const yesBids = await this.getOpenOrders(marketId, "yes", "buy");
     const yesAsks = await this.getOpenOrders(marketId, "yes", "sell");
     const noBids = await this.getOpenOrders(marketId, "no", "buy");
     const noAsks = await this.getOpenOrders(marketId, "no", "sell");
 
+    const aggregateBids = (orders: Order[]) => {
+      const grouped = new Map<string, { totalShares: number; numOrders: number }>();
+      for (const order of orders) {
+        const remainingShares = parseFloat(order.shares) - parseFloat(order.filledShares);
+        if (remainingShares <= 0) continue;
+        
+        const existing = grouped.get(order.price);
+        if (existing) {
+          existing.totalShares += remainingShares;
+          existing.numOrders += 1;
+        } else {
+          grouped.set(order.price, { totalShares: remainingShares, numOrders: 1 });
+        }
+      }
+      return Array.from(grouped.entries())
+        .map(([price, data]) => ({ price, ...data }))
+        .sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+    };
+
+    const aggregateAsks = (orders: Order[]) => {
+      const grouped = new Map<string, { totalShares: number; numOrders: number }>();
+      for (const order of orders) {
+        const remainingShares = parseFloat(order.shares) - parseFloat(order.filledShares);
+        if (remainingShares <= 0) continue;
+        
+        const existing = grouped.get(order.price);
+        if (existing) {
+          existing.totalShares += remainingShares;
+          existing.numOrders += 1;
+        } else {
+          grouped.set(order.price, { totalShares: remainingShares, numOrders: 1 });
+        }
+      }
+      return Array.from(grouped.entries())
+        .map(([price, data]) => ({ price, ...data }))
+        .sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+    };
+
     return {
-      bids: [...yesBids, ...noBids],
-      asks: [...yesAsks, ...noAsks],
+      bids: aggregateBids([...yesBids, ...noBids]),
+      asks: aggregateAsks([...yesAsks, ...noAsks]),
     };
   }
 
@@ -344,7 +399,7 @@ export class DatabaseStorage implements IStorage {
         (newOrder.action === "buy" && newOrderPrice >= matchPrice) ||
         (newOrder.action === "sell" && newOrderPrice <= matchPrice);
 
-      if (!canMatch) break;
+      if (!canMatch) continue;
 
       const matchRemainingShares = parseFloat(matchOrder.shares) - parseFloat(matchOrder.filledShares);
       const sharesToFill = Math.min(remainingShares, matchRemainingShares);

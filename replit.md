@@ -21,6 +21,24 @@ MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspira
   - Seed data migrado para novas categorias
   - Database reseeded com sucesso
 
+- ✅ **CLOB (Central Limit Order Book) Implementation** (06 Nov 2025) - COMPLETO
+  - ✅ **Schema**: orders table com action (buy/sell), type (yes/no), price (decimal 0-1), shares, filledShares, status (open/partially_filled/filled/cancelled)
+  - ✅ **Matching Engine**: Auto-matching com price-time priority, partial fills, supports partially_filled orders
+  - ✅ **Backend Routes**: POST /api/clob/orders (create+match), GET /api/clob/orderbook/:id (aggregated depth), GET /api/clob/my-orders (user open orders), DELETE /api/clob/orders/:id (cancel)
+  - ✅ **Reserved Funds**: Balance validation considers open BUY orders to prevent over-commitment
+  - ✅ **Frontend Components**: OrderBook (depth display), TradePanel (Market/Limit tabs), OpenOrders (cancel functionality)
+  - ✅ **7 Critical Bugs Fixed**:
+    1. OrderBook aggregation totalShares calculation
+    2. getUserOpenOrders storage method created
+    3. `or` imported from drizzle-orm for queries
+    4. Matching engine uses `continue` not `break` for price compatibility
+    5. getOpenOrders includes partially_filled status
+    6. Reserved funds calculation from open BUY orders
+    7. Button type="button" prevents form submission reload
+  - ✅ **E2E Test Passed**: BUY/SELL limit orders, partial fills, full fills, order cancellation, positions updates, cache invalidation
+  - ✅ **Architect Review**: PASS - Functional requirements met, balance protection working, verified end-to-end flows
+  - ✅ **Fee Structure**: Maker 0-2 bps, Taker 5-10 bps (Polymarket-aligned)
+
 ### Backlog (Pós-MVP)
 - ⏳ Real-time notifications (WebSockets)
 - ⏳ Price history charts
