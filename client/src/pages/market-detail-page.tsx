@@ -3,6 +3,7 @@ import { useRoute } from "wouter";
 import { Navbar } from "@/components/navbar";
 import { AIAssistant } from "@/components/ai-assistant";
 import { TradePanel } from "@/components/trade-panel";
+import { OrderBook } from "@/components/order-book";
 import { OddsDisplay } from "@/components/odds-display";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -232,6 +233,7 @@ export default function MarketDetailPage() {
                 usdc: user?.balanceUsdc || "0" 
               }}
             />
+            <OrderBook marketId={market.id} />
           </div>
         </div>
       </main>

@@ -16,8 +16,11 @@ interface TradePanelProps {
 }
 
 export function TradePanel({ market, userBalance }: TradePanelProps) {
+  const [orderMode, setOrderMode] = useState<"market" | "limit">("market");
   const [orderType, setOrderType] = useState<"yes" | "no">("yes");
   const [shares, setShares] = useState("");
+  const [limitPrice, setLimitPrice] = useState("");
+  const [limitAction, setLimitAction] = useState<"buy" | "sell">("buy");
   const { toast } = useToast();
 
   const price = orderType === "yes" ? parseFloat(market.yesPrice) : parseFloat(market.noPrice);
@@ -53,6 +56,40 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
     },
   });
 
+  const limitOrderMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/clob/orders", {
+        marketId: market.id,
+        action: limitAction,
+        type: orderType,
+        shares: parseFloat(shares),
+        price: parseFloat(limitPrice),
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Limit Order criada!",
+        description: `${limitAction === "buy" ? "Compra" : "Venda"} de ${shares} ações ${orderType === "yes" ? "SIM" : "NÃO"} a ${(parseFloat(limitPrice) * 100).toFixed(1)}%`,
+      });
+      setShares("");
+      setLimitPrice("");
+      queryClient.invalidateQueries({ queryKey: ["/api/clob/orderbook", market.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clob/my-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/markets", market.id] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao criar limit order",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleBuy = () => {
     if (!shares || parseFloat(shares) <= 0) {
       toast({
@@ -65,17 +102,48 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
     buyMutation.mutate();
   };
 
+  const handleLimitOrder = () => {
+    if (!shares || parseFloat(shares) <= 0) {
+      toast({
+        title: "Quantidade inválida",
+        description: "Digite uma quantidade válida de ações",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!limitPrice || parseFloat(limitPrice) <= 0 || parseFloat(limitPrice) >= 1) {
+      toast({
+        title: "Preço inválido",
+        description: "Digite um preço entre 0.01 e 0.99",
+        variant: "destructive",
+      });
+      return;
+    }
+    limitOrderMutation.mutate();
+  };
+
   return (
     <Card className="p-6 space-y-6">
       <div className="space-y-2">
         <h3 className="font-accent text-xl font-semibold">Negociar</h3>
         <p className="text-sm text-muted-foreground">
-          Escolha sua posição e quantidade
+          Escolha entre order market ou limit
         </p>
       </div>
 
-      <Tabs value={orderType} onValueChange={(v) => setOrderType(v as "yes" | "no")}>
+      <Tabs value={orderMode} onValueChange={(v) => setOrderMode(v as "market" | "limit")}>
         <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="market" data-testid="tab-order-market">
+            Market Order
+          </TabsTrigger>
+          <TabsTrigger value="limit" data-testid="tab-order-limit">
+            Limit Order
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="market" className="mt-6">
+          <Tabs value={orderType} onValueChange={(v) => setOrderType(v as "yes" | "no")}>
+            <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger 
             value="yes" 
             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -219,6 +287,99 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
           >
             {buyMutation.isPending ? "Executando..." : "Comprar NÃO"}
           </Button>
+        </TabsContent>
+      </Tabs>
+        </TabsContent>
+
+        <TabsContent value="limit" className="mt-6 space-y-6">
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Button
+                variant={limitAction === "buy" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setLimitAction("buy")}
+                data-testid="button-limit-buy"
+              >
+                Comprar
+              </Button>
+              <Button
+                variant={limitAction === "sell" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setLimitAction("sell")}
+                data-testid="button-limit-sell"
+              >
+                Vender
+              </Button>
+            </div>
+
+            <Tabs value={orderType} onValueChange={(v) => setOrderType(v as "yes" | "no")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="yes" data-testid="tab-limit-yes">
+                  SIM
+                </TabsTrigger>
+                <TabsTrigger value="no" data-testid="tab-limit-no">
+                  NÃO
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="space-y-2">
+              <Label htmlFor="limit-price">Preço (0.01 - 0.99)</Label>
+              <Input
+                id="limit-price"
+                type="number"
+                placeholder="0.50"
+                value={limitPrice}
+                onChange={(e) => setLimitPrice(e.target.value)}
+                min="0.01"
+                max="0.99"
+                step="0.01"
+                data-testid="input-limit-price"
+              />
+              <p className="text-xs text-muted-foreground">
+                Preço em decimal (ex: 0.50 = 50%)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="limit-shares">Quantidade de ações</Label>
+              <Input
+                id="limit-shares"
+                type="number"
+                placeholder="10.00"
+                value={shares}
+                onChange={(e) => setShares(e.target.value)}
+                min="0.01"
+                step="0.01"
+                data-testid="input-limit-shares"
+              />
+            </div>
+
+            <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Preço por ação</span>
+                <span className="font-semibold tabular-nums">
+                  {limitPrice ? `${(parseFloat(limitPrice) * 100).toFixed(1)}%` : "-"}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total estimado</span>
+                <span className="font-semibold tabular-nums">
+                  R$ {limitPrice && shares ? (parseFloat(limitPrice) * parseFloat(shares)).toFixed(2) : "0.00"}
+                </span>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleLimitOrder}
+              disabled={!shares || !limitPrice || limitOrderMutation.isPending}
+              className="w-full"
+              size="lg"
+              data-testid="button-limit-execute"
+            >
+              {limitOrderMutation.isPending ? "Criando..." : `${limitAction === "buy" ? "Comprar" : "Vender"} ${orderType === "yes" ? "SIM" : "NÃO"}`}
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
 

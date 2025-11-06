@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Navbar } from "@/components/navbar";
 import { AIAssistant } from "@/components/ai-assistant";
+import { OpenOrders } from "@/components/open-orders";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,6 +126,7 @@ export default function PortfolioPage() {
         <Tabs defaultValue="positions" className="space-y-6">
           <TabsList>
             <TabsTrigger value="positions" data-testid="tab-positions">Posições</TabsTrigger>
+            <TabsTrigger value="orders" data-testid="tab-orders">Ordens</TabsTrigger>
             <TabsTrigger value="wallet" data-testid="tab-wallet">Carteira</TabsTrigger>
             <TabsTrigger value="history" data-testid="tab-history">Histórico</TabsTrigger>
           </TabsList>
@@ -198,6 +200,10 @@ export default function PortfolioPage() {
                 </Link>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <OpenOrders />
           </TabsContent>
 
           <TabsContent value="wallet" className="space-y-6">
