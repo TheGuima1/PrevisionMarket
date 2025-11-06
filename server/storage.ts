@@ -54,9 +54,13 @@ export interface IStorage {
     avgNoPrice?: number
   ): Promise<void>;
 
-  // Order methods
+  // Order methods (CLOB)
   createOrder(userId: string, order: Omit<InsertOrder, "id" | "userId">): Promise<Order>;
   getOrdersByMarket(marketId: string): Promise<Order[]>;
+  getOpenOrders(marketId: string, type: "yes" | "no", action: "buy" | "sell"): Promise<Order[]>;
+  getOrderBook(marketId: string): Promise<{ bids: Order[]; asks: Order[] }>;
+  cancelOrder(orderId: string, userId: string): Promise<void>;
+  matchOrder(newOrder: Order): Promise<void>;
 
   // Comment methods
   getCommentsByMarket(marketId: string): Promise<(Comment & { user: { username: string } })[]>;
@@ -239,8 +243,34 @@ export class DatabaseStorage implements IStorage {
 
   // Order methods
   async createOrder(userId: string, insertOrder: Omit<InsertOrder, "id" | "userId">): Promise<Order> {
-    const [order] = await db.insert(orders).values({ ...insertOrder, userId }).returning();
-    return order;
+    const orderData: any = {
+      ...insertOrder,
+      userId,
+      status: "open",
+      filledShares: "0.00",
+      totalCost: "0.00",
+      feePaid: "0.000000",
+      makerFeeBps: 0,
+      takerFeeBps: 10,
+    };
+    
+    if (typeof orderData.shares === 'number') {
+      orderData.shares = orderData.shares.toFixed(2);
+    }
+    if (typeof orderData.price === 'number') {
+      orderData.price = orderData.price.toFixed(4);
+    }
+    
+    const [order] = await db.insert(orders).values(orderData).returning();
+    
+    await this.matchOrder(order);
+    
+    const [updatedOrder] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, order.id));
+    
+    return updatedOrder;
   }
 
   async getOrdersByMarket(marketId: string): Promise<Order[]> {
@@ -249,6 +279,137 @@ export class DatabaseStorage implements IStorage {
       .from(orders)
       .where(eq(orders.marketId, marketId))
       .orderBy(desc(orders.createdAt));
+  }
+
+  async getOpenOrders(marketId: string, type: "yes" | "no", action: "buy" | "sell"): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .where(
+        and(
+          eq(orders.marketId, marketId),
+          eq(orders.type, type),
+          eq(orders.action, action),
+          eq(orders.status, "open")
+        )
+      )
+      .orderBy(
+        action === "buy" ? desc(orders.price) : orders.price,
+        orders.createdAt
+      );
+  }
+
+  async getOrderBook(marketId: string): Promise<{ bids: Order[]; asks: Order[] }> {
+    const yesBids = await this.getOpenOrders(marketId, "yes", "buy");
+    const yesAsks = await this.getOpenOrders(marketId, "yes", "sell");
+    const noBids = await this.getOpenOrders(marketId, "no", "buy");
+    const noAsks = await this.getOpenOrders(marketId, "no", "sell");
+
+    return {
+      bids: [...yesBids, ...noBids],
+      asks: [...yesAsks, ...noAsks],
+    };
+  }
+
+  async cancelOrder(orderId: string, userId: string): Promise<void> {
+    await db
+      .update(orders)
+      .set({ 
+        status: "cancelled",
+        cancelledAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(orders.id, orderId), eq(orders.userId, userId), eq(orders.status, "open")));
+  }
+
+  async matchOrder(newOrder: Order): Promise<void> {
+    const oppositeAction = newOrder.action === "buy" ? "sell" : "buy";
+    const oppositeOrders = await this.getOpenOrders(
+      newOrder.marketId,
+      newOrder.type,
+      oppositeAction
+    );
+
+    let remainingShares = parseFloat(newOrder.shares) - parseFloat(newOrder.filledShares);
+    let totalCost = parseFloat(newOrder.totalCost);
+    let totalFeePaid = parseFloat(newOrder.feePaid);
+
+    for (const matchOrder of oppositeOrders) {
+      if (remainingShares <= 0) break;
+
+      const matchPrice = parseFloat(matchOrder.price);
+      const newOrderPrice = parseFloat(newOrder.price);
+
+      const canMatch =
+        (newOrder.action === "buy" && newOrderPrice >= matchPrice) ||
+        (newOrder.action === "sell" && newOrderPrice <= matchPrice);
+
+      if (!canMatch) break;
+
+      const matchRemainingShares = parseFloat(matchOrder.shares) - parseFloat(matchOrder.filledShares);
+      const sharesToFill = Math.min(remainingShares, matchRemainingShares);
+      const fillPrice = matchPrice;
+      const fillCost = sharesToFill * fillPrice;
+
+      const takerFeeBps = 10;
+      const takerFee = (fillCost * takerFeeBps) / 10000;
+
+      await db
+        .update(orders)
+        .set({
+          filledShares: sql`${orders.filledShares} + ${sharesToFill}`,
+          totalCost: sql`${orders.totalCost} + ${fillCost}`,
+          status: matchRemainingShares === sharesToFill ? "filled" : "partially_filled",
+          updatedAt: new Date(),
+          filledAt: matchRemainingShares === sharesToFill ? new Date() : null,
+        })
+        .where(eq(orders.id, matchOrder.id));
+
+      remainingShares -= sharesToFill;
+      totalCost += fillCost;
+      totalFeePaid += takerFee;
+
+      const buyerUserId = newOrder.action === "buy" ? newOrder.userId : matchOrder.userId;
+      const sellerUserId = newOrder.action === "sell" ? newOrder.userId : matchOrder.userId;
+
+      const buyerSharesDelta = newOrder.type === "yes" ? sharesToFill : 0;
+      const buyerNoSharesDelta = newOrder.type === "no" ? sharesToFill : 0;
+      const sellerSharesDelta = newOrder.type === "yes" ? -sharesToFill : 0;
+      const sellerNoSharesDelta = newOrder.type === "no" ? -sharesToFill : 0;
+
+      await this.createOrUpdatePosition(
+        buyerUserId,
+        newOrder.marketId,
+        buyerSharesDelta,
+        buyerNoSharesDelta,
+        fillCost + takerFee,
+        fillPrice,
+        undefined
+      );
+
+      await this.createOrUpdatePosition(
+        sellerUserId,
+        newOrder.marketId,
+        sellerSharesDelta,
+        sellerNoSharesDelta,
+        -fillCost,
+        undefined,
+        fillPrice
+      );
+    }
+
+    await db
+      .update(orders)
+      .set({
+        filledShares: (parseFloat(newOrder.shares) - remainingShares).toFixed(2),
+        totalCost: totalCost.toFixed(2),
+        feePaid: totalFeePaid.toFixed(6),
+        status: remainingShares === 0 ? "filled" : remainingShares < parseFloat(newOrder.shares) ? "partially_filled" : "open",
+        updatedAt: new Date(),
+        filledAt: remainingShares === 0 ? new Date() : null,
+        isMaker: false,
+      })
+      .where(eq(orders.id, newOrder.id));
   }
 
   // Comment methods
@@ -262,7 +423,7 @@ export class DatabaseStorage implements IStorage {
 
     return result.map((row) => ({
       ...row.comments,
-      user: { username: row.users!.username },
+      user: { username: row.users!.username || "Anonymous" },
     }));
   }
 

@@ -420,6 +420,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== CLOB (Central Limit Order Book) ROUTES =====
+  
+  // POST /api/clob/orders - Create a limit order
+  app.post("/api/clob/orders", ensureUsername, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const validated = insertOrderSchema.parse(req.body);
+      
+      const market = await storage.getMarket(validated.marketId);
+      if (!market || market.status !== "active") {
+        return res.status(400).send("Market is not active");
+      }
+
+      const estimatedCost = validated.shares * validated.price;
+      const estimatedFee = (estimatedCost * 10) / 10000;
+      const totalRequired = estimatedCost + estimatedFee;
+
+      const user = await storage.getUser(userId);
+      if (!user || parseFloat(user.balanceBrl) < totalRequired) {
+        return res.status(400).send("Insufficient balance");
+      }
+
+      const order = await storage.createOrder(userId, validated);
+
+      res.json(order);
+    } catch (error: any) {
+      console.error("CLOB order error:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Validation failed", issues: error.issues });
+      }
+      res.status(400).send(error.message || "Failed to create order");
+    }
+  });
+
+  // DELETE /api/clob/orders/:orderId - Cancel an open order
+  app.delete("/api/clob/orders/:orderId", ensureUsername, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { orderId } = req.params;
+      
+      await storage.cancelOrder(orderId, userId);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Cancel order error:", error);
+      res.status(500).send("Failed to cancel order");
+    }
+  });
+
+  // GET /api/clob/orderbook/:marketId - Get order book for a market
+  app.get("/api/clob/orderbook/:marketId", async (req, res) => {
+    try {
+      const { marketId } = req.params;
+      const orderbook = await storage.getOrderBook(marketId);
+      
+      res.json(orderbook);
+    } catch (error) {
+      console.error("Order book error:", error);
+      res.status(500).send("Failed to fetch order book");
+    }
+  });
+
+  // GET /api/clob/my-orders - Get my open orders
+  app.get("/api/clob/my-orders", ensureUsername, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const allOrders = await storage.getOrdersByMarket("");
+      const myOrders = allOrders.filter(o => o.userId === userId && o.status === "open");
+      
+      res.json(myOrders);
+    } catch (error) {
+      console.error("My orders error:", error);
+      res.status(500).send("Failed to fetch orders");
+    }
+  });
+
   // ===== AI ASSISTANT ROUTES =====
   
   // POST /api/ai/chat - Chat with AI assistant
