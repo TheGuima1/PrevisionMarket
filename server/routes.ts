@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { insertMarketSchema, insertOrderSchema, insertCommentSchema } from "@shared/schema";
 import OpenAI from "openai";
+import { z } from "zod";
 
 // Initialize OpenAI for AI assistant
 // Using Replit's AI Integrations service (no API key needed)
@@ -60,7 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== ORDER ROUTES =====
   
-  // POST /api/orders - Place an order
+  // POST /api/orders - Place a buy order
   app.post("/api/orders", requireAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
@@ -71,9 +72,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Market is not active");
       }
 
-      const shares = typeof validated.shares === "string" 
-        ? parseFloat(validated.shares) 
-        : validated.shares;
+      // shares is now guaranteed to be a positive number by insertOrderSchema
+      const shares = validated.shares;
       
       const price = validated.type === "yes" 
         ? parseFloat(market.yesPrice) 
@@ -153,6 +153,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Zod schema for sell order
+  const sellOrderSchema = z.object({
+    marketId: z.string(),
+    type: z.enum(["yes", "no"]),
+    shares: z.union([z.string(), z.number()]).transform(val => 
+      typeof val === "string" ? parseFloat(val) : val
+    ).refine(val => val > 0 && !isNaN(val), "Shares must be a positive number"),
+  });
+
+  // POST /api/orders/sell - Sell shares from a position
+  app.post("/api/orders/sell", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Validate input with Zod
+      const validated = sellOrderSchema.parse(req.body);
+      const { marketId, type, shares } = validated;
+
+      const market = await storage.getMarket(marketId);
+      if (!market || market.status !== "active") {
+        return res.status(400).send("Market is not active");
+      }
+
+      // Check user position
+      const position = await storage.getPosition(userId, marketId);
+      if (!position) {
+        return res.status(400).send("No position found");
+      }
+
+      const currentShares = type === "yes" 
+        ? parseFloat(position.yesShares)
+        : parseFloat(position.noShares);
+      
+      if (currentShares < shares) {
+        return res.status(400).send("Insufficient shares to sell");
+      }
+
+      // Calculate proceeds
+      const price = type === "yes" 
+        ? parseFloat(market.yesPrice) 
+        : parseFloat(market.noPrice);
+      const proceeds = shares * price;
+
+      // Create sell order
+      const order = await storage.createOrder(userId, {
+        marketId,
+        type: type as "yes" | "no",
+        shares: (-shares).toString(),  // Negative to indicate sell
+        price: price.toFixed(4),
+        totalCost: (-proceeds).toFixed(2),  // Negative cost = proceeds
+      });
+
+      // Update user balance
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(500).send("User not found");
+      }
+      const newBalance = (parseFloat(user.balanceBrl) + proceeds).toFixed(2);
+      await storage.updateUserBalance(userId, newBalance, user.balanceUsdc);
+
+      // Update position (reduce shares)
+      await storage.createOrUpdatePosition(
+        userId,
+        marketId,
+        type === "yes" ? -shares : 0,
+        type === "no" ? -shares : 0,
+        -proceeds
+      );
+
+      // Update market statistics
+      const newTotalVolume = (parseFloat(market.totalVolume) + proceeds).toFixed(2);
+      const newTotalYesShares = type === "yes"
+        ? (parseFloat(market.totalYesShares) - shares).toFixed(2)
+        : market.totalYesShares;
+      const newTotalNoShares = type === "no"
+        ? (parseFloat(market.totalNoShares) - shares).toFixed(2)
+        : market.totalNoShares;
+      
+      // Update prices
+      const totalShares = parseFloat(newTotalYesShares) + parseFloat(newTotalNoShares);
+      const newYesPrice = totalShares > 0 
+        ? (parseFloat(newTotalYesShares) / totalShares).toFixed(4)
+        : "0.5000";
+      const newNoPrice = totalShares > 0
+        ? (parseFloat(newTotalNoShares) / totalShares).toFixed(4)
+        : "0.5000";
+
+      await storage.updateMarketPrices(
+        marketId,
+        newYesPrice,
+        newNoPrice,
+        newTotalVolume,
+        newTotalYesShares,
+        newTotalNoShares
+      );
+
+      // Create transaction record
+      await storage.createTransaction(userId, {
+        type: "trade_sell",
+        amount: proceeds.toFixed(2),
+        currency: "BRL",
+        description: `Sold ${shares} ${type.toUpperCase()} shares in "${market.title}"`,
+      });
+
+      res.json(order);
+    } catch (error: any) {
+      console.error("Sell order error:", error);
+      res.status(400).send(error.message || "Failed to sell shares");
+    }
+  });
+
   // ===== POSITION ROUTES =====
   
   // GET /api/positions - Get user's positions
@@ -190,16 +301,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== WALLET ROUTES =====
   
+  // Zod schema for wallet deposit
+  const depositSchema = z.object({
+    amount: z.union([z.string(), z.number()]).transform(val => 
+      typeof val === "string" ? parseFloat(val) : val
+    ).refine(val => val > 0 && !isNaN(val), "Amount must be a positive number"),
+    currency: z.enum(["BRL", "USDC"]),
+    type: z.enum(["deposit_pix", "deposit_usdc"]),
+  });
+
   // POST /api/wallet/deposit - Deposit funds (MOCKED)
   app.post("/api/wallet/deposit", requireAuth, async (req, res) => {
     try {
-      const { amount, currency, type } = req.body;
-      const user = req.user!;
+      // Validate input with Zod
+      const validated = depositSchema.parse(req.body);
+      const { amount: depositAmount, currency, type } = validated;
       
-      const depositAmount = parseFloat(amount);
-      if (depositAmount <= 0 || isNaN(depositAmount)) {
-        return res.status(400).send("Invalid amount");
-      }
+      const user = req.user!;
 
       let newBalanceBrl = user.balanceBrl;
       let newBalanceUsdc = user.balanceUsdc;
@@ -208,8 +326,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newBalanceBrl = (parseFloat(user.balanceBrl) + depositAmount).toFixed(2);
       } else if (currency === "USDC") {
         newBalanceUsdc = (parseFloat(user.balanceUsdc) + depositAmount).toFixed(6);
-      } else {
-        return res.status(400).send("Invalid currency");
       }
 
       await storage.updateUserBalance(user.id, newBalanceBrl, newBalanceUsdc);
@@ -222,21 +338,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).send(error.message || "Invalid input");
+      }
       res.status(500).send("Failed to process deposit");
     }
+  });
+
+  // Zod schema for wallet withdrawal
+  const withdrawalSchema = z.object({
+    amount: z.union([z.string(), z.number()]).transform(val => 
+      typeof val === "string" ? parseFloat(val) : val
+    ).refine(val => val > 0 && !isNaN(val), "Amount must be a positive number"),
+    currency: z.enum(["BRL", "USDC"]),
+    type: z.enum(["withdrawal_pix", "withdrawal_usdc"]),
   });
 
   // POST /api/wallet/withdraw - Withdraw funds (MOCKED)
   app.post("/api/wallet/withdraw", requireAuth, async (req, res) => {
     try {
-      const { amount, currency, type } = req.body;
-      const user = req.user!;
+      // Validate input with Zod
+      const validated = withdrawalSchema.parse(req.body);
+      const { amount: withdrawAmount, currency, type } = validated;
       
-      const withdrawAmount = parseFloat(amount);
-      if (withdrawAmount <= 0 || isNaN(withdrawAmount)) {
-        return res.status(400).send("Invalid amount");
-      }
+      const user = req.user!;
 
       let newBalanceBrl = user.balanceBrl;
       let newBalanceUsdc = user.balanceUsdc;
@@ -251,8 +377,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).send("Insufficient balance");
         }
         newBalanceUsdc = (parseFloat(user.balanceUsdc) - withdrawAmount).toFixed(6);
-      } else {
-        return res.status(400).send("Invalid currency");
       }
 
       await storage.updateUserBalance(user.id, newBalanceBrl, newBalanceUsdc);
@@ -265,7 +389,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).send(error.message || "Invalid input");
+      }
       res.status(500).send("Failed to process withdrawal");
     }
   });

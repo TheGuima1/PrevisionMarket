@@ -193,7 +193,9 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
 }).extend({
   marketId: z.string(),
   type: z.enum(["yes", "no"]),
-  shares: z.string().or(z.number()),
+  shares: z.union([z.string(), z.number()]).transform(val => 
+    typeof val === "string" ? parseFloat(val) : val
+  ).pipe(z.number().positive("Shares must be a positive number")),
 });
 
 export const insertCommentSchema = createInsertSchema(comments).omit({

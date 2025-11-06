@@ -7,6 +7,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { z } from "zod";
 
 declare global {
   namespace Express {
@@ -42,8 +43,21 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Zod schema for login (defined early for passport strategy)
+  const loginSchema = z.object({
+    username: z.string(),
+    password: z.string(),
+  });
+
   passport.use(
     new LocalStrategy(async (username, password, done) => {
+      // Validate credentials
+      try {
+        loginSchema.parse({ username, password });
+      } catch (error) {
+        return done(null, false);
+      }
+
       const user = await storage.getUserByUsername(username);
       if (!user || !(await comparePasswords(password, user.password))) {
         return done(null, false);
@@ -59,30 +73,70 @@ export function setupAuth(app: Express) {
     done(null, user);
   });
 
-  app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).send("Username already exists");
-    }
+  // Sanitize user object before sending to client
+  function sanitizeUser(user: SelectUser) {
+    const { password, ...sanitized } = user;
+    return sanitized;
+  }
 
-    const existingEmail = await storage.getUserByEmail(req.body.email);
-    if (existingEmail) {
-      return res.status(400).send("Email already exists");
-    }
-
-    const user = await storage.createUser({
-      ...req.body,
-      password: await hashPassword(req.body.password),
-    });
-
-    req.login(user, (err) => {
-      if (err) return next(err);
-      res.status(201).json(user);
-    });
+  // Zod schema for registration
+  const registerSchema = z.object({
+    username: z.string().min(3).max(30),
+    email: z.string().email(),
+    password: z.string().min(6),
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      // Validate input with Zod
+      const validated = registerSchema.parse(req.body);
+
+      const existingUser = await storage.getUserByUsername(validated.username);
+      if (existingUser) {
+        return res.status(400).send("Username already exists");
+      }
+
+      const existingEmail = await storage.getUserByEmail(validated.email);
+      if (existingEmail) {
+        return res.status(400).send("Email already exists");
+      }
+
+      const user = await storage.createUser({
+        username: validated.username,
+        email: validated.email,
+        password: await hashPassword(validated.password),
+      });
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(201).json(sanitizeUser(user));
+      });
+    } catch (error: any) {
+      res.status(400).send(error.message || "Registration failed");
+    }
+  });
+
+  app.post("/api/login", (req, res, next) => {
+    try {
+      // Validate input with Zod - this ensures only validated fields reach passport
+      const validated = loginSchema.parse(req.body);
+      
+      // Replace req.body with validated data so passport only sees validated fields
+      req.body = validated;
+      
+      // Now authenticate with passport
+      passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
+        if (err) return next(err);
+        if (!user) return res.status(401).send("Invalid credentials");
+        
+        req.login(user, (err) => {
+          if (err) return next(err);
+          res.status(200).json(sanitizeUser(user));
+        });
+      })(req, res, next);
+    } catch (error: any) {
+      res.status(400).send(error.message || "Login failed");
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -94,6 +148,6 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    res.json(req.user);
+    res.json(sanitizeUser(req.user!));
   });
 }
