@@ -7,6 +7,14 @@ MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspira
 **Fase Atual**: Landing Page Pública Concluída ✅ | MVP Completo
 
 ### Tarefas Recentes Concluídas (06 Nov 2025)
+- ✅ **Public Odds Display Integration** (06 Nov 2025) - COMPLETO
+  - ✅ Market prices (yesPrice/noPrice) now update after every CLOB trade execution
+  - ✅ Last traded price reflects on public landing page without authentication
+  - ✅ Complementary pricing logic: yesPrice = fillPrice, noPrice = 1 - fillPrice (ou vice-versa)
+  - ✅ E2E test passed: Trade at 0.75 shows 75.0%/25.0% on public homepage
+  - ✅ Architect review: PASS - Performance OK, no security concerns
+  - ✅ Production-ready: Public users see real-time market odds
+
 - ✅ **Task 5**: Landing Page Pública Polymarket-Style (COMPLETO)
   - ✅ Homepage pública (sem auth required)
   - ✅ PublicNavbar com Login/Sign Up buttons
