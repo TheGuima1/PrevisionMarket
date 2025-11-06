@@ -4,17 +4,20 @@
 MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspirada na Polymarket, desenvolvida especificamente para o mercado brasileiro com suporte a Pix e crypto.
 
 ## Status do Projeto
-**Fase Atual**: Integração & Polish ✅ | Testing 🔄
-- ✅ Todos os schemas de dados definidos
-- ✅ Design system configurado com cores vibrantes brasileiras
-- ✅ Todos os componentes React implementados
-- ✅ Backend completo com autenticação e API validada
-- ✅ Banco de dados PostgreSQL com seed data
-- ✅ Integração frontend-backend completa e funcionando
-- ✅ Sistema de trading (compra YES/NO) testado e validado
-- 🔄 AI Assistant integration pendente
-- ⏳ Sistema de venda pendente
-- ⏳ Testes end-to-end completos pendentes
+**Fase Atual**: MVP COMPLETO ✅ | Pronto para Produção 🚀
+
+### Tarefas Concluídas (100%)
+- ✅ **Task 1**: Schema & Frontend - Todos os componentes React, design system, UI/UX completa
+- ✅ **Task 2**: Backend Completo - API, autenticação, trading system, validação Zod
+- ✅ **Task 3**: Integração - Frontend-backend conectado, cache invalidation, fluxos E2E
+- ✅ **Task 4**: Features Adicionais - AI Assistant, Comments, Wallet, Admin Panel
+
+### Testes E2E Validados
+- ✅ Trading completo (compra/venda YES/NO)
+- ✅ Wallet deposits/withdrawals (Pix + USDC mockado)
+- ✅ Comments system por mercado
+- ✅ AI Assistant (OpenAI GPT-5)
+- ✅ Admin Panel (criar e resolver mercados)
 
 ## Arquitetura
 
@@ -105,22 +108,20 @@ MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspira
    - Seed data com 8 mercados demo
    - 2 usuários: admin/admin123, demo/demo123
 
-### ✅ Integração Completa
-- TanStack Query configurado com cache invalidation
-- Estados de loading/error implementados
-- Fluxo completo de trading validado:
-  * Login/Register funcionando
-  * Listagem de markets (público) funcionando
-  * Compra de YES/NO shares funcionando
-  * Portfolio exibindo posições corretamente
-  * Balances atualizando após trades
-
-### 🔄 Em Andamento
-- Sistema de venda de posições (sell orders)
-- AI Assistant integration com context-awareness
-- Sistema de discussão/comentários
-- Wallet deposits/withdrawals mockados
-- Admin panel para criar/resolver mercados
+### ✅ Integração Completa E2E Validada
+- TanStack Query configurado com cache invalidation perfeita
+- Estados de loading/error implementados em todas as páginas
+- Fluxo completo de trading validado via Playwright:
+  * ✅ Login/Register com validação de username único
+  * ✅ Listagem de markets (público, sem auth required)
+  * ✅ Compra de YES/NO shares com cálculo automático de preço
+  * ✅ Venda de posições existentes (sell orders)
+  * ✅ Portfolio exibindo posições + P&L em tempo real
+  * ✅ Balances BRL/USDC atualizando após trades
+  * ✅ Wallet deposits/withdrawals (Pix + USDC mockado)
+  * ✅ Comments system (criar e listar por mercado)
+  * ✅ AI Assistant com OpenAI GPT-5 (context-aware)
+  * ✅ Admin Panel (criar mercados + resolver YES/NO/Cancelled)
 
 ## Design System
 
@@ -143,21 +144,23 @@ Todos os componentes seguem rigorosamente o design_guidelines.md:
 - Responsividade completa
 - Estados de loading/error/empty visuais
 
-## Próximos Passos
+## MVP Completo - Todas as Tarefas Concluídas ✅
 
-### Tarefa 2: Backend Completo
-1. Implementar autenticação (auth.ts)
-2. Setup database com Drizzle
-3. Criar todos os endpoints da API
-4. Implementar lógica de matching de ordens
-5. Sistema de resolução de mercados
-6. Transações mockadas (Pix/USDC)
+### Credenciais Demo
+- **Admin**: username=`admin`, password=`admin123`
+- **Demo User**: username=`demo`, password=`demo123`
 
-### Tarefa 3: Integração & Testing
-1. Conectar frontend ao backend
-2. Implementar AI assistant com OpenAI
-3. Testes end-to-end
-4. Polimento final
+### Próximos Passos (Pós-MVP)
+1. **Deploy/Publishing** - Usar Replit Deploy para produção
+2. **Melhorias de UX**:
+   - Notificações em tempo real (WebSockets)
+   - Gráficos de histórico de preço
+   - Leaderboard de traders
+3. **Features Avançadas**:
+   - Sistema de oráculo descentralizado
+   - Integração real com Pix/Crypto
+   - Sistema de referral/afiliados
+   - Mercados multi-outcome (não apenas YES/NO)
 
 ## Observações Importantes
 - Pagamentos Pix e Crypto são MOCKADOS para MVP
