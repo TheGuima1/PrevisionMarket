@@ -466,6 +466,10 @@ Your role:
       const market = await storage.createMarket(validated);
       res.json(market);
     } catch (error: any) {
+      console.error("Admin market creation error:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Validation failed", issues: error.issues });
+      }
       res.status(400).send(error.message || "Failed to create market");
     }
   });

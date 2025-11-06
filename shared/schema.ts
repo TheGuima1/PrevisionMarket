@@ -184,6 +184,9 @@ export const insertMarketSchema = createInsertSchema(markets).omit({
   resolvedOutcome: true,
 }).extend({
   status: z.enum(["active", "closed", "resolved", "cancelled"]).default("active"),
+  endDate: z.union([z.string(), z.date()]).transform(val => 
+    typeof val === "string" ? new Date(val) : val
+  ),
 });
 
 export const insertOrderSchema = createInsertSchema(orders).omit({
