@@ -12,8 +12,8 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
   
-  const [loginData, setLoginData] = useState({ username: "", password: "" });
-  const [registerData, setRegisterData] = useState({ username: "", email: "", password: "", confirmPassword: "" });
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [registerData, setRegisterData] = useState({ email: "", password: "", confirmPassword: "" });
 
   useEffect(() => {
     if (user) {
@@ -32,7 +32,6 @@ export default function AuthPage() {
       return;
     }
     registerMutation.mutate({
-      username: registerData.username,
       email: registerData.email,
       password: registerData.password,
     });
@@ -70,14 +69,15 @@ export default function AuthPage() {
                 <CardContent>
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login-username">Nome de usuário</Label>
+                      <Label htmlFor="login-email">Email</Label>
                       <Input
-                        id="login-username"
-                        placeholder="seu_usuario"
-                        value={loginData.username}
-                        onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                        id="login-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={loginData.email}
+                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                         required
-                        data-testid="input-login-username"
+                        data-testid="input-login-email"
                       />
                     </div>
                     <div className="space-y-2">
@@ -112,18 +112,6 @@ export default function AuthPage() {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleRegister} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="register-username">Nome de usuário</Label>
-                      <Input
-                        id="register-username"
-                        placeholder="seu_usuario"
-                        value={registerData.username}
-                        onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
-                        required
-                        data-testid="input-register-username"
-                      />
-                      <p className="text-xs text-muted-foreground">Único e imutável</p>
-                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="register-email">E-mail</Label>
                       <Input
