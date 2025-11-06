@@ -44,9 +44,9 @@ function Router() {
       {/* Public Routes */}
       <Route path="/" component={HomePage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/market/:id" component={MarketDetailPage} />
       
       {/* Protected Routes */}
-      <ProtectedRoute path="/market/:id" component={MarketDetailPage} />
       <ProtectedRoute path="/portfolio" component={PortfolioPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
       
