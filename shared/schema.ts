@@ -30,6 +30,15 @@ export const marketStatusEnum = pgEnum("market_status", [
 
 export const orderTypeEnum = pgEnum("order_type", ["yes", "no"]);
 
+export const orderActionEnum = pgEnum("order_action", ["buy", "sell"]);
+
+export const orderStatusEnum = pgEnum("order_status", [
+  "open",
+  "partially_filled",
+  "filled",
+  "cancelled",
+]);
+
 export const transactionTypeEnum = pgEnum("transaction_type", [
   "deposit_pix",
   "deposit_usdc",
@@ -86,16 +95,26 @@ export const positions = pgTable("positions", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// Orders table (trade history)
+// Orders table (CLOB limit orders + trade history)
 export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   marketId: varchar("market_id").notNull().references(() => markets.id),
-  type: orderTypeEnum("type").notNull(),
-  shares: decimal("shares", { precision: 12, scale: 2 }).notNull(),
-  price: decimal("price", { precision: 5, scale: 4 }).notNull(),
-  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull(),
+  type: orderTypeEnum("type").notNull(), // YES or NO
+  action: orderActionEnum("action").notNull(), // BUY or SELL
+  status: orderStatusEnum("status").notNull().default("open"), // OPEN, FILLED, CANCELLED, PARTIALLY_FILLED
+  shares: decimal("shares", { precision: 12, scale: 2 }).notNull(), // Total shares in order
+  filledShares: decimal("filled_shares", { precision: 12, scale: 2 }).notNull().default("0.00"), // Shares filled so far
+  price: decimal("price", { precision: 5, scale: 4 }).notNull(), // Limit price (0-1 probability)
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }).notNull().default("0.00"), // Total cost (updated as filled)
+  isMaker: boolean("is_maker").default(true), // Maker (true) or Taker (false) - for fee calculation
+  makerFeeBps: integer("maker_fee_bps").default(0), // Maker fee in basis points (0-10)
+  takerFeeBps: integer("taker_fee_bps").default(10), // Taker fee in basis points (5-10)
+  feePaid: decimal("fee_paid", { precision: 12, scale: 6 }).notNull().default("0.000000"), // Total fee paid
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  filledAt: timestamp("filled_at"), // When order was fully filled
+  cancelledAt: timestamp("cancelled_at"), // When order was cancelled
 });
 
 // Comments table (market discussions)
@@ -215,18 +234,36 @@ export const insertMarketSchema = createInsertSchema(markets).omit({
   ),
 });
 
+// CLOB Limit Order schema (for creating new limit orders)
 export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
+  filledAt: true,
+  cancelledAt: true,
   userId: true,
-  price: true, // Calculated by backend
-  totalCost: true, // Calculated by backend
+  totalCost: true,
+  filledShares: true,
+  feePaid: true,
+  isMaker: true,
+  makerFeeBps: true,
+  takerFeeBps: true,
+  status: true,
 }).extend({
   marketId: z.string(),
   type: z.enum(["yes", "no"]),
+  action: z.enum(["buy", "sell"]),
   shares: z.union([z.string(), z.number()]).transform(val => 
     typeof val === "string" ? parseFloat(val) : val
-  ).pipe(z.number().positive("Shares must be a positive number")),
+  ).pipe(z.number().positive("Shares must be greater than 0")),
+  price: z.union([z.string(), z.number()]).transform(val => 
+    typeof val === "string" ? parseFloat(val) : val
+  ).pipe(z.number().min(0.01, "Price must be at least 0.01").max(0.99, "Price must be at most 0.99")),
+});
+
+// Cancel order schema
+export const cancelOrderSchema = z.object({
+  orderId: z.string(),
 });
 
 export const insertCommentSchema = createInsertSchema(comments).omit({
