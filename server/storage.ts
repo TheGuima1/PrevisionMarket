@@ -32,6 +32,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: Omit<InsertUser, "id"> & { email: string }): Promise<User>;
   updateUserBalance(userId: string, balanceBrl: string, balanceUsdc: string): Promise<void>;
+  updateUserUsername(userId: string, username: string): Promise<User>;
 
   // Market methods
   getMarkets(category?: string): Promise<Market[]>;
@@ -110,6 +111,15 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ balanceBrl, balanceUsdc })
       .where(eq(users.id, userId));
+  }
+
+  async updateUserUsername(userId: string, username: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ username })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 
   // Market methods

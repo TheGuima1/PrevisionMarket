@@ -29,6 +29,17 @@ function requireAdmin(req: Request, res: Response, next: Function) {
   next();
 }
 
+// Middleware to check if user has set their username
+function ensureUsername(req: Request, res: Response, next: Function) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).send("Unauthorized");
+  }
+  if (!req.user?.username) {
+    return res.status(403).send("Username required - please set your username first");
+  }
+  next();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
@@ -61,8 +72,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== ORDER ROUTES =====
   
-  // POST /api/orders - Place a buy order
-  app.post("/api/orders", requireAuth, async (req, res) => {
+  // POST /api/orders - Place a buy order (requires username)
+  app.post("/api/orders", ensureUsername, async (req, res) => {
     try {
       const userId = req.user!.id;
       const validated = insertOrderSchema.parse(req.body);
@@ -162,8 +173,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ).refine(val => val > 0 && !isNaN(val), "Shares must be a positive number"),
   });
 
-  // POST /api/orders/sell - Sell shares from a position
-  app.post("/api/orders/sell", requireAuth, async (req, res) => {
+  // POST /api/orders/sell - Sell shares from a position (requires username)
+  app.post("/api/orders/sell", ensureUsername, async (req, res) => {
     try {
       const userId = req.user!.id;
       
@@ -288,8 +299,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/comments - Create a comment
-  app.post("/api/comments", requireAuth, async (req, res) => {
+  // POST /api/comments - Create a comment (requires username)
+  app.post("/api/comments", ensureUsername, async (req, res) => {
     try {
       const validated = insertCommentSchema.parse(req.body);
       const comment = await storage.createComment(req.user!.id, validated);

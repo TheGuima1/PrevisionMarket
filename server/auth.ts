@@ -45,26 +45,29 @@ export function setupAuth(app: Express) {
 
   // Zod schema for login (defined early for passport strategy)
   const loginSchema = z.object({
-    username: z.string(),
+    email: z.string().email(),
     password: z.string(),
   });
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      // Validate credentials
-      try {
-        loginSchema.parse({ username, password });
-      } catch (error) {
-        return done(null, false);
-      }
+    new LocalStrategy(
+      { usernameField: 'email' }, // Use email instead of username
+      async (email, password, done) => {
+        // Validate credentials
+        try {
+          loginSchema.parse({ email, password });
+        } catch (error) {
+          return done(null, false);
+        }
 
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
-        return done(null, user);
+        const user = await storage.getUserByEmail(email);
+        if (!user || !(await comparePasswords(password, user.password))) {
+          return done(null, false);
+        } else {
+          return done(null, user);
+        }
       }
-    }),
+    ),
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
@@ -79,9 +82,8 @@ export function setupAuth(app: Express) {
     return sanitized;
   }
 
-  // Zod schema for registration
+  // Zod schema for registration (email+password only)
   const registerSchema = z.object({
-    username: z.string().min(3).max(30),
     email: z.string().email(),
     password: z.string().min(6),
   });
@@ -91,18 +93,12 @@ export function setupAuth(app: Express) {
       // Validate input with Zod
       const validated = registerSchema.parse(req.body);
 
-      const existingUser = await storage.getUserByUsername(validated.username);
-      if (existingUser) {
-        return res.status(400).send("Username already exists");
-      }
-
       const existingEmail = await storage.getUserByEmail(validated.email);
       if (existingEmail) {
         return res.status(400).send("Email already exists");
       }
 
       const user = await storage.createUser({
-        username: validated.username,
         email: validated.email,
         password: await hashPassword(validated.password),
       });
@@ -149,5 +145,38 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(sanitizeUser(req.user!));
+  });
+
+  // Set username after first login
+  app.put("/api/user/username", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const setUsernameSchema = z.object({
+        username: z.string()
+          .min(3, "Username deve ter no mínimo 3 caracteres")
+          .max(20, "Username deve ter no máximo 20 caracteres")
+          .regex(/^[a-zA-Z0-9_]+$/, "Username deve conter apenas letras, números e underscores"),
+      });
+
+      const validated = setUsernameSchema.parse(req.body);
+
+      // Check if user already has a username
+      if (req.user!.username) {
+        return res.status(400).send("Username already set");
+      }
+
+      // Check if username is already taken
+      const existingUser = await storage.getUserByUsername(validated.username);
+      if (existingUser) {
+        return res.status(400).send("Username already taken");
+      }
+
+      // Update username
+      const updatedUser = await storage.updateUserUsername(req.user!.id, validated.username);
+      res.json(sanitizeUser(updatedUser));
+    } catch (error: any) {
+      res.status(400).send(error.message || "Failed to set username");
+    }
   });
 }
