@@ -4,20 +4,25 @@
 MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspirada na Polymarket, desenvolvida especificamente para o mercado brasileiro com suporte a Pix e crypto.
 
 ## Status do Projeto
-**Fase Atual**: MVP COMPLETO ✅ | Pronto para Produção 🚀
+**Fase Atual**: Refatoração em Progresso 🚧 | Preparando Landing Page Pública
 
-### Tarefas Concluídas (100%)
-- ✅ **Task 1**: Schema & Frontend - Todos os componentes React, design system, UI/UX completa
-- ✅ **Task 2**: Backend Completo - API, autenticação, trading system, validação Zod
-- ✅ **Task 3**: Integração - Frontend-backend conectado, cache invalidation, fluxos E2E
-- ✅ **Task 4**: Features Adicionais - AI Assistant, Comments, Wallet, Admin Panel
+### Tarefas Recentes Concluídas
+- ✅ **Task 4**: Reestruturação Polymarket Categories
+  - Schema atualizado com 13 categorias (trending, breaking, new, politics, sports, finance, crypto, geopolitics, tech, culture, world, economy, elections)
+  - Sistema de tags implementado (text[] array)
+  - Seed data migrado para novas categorias
+  - Database reseeded com sucesso
 
-### Testes E2E Validados
-- ✅ Trading completo (compra/venda YES/NO)
-- ✅ Wallet deposits/withdrawals (Pix + USDC mockado)
-- ✅ Comments system por mercado
-- ✅ AI Assistant (OpenAI GPT-5)
-- ✅ Admin Panel (criar e resolver mercados)
+### Em Andamento
+- 🚧 **Task 5**: Landing Page Pública (próximo)
+  - Permitir browsing de markets sem autenticação
+  - Navbar estilo Polymarket com categorias
+  - Filtros por categoria e tags
+
+### Backlog
+- ⏳ Frontend updates para novas categorias
+- ⏳ Public market browsing
+- ⏳ Username uniqueness real-time validation
 
 ## Arquitetura
 
@@ -29,8 +34,10 @@ MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspira
 - **Autenticação**: Passport.js com sessions
 
 ### Estrutura de Dados
-- **Users**: Autenticação, saldo BRL/USDC, admin flags
-- **Markets**: Mercados binários (YES/NO) por categoria
+- **Users**: Email+password auth, username (nullable, set post-login), saldo BRL/USDC, admin flags
+- **Markets**: Mercados binários (YES/NO) com:
+  - **Categories**: 13 categorias Polymarket-style (trending, breaking, new, politics, sports, finance, crypto, geopolitics, tech, culture, world, economy, elections)
+  - **Tags**: text[] array para subcategorização (ex: ["Trump", "2024"], ["Gaza", "Israel"], ["Bitcoin", "ETF"])
 - **Positions**: Posições dos usuários em mercados
 - **Orders**: Histórico de trades
 - **Comments**: Sistema de discussão por mercado
@@ -40,13 +47,14 @@ MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspira
 
 ### ✅ Implementadas (Frontend)
 1. **Autenticação**
-   - Login/Registro com email e senha
+   - Login/Registro com email + password (sem username required)
+   - Username setup flow após primeiro login via modal
    - Username único e imutável
-   - Protected routes
+   - Protected routes com ensureUsername middleware
 
 2. **Dashboard de Mercados**
-   - Grid categorizado (Política, Economia, Cultura, Esportes, Ciência)
-   - Filtros por categoria
+   - Grid categorizado (PRECISA UPDATE para 13 categorias Polymarket)
+   - Filtros por categoria (PRECISA UPDATE)
    - Cards com odds em tempo real
    - Quick actions (Comprar SIM/NÃO)
 
@@ -147,8 +155,8 @@ Todos os componentes seguem rigorosamente o design_guidelines.md:
 ## MVP Completo - Todas as Tarefas Concluídas ✅
 
 ### Credenciais Demo
-- **Admin**: username=`admin`, password=`admin123`
-- **Demo User**: username=`demo`, password=`demo123`
+- **Admin**: email=`admin@matrizpix.com`, password=`admin123` (username já configurado: `admin`)
+- **Demo User**: email=`demo@matrizpix.com`, password=`demo123` (username já configurado: `demo`)
 
 ### Próximos Passos (Pós-MVP)
 1. **Deploy/Publishing** - Usar Replit Deploy para produção
@@ -169,15 +177,18 @@ Todos os componentes seguem rigorosamente o design_guidelines.md:
 - Design guidelines devem ser seguidos religiosamente
 
 ## User Journey Principal
-1. Usuário se registra → escolhe username único
-2. Deposita fundos (mockado) via Pix ou USDC
-3. Navega por mercados categorizados
-4. Visualiza detalhes e analisa odds em múltiplos formatos
-5. Faz ordem de compra (SIM ou NÃO)
-6. Participa de discussões por mercado
-7. Monitora posições no portfólio
-8. Recebe pagamento quando mercado é resolvido
-9. Saca fundos (mockado)
+1. Usuário navega markets publicamente (SEM login required) - 🚧 TODO
+2. Decide se cadastrar → registro com email + password
+3. Após primeiro login → define username único via modal
+4. Deposita fundos (mockado) via Pix ou USDC
+5. Navega por mercados categorizados (13 categorias Polymarket)
+6. Filtra por categoria ou tags
+7. Visualiza detalhes e analisa odds em múltiplos formatos
+8. Faz ordem de compra (SIM ou NÃO)
+9. Participa de discussões por mercado
+10. Monitora posições no portfólio
+11. Recebe pagamento quando mercado é resolvido
+12. Saca fundos (mockado)
 
 ## Contato com IA Assistant
 O assistente IA pode:

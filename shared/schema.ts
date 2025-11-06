@@ -4,13 +4,21 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Enums
+// Enums - Polymarket-style categories (complete list)
 export const marketCategoryEnum = pgEnum("market_category", [
-  "politica",
-  "economia",
-  "cultura",
-  "esportes",
-  "ciencia",
+  "trending",
+  "breaking",
+  "new",
+  "politics",
+  "sports",
+  "finance",
+  "crypto",
+  "geopolitics",
+  "tech",
+  "culture",
+  "world",
+  "economy",
+  "elections",
 ]);
 
 export const marketStatusEnum = pgEnum("market_status", [
@@ -50,6 +58,7 @@ export const markets = pgTable("markets", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   category: marketCategoryEnum("category").notNull(),
+  tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`), // Subcategories/tags for filtering
   status: marketStatusEnum("status").notNull().default("active"),
   resolutionSource: text("resolution_source"),
   endDate: timestamp("end_date").notNull(),
