@@ -7,25 +7,42 @@ import type { Market } from "@shared/schema";
 
 interface MarketCardProps {
   market: Market;
+  isPublic?: boolean;
 }
 
 const categoryColors: Record<string, string> = {
-  politica: "bg-primary/10 text-primary border-primary/20",
-  economia: "bg-secondary/10 text-secondary-foreground border-secondary/20",
-  cultura: "bg-accent/10 text-accent-foreground border-accent/20",
-  esportes: "bg-chart-4/10 text-chart-4 border-chart-4/20",
-  ciencia: "bg-chart-5/10 text-chart-5 border-chart-5/20",
+  trending: "bg-primary/10 text-primary border-primary/20",
+  breaking: "bg-destructive/10 text-destructive border-destructive/20",
+  new: "bg-accent/10 text-accent-foreground border-accent/20",
+  elections: "bg-chart-1/10 text-chart-1 border-chart-1/20",
+  politics: "bg-chart-2/10 text-chart-2 border-chart-2/20",
+  sports: "bg-chart-3/10 text-chart-3 border-chart-3/20",
+  finance: "bg-chart-4/10 text-chart-4 border-chart-4/20",
+  crypto: "bg-chart-5/10 text-chart-5 border-chart-5/20",
+  geopolitics: "bg-secondary/10 text-secondary-foreground border-secondary/20",
+  tech: "bg-primary/10 text-primary border-primary/20",
+  culture: "bg-accent/10 text-accent-foreground border-accent/20",
+  world: "bg-chart-1/10 text-chart-1 border-chart-1/20",
+  economy: "bg-chart-2/10 text-chart-2 border-chart-2/20",
 };
 
 const categoryLabels: Record<string, string> = {
-  politica: "Política",
-  economia: "Economia",
-  cultura: "Cultura",
-  esportes: "Esportes",
-  ciencia: "Ciência",
+  trending: "Trending",
+  breaking: "Breaking",
+  new: "New",
+  elections: "Elections",
+  politics: "Politics",
+  sports: "Sports",
+  finance: "Finance",
+  crypto: "Crypto",
+  geopolitics: "Geopolitics",
+  tech: "Tech",
+  culture: "Culture",
+  world: "World",
+  economy: "Economy",
 };
 
-export function MarketCard({ market }: MarketCardProps) {
+export function MarketCard({ market, isPublic = false }: MarketCardProps) {
   const yesProb = parseFloat(market.yesPrice) * 100;
   const noProb = parseFloat(market.noPrice) * 100;
   const volume = parseFloat(market.totalVolume);

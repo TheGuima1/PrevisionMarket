@@ -41,11 +41,15 @@ function UsernameGuard({ children }: { children: React.ReactNode }) {
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={HomePage} />
+      {/* Public Routes */}
+      <Route path="/" component={HomePage} />
+      <Route path="/auth" component={AuthPage} />
+      
+      {/* Protected Routes */}
       <ProtectedRoute path="/market/:id" component={MarketDetailPage} />
       <ProtectedRoute path="/portfolio" component={PortfolioPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
-      <Route path="/auth" component={AuthPage} />
+      
       <Route component={NotFound} />
     </Switch>
   );
