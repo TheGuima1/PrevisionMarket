@@ -35,7 +35,7 @@ export const transactionTypeEnum = pgEnum("transaction_type", [
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
+  username: text("username").unique(), // Nullable - set after first login
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   balanceBrl: decimal("balance_brl", { precision: 12, scale: 2 }).notNull().default("0.00"),
@@ -165,9 +165,26 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   }),
 }));
 
-// Insert schemas
+// Auth schemas
+export const registerSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(1, "Senha é obrigatória"),
+});
+
+export const setUsernameSchema = z.object({
+  username: z.string()
+    .min(3, "Username deve ter no mínimo 3 caracteres")
+    .max(20, "Username deve ter no máximo 20 caracteres")
+    .regex(/^[a-zA-Z0-9_]+$/, "Username deve conter apenas letras, números e underscores"),
+});
+
+// Insert schemas (for internal use)
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
   email: true,
   password: true,
 });
