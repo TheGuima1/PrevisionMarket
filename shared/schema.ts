@@ -190,6 +190,8 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   id: true,
   createdAt: true,
   userId: true,
+  price: true, // Calculated by backend
+  totalCost: true, // Calculated by backend
 }).extend({
   marketId: z.string(),
   type: z.enum(["yes", "no"]),

@@ -21,7 +21,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const { data: markets, isLoading } = useQuery<Market[]>({
-    queryKey: ["/api/markets", selectedCategory],
+    queryKey: ["/api/markets"],
   });
 
   const filteredMarkets = markets?.filter(

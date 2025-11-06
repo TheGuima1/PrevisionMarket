@@ -35,8 +35,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== MARKET ROUTES =====
   
-  // GET /api/markets - List all markets (optionally filtered by category)
-  app.get("/api/markets", requireAuth, async (req, res) => {
+  // GET /api/markets - List all markets (optionally filtered by category) - Public endpoint
+  app.get("/api/markets", async (req, res) => {
     try {
       const category = req.query.category as string | undefined;
       const markets = await storage.getMarkets(category);
@@ -46,8 +46,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET /api/markets/:id - Get market details
-  app.get("/api/markets/:id", requireAuth, async (req, res) => {
+  // GET /api/markets/:id - Get market details - Public endpoint
+  app.get("/api/markets/:id", async (req, res) => {
     try {
       const market = await storage.getMarket(req.params.id);
       if (!market) {
