@@ -21,9 +21,10 @@ The platform utilizes a vibrant Brazilian color scheme with a "verde-turquesa" p
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
 - **Authentication**: Passport.js with sessions
 - **Prediction Market Core**:
-    - **Central Limit Order Book (CLOB)**: Implemented with price-time priority, partial fills, and support for `partially_filled` orders. Includes mechanisms for reserved funds to prevent over-commitment.
+    - **Instant-Fill Market Orders (MVP)**: Simplified trading system where all market orders are instantly filled at current market price (yesPrice/noPrice) without CLOB matching. Orders immediately marked as status="filled" and appear in recent trades feed. Future: Full CLOB with limit orders and partial fills.
     - **Odds Calculation**: Automatic price calculation (AMM-like) with support for decimal odds as the primary display, alongside American and percentage probability.
     - **Localization**: Full PT-BR localization for all UI elements, categories, and messages.
+    - **Recent Activity Feed**: Real-time display of recent filled orders with auto-refresh (5s polling), showing username, market, type (YES/NO), shares, BRL value, and relative timestamps.
 
 ### Feature Specifications
 - **Authentication**: Email/password login/registration, unique username setup post-login, protected routes, and admin-specific routes.
