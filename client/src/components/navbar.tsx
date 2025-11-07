@@ -67,12 +67,15 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex flex-col items-end gap-0.5">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-brand-500/10 border-brand-500/20 text-brand-300 font-mono tabular-nums" data-testid="badge-balance-brl3">
-                  {parseFloat(user?.balanceBrl || "0").toLocaleString('pt-BR', { minimumFractionDigits: 2 })} BRL3
-                </Badge>
-              </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <Badge variant="outline" className="bg-brand-500/10 border-brand-500/20 text-brand-300 font-mono tabular-nums" data-testid="badge-balance-brl3">
+                {parseFloat(user?.balanceBrl || "0").toLocaleString('pt-BR', { minimumFractionDigits: 2 })} BRL3
+              </Badge>
+              <Link href="/wallet/deposit">
+                <Button variant="outline" size="sm" className="border-brand-500/30 hover:bg-brand-500/10" data-testid="button-deposit-pix">
+                  Depositar PIX
+                </Button>
+              </Link>
             </div>
 
             <DropdownMenu>

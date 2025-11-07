@@ -15,7 +15,7 @@ import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { formatBRL, formatDateTimeBR } from "@shared/utils/currency";
+import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 
 export default function PortfolioPage() {
   const { toast } = useToast();
@@ -99,7 +99,7 @@ export default function PortfolioPage() {
               <span>Valor Total</span>
             </div>
             <div className="text-3xl font-bold tabular-nums" data-testid="text-total-value">
-              {formatBRL(totalValue)}
+              {formatBRL3(totalValue)}
             </div>
           </Card>
 
@@ -109,7 +109,7 @@ export default function PortfolioPage() {
               <span>Investido</span>
             </div>
             <div className="text-3xl font-bold tabular-nums" data-testid="text-total-invested">
-              {formatBRL(totalInvested)}
+              {formatBRL3(totalInvested)}
             </div>
           </Card>
 
@@ -119,7 +119,7 @@ export default function PortfolioPage() {
               <span>P&L Total</span>
             </div>
             <div className={`text-3xl font-bold tabular-nums ${totalPnL >= 0 ? 'text-primary' : 'text-destructive'}`} data-testid="text-total-pnl">
-              {totalPnL >= 0 ? '+' : ''}{formatBRL(totalPnL)}
+              {totalPnL >= 0 ? '+' : ''}{formatBRL3(totalPnL)}
             </div>
           </Card>
         </div>
@@ -173,14 +173,14 @@ export default function PortfolioPage() {
                           <div>
                             <div className="text-muted-foreground mb-1">Valor Atual</div>
                             <div className="font-semibold tabular-nums">
-                              {formatBRL(currentValue)}
+                              {formatBRL3(currentValue)}
                             </div>
                           </div>
                           <div>
                             <div className="text-muted-foreground mb-1">P&L</div>
                             <div className={`font-semibold tabular-nums flex items-center gap-1 ${pnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
                               {pnl >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                              {pnl >= 0 ? '+' : ''}{formatBRL(pnl)} ({pnlPercent.toFixed(1)}%)
+                              {pnl >= 0 ? '+' : ''}{formatBRL3(pnl)} ({pnlPercent.toFixed(1)}%)
                             </div>
                           </div>
                         </div>
@@ -191,7 +191,6 @@ export default function PortfolioPage() {
               </div>
             ) : (
               <Card className="p-12 text-center">
-                <div className="text-6xl mb-4">📊</div>
                 <h3 className="text-xl font-semibold mb-2">Nenhuma posição ativa</h3>
                 <p className="text-muted-foreground mb-6">
                   Comece a negociar para ver suas posições aqui
@@ -218,7 +217,7 @@ export default function PortfolioPage() {
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
                     <div className="bg-brand-500/10 border border-brand-500/20 rounded-lg p-4 text-sm">
-                      <span className="font-medium">💰 Depósito via PIX</span>
+                      <span className="font-medium">Depósito via PIX</span>
                       <p className="text-muted-foreground mt-1">
                         Pague com PIX → saldo é tokenizado em BRL3 on-chain na sua conta.
                       </p>
@@ -261,7 +260,7 @@ export default function PortfolioPage() {
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
                     <div className="bg-brand-500/10 border border-brand-500/20 rounded-lg p-4 text-sm">
-                      <span className="font-medium">💸 Saque via PIX</span>
+                      <span className="font-medium">Saque via PIX</span>
                       <p className="text-muted-foreground mt-1">
                         Converta BRL3 → PIX e receba na sua conta bancária.
                       </p>
@@ -326,7 +325,7 @@ export default function PortfolioPage() {
                       </div>
                       <div className="text-right">
                         <div className="font-semibold tabular-nums">
-                          {formatBRL(parseFloat(tx.amount))}
+                          {formatBRL3(parseFloat(tx.amount))}
                         </div>
                       </div>
                     </div>
