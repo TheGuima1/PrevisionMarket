@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PublicNavbar } from "@/components/public-navbar";
 import { MarketCard } from "@/components/market-card";
-import { RecentActivityFeed } from "@/components/recent-activity-feed";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Market } from "@shared/schema";
@@ -99,42 +98,32 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Main Content Grid - Markets + Activity Feed */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Markets Section with Tabs - 2/3 width on desktop */}
-          <div className="lg:col-span-2">
-            <Tabs defaultValue="trending" className="w-full">
-              <TabsList className="w-full grid grid-cols-5 mb-6">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger 
-                      key={tab.value} 
-                      value={tab.value}
-                      className="flex items-center gap-2"
-                      data-testid={`tab-${tab.value}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="hidden sm:inline">{tab.label}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
+        {/* Markets Section - Centered Layout */}
+        <div className="max-w-7xl mx-auto">
+          <Tabs defaultValue="trending" className="w-full">
+            <TabsList className="w-full grid grid-cols-5 mb-6">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger 
+                    key={tab.value} 
+                    value={tab.value}
+                    className="flex items-center gap-2"
+                    data-testid={`tab-${tab.value}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
 
-              {tabs.map((tab) => (
-                <TabsContent key={tab.value} value={tab.value}>
-                  {renderMarketsGrid(getMarketsByTab(tab.value), tab.value)}
-                </TabsContent>
-              ))}
-            </Tabs>
-          </div>
-
-          {/* Recent Activity Sidebar - 1/3 width on desktop, full width on mobile */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-6">
-              <RecentActivityFeed />
-            </div>
-          </div>
+            {tabs.map((tab) => (
+              <TabsContent key={tab.value} value={tab.value}>
+                {renderMarketsGrid(getMarketsByTab(tab.value), tab.value)}
+              </TabsContent>
+            ))}
+          </Tabs>
         </div>
       </main>
     </div>
