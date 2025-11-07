@@ -32,6 +32,8 @@ export default function HomePage() {
 
   const { data: markets, isLoading, error } = useQuery<Market[]>({
     queryKey: ["/api/markets"],
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   // Filter by category and tag
