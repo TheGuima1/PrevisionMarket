@@ -4,9 +4,28 @@
 MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspirada na Polymarket, desenvolvida especificamente para o mercado brasileiro com suporte a Pix e crypto.
 
 ## Status do Projeto
-**Fase Atual**: Landing Page Pública Concluída ✅ | MVP Completo
+**Fase Atual**: FASE 1 Completa ✅ | MVP Completo + Decimal Odds + PT-BR
 
-### Tarefas Recentes Concluídas (06 Nov 2025)
+### Tarefas Recentes Concluídas (07 Nov 2025)
+- ✅ **FASE 1: Decimal Odds + PT-BR Localization** (07 Nov 2025) - COMPLETO
+  - ✅ **Utilities criados**: 
+    - `shared/utils/odds.ts`: probToOdds(), oddsToProb(), formatOdds() para conversão/formatação
+    - `shared/utils/currency.ts`: formatBRL(), formatBRLCompact(), formatDateTimeBR()
+  - ✅ **Decimal odds como PRIMARY display**:
+    - MarketCard: Odds decimais em destaque com tooltip de probabilidade
+    - TradePanel: Odds decimais para Market Orders e Limit Orders
+    - OrderBook: Preços exibidos como odds decimais (ex: 2.50x)
+    - Portfolio: BRL formatting em todos valores monetários
+  - ✅ **100% PT-BR Localization**:
+    - Categorias: "Em Alta", "Urgente", "Novos", "Eleições", "Política", etc.
+    - OrderBook: "COMPRA (SIM)", "VENDA (NÃO)"
+    - HomePage: "Aposte no Futuro", "Filtrar por tag", "Nenhum mercado encontrado"
+    - TradePanel: "Ordem a Mercado", "Ordem Limitada"
+    - Toasts: "Erro ao criar ordem limitada"
+  - ✅ **E2E Test Passed**: Decimal odds display, BRL formatting, PT-BR labels
+  - ✅ **Architect Review**: PASS - Production-ready, all deliverables met
+  
+### Tarefas Concluídas Anteriormente (06 Nov 2025)
 - ✅ **Public Market Access Fix** (06 Nov 2025) - COMPLETO
   - ✅ Corrigido redirect forçado para /auth ao clicar em markets
   - ✅ Rota /market/:id agora é pública (não requer autenticação)
