@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { LogIn, UserPlus } from "lucide-react";
+import { HowToBetDialog } from "@/components/how-to-bet-dialog";
 
 export function PublicNavbar() {
   const [, setLocation] = useLocation();
@@ -8,14 +9,17 @@ export function PublicNavbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-14 items-center justify-between px-4">
-        {/* Logo */}
-        <Link href="/" data-testid="link-home">
-          <span className="flex items-center gap-2 hover-elevate px-3 py-1 rounded-md transition-all cursor-pointer">
-            <span className="font-accent text-2xl font-bold bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 bg-clip-text text-transparent">
-              Palpites.AI
+        {/* Left Section: Como Palpitar + Logo */}
+        <div className="flex items-center gap-3">
+          <HowToBetDialog />
+          <Link href="/" data-testid="link-home">
+            <span className="flex items-center gap-2 hover-elevate px-3 py-1 rounded-md transition-all cursor-pointer">
+              <span className="font-accent text-2xl font-bold bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 bg-clip-text text-transparent">
+                Palpites.AI
+              </span>
             </span>
-          </span>
-        </Link>
+          </Link>
+        </div>
 
         {/* Auth Buttons */}
         <div className="flex items-center gap-2">

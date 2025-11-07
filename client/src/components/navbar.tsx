@@ -12,6 +12,7 @@ import {
 import { Search, User, Wallet, LogOut, LayoutDashboard, MessageSquare, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";
+import { HowToBetDialog } from "@/components/how-to-bet-dialog";
 
 export function Navbar() {
   const [location] = useLocation();
@@ -27,13 +28,16 @@ export function Navbar() {
     <nav className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between gap-4">
-          <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home">
-              <span className="font-accent text-2xl font-bold bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 bg-clip-text text-transparent">
-                Palpites.AI
-              </span>
-            </div>
-          </Link>
+          <div className="flex items-center gap-3">
+            <HowToBetDialog />
+            <Link href="/">
+              <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home">
+                <span className="font-accent text-2xl font-bold bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 bg-clip-text text-transparent">
+                  Palpites.AI
+                </span>
+              </div>
+            </Link>
+          </div>
 
           <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
