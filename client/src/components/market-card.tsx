@@ -1,9 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Users, DollarSign } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Users, DollarSign } from "lucide-react";
 import { Link } from "wouter";
 import type { Market } from "@shared/schema";
+import { probToOdds, formatOdds, formatProbability } from "@shared/utils/odds";
+import { formatBRLCompact } from "@shared/utils/currency";
 
 interface MarketCardProps {
   market: Market;
@@ -43,8 +46,12 @@ const categoryLabels: Record<string, string> = {
 };
 
 export function MarketCard({ market, isPublic = false }: MarketCardProps) {
-  const yesProb = parseFloat(market.yesPrice) * 100;
-  const noProb = parseFloat(market.noPrice) * 100;
+  const yesPrice = parseFloat(market.yesPrice);
+  const noPrice = parseFloat(market.noPrice);
+  
+  const yesOdds = probToOdds(yesPrice);
+  const noOdds = probToOdds(noPrice);
+  
   const volume = parseFloat(market.totalVolume);
   const totalShares = parseFloat(market.totalYesShares) + parseFloat(market.totalNoShares);
 
@@ -76,24 +83,39 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <div className="text-xs text-muted-foreground">SIM</div>
-            <div className="text-2xl font-bold tabular-nums text-primary" data-testid={`text-yes-prob-${market.id}`}>
-              {yesProb.toFixed(1)}%
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="text-xs text-muted-foreground">NÃO</div>
-            <div className="text-2xl font-bold tabular-nums text-destructive" data-testid={`text-no-prob-${market.id}`}>
-              {noProb.toFixed(1)}%
-            </div>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="space-y-1 cursor-help">
+                <div className="text-xs text-muted-foreground">SIM</div>
+                <div className="text-2xl font-bold tabular-nums text-primary" data-testid={`text-yes-odds-${market.id}`}>
+                  {formatOdds(yesOdds)}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Probabilidade impl\u00edcita: {formatProbability(yesPrice)}</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="space-y-1 cursor-help">
+                <div className="text-xs text-muted-foreground">NÃO</div>
+                <div className="text-2xl font-bold tabular-nums text-destructive" data-testid={`text-no-odds-${market.id}`}>
+                  {formatOdds(noOdds)}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Probabilidade impl\u00edcita: {formatProbability(noPrice)}</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1" data-testid={`text-volume-${market.id}`}>
             <DollarSign className="h-3 w-3" />
-            <span>R$ {volume.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+            <span>{formatBRLCompact(volume)}</span>
           </div>
           <div className="flex items-center gap-1" data-testid={`text-participants-${market.id}`}>
             <Users className="h-3 w-3" />
