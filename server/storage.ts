@@ -48,7 +48,7 @@ export interface IStorage {
   getMarkets(category?: string): Promise<Market[]>;
   getMarket(id: string): Promise<Market | undefined>;
   createMarket(market: InsertMarket): Promise<Market>;
-  updateMarketStats(marketId: string, totalVolume: string, totalYesShares: string, totalNoShares: string): Promise<void>;
+  updateMarketAMM(marketId: string, yesReserve: string, noReserve: string, k: string, totalVolume: string): Promise<void>;
   resolveMarket(marketId: string, outcome: "yes" | "no" | "cancelled"): Promise<void>;
 
   // Position methods
@@ -164,18 +164,20 @@ export class DatabaseStorage implements IStorage {
     return market;
   }
 
-  async updateMarketStats(
+  async updateMarketAMM(
     marketId: string,
-    totalVolume: string,
-    totalYesShares: string,
-    totalNoShares: string
+    yesReserve: string,
+    noReserve: string,
+    k: string,
+    totalVolume: string
   ): Promise<void> {
     await db
       .update(markets)
       .set({
+        yesReserve,
+        noReserve,
+        k,
         totalVolume,
-        totalYesShares,
-        totalNoShares,
       })
       .where(eq(markets.id, marketId));
   }
@@ -464,17 +466,7 @@ export class DatabaseStorage implements IStorage {
         fillPrice
       );
 
-      // Update market prices based on last traded price
-      const yesPrice = newOrder.type === "yes" ? fillPrice.toFixed(4) : (1 - fillPrice).toFixed(4);
-      const noPrice = newOrder.type === "no" ? fillPrice.toFixed(4) : (1 - fillPrice).toFixed(4);
-      
-      await db
-        .update(markets)
-        .set({
-          yesPrice,
-          noPrice,
-        })
-        .where(eq(markets.id, newOrder.marketId));
+      // Note: With AMM system, prices are calculated from reserves, not updated here
     }
 
     await db

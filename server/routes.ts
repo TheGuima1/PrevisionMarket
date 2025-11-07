@@ -8,6 +8,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { sql } from "drizzle-orm";
+import * as AMM from "./amm-engine";
 
 // Initialize OpenAI for AI assistant
 // Using Replit's AI Integrations service (no API key needed)
@@ -136,91 +137,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== ORDER ROUTES =====
   
-  // POST /api/orders - Place a buy market order (requires username)
+  // POST /api/orders - Place a buy market order using AMM (requires username)
   app.post("/api/orders", ensureUsername, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const validated = insertMarketOrderSchema.parse(req.body);
+      
+      // Parse USDC amount to spend (not shares, since AMM determines shares)
+      const schema = z.object({
+        marketId: z.string(),
+        type: z.enum(["yes", "no"]),
+        usdcAmount: z.union([z.string(), z.number()]).transform(val => 
+          typeof val === "string" ? parseFloat(val) : val
+        ).pipe(z.number().positive("Amount must be greater than 0")),
+      });
+      
+      const validated = schema.parse(req.body);
       
       const market = await storage.getMarket(validated.marketId);
       if (!market || market.status !== "active") {
         return res.status(400).send("Market is not active");
       }
 
-      // shares is now guaranteed to be a positive number by insertOrderSchema
-      const shares = validated.shares;
-      
-      const price = validated.type === "yes" 
-        ? parseFloat(market.yesPrice) 
-        : parseFloat(market.noPrice);
-      
-      const totalCost = shares * price;
+      const usdcAmount = validated.usdcAmount;
 
       // Check user balance
       const user = await storage.getUser(userId);
-      if (!user || parseFloat(user.balanceBrl) < totalCost) {
+      if (!user || parseFloat(user.balanceBrl) < usdcAmount) {
         return res.status(400).send("Insufficient balance");
       }
 
-      // Create market order - instantly filled at current market price (MVP simplified, no CLOB matching)
+      // Execute trade through AMM
+      const ammState: AMM.AMMState = {
+        yesReserve: parseFloat(market.yesReserve),
+        noReserve: parseFloat(market.noReserve),
+        k: parseFloat(market.k),
+      };
+
+      const tradeResult = AMM.buyShares(usdcAmount, validated.type, ammState);
+
+      // Create filled order
       const [order] = await db.insert(orders).values({
         userId,
         marketId: validated.marketId,
         type: validated.type,
         action: "buy",
-        shares: shares.toFixed(2),
-        price: price.toFixed(4),
+        shares: tradeResult.sharesBought.toFixed(2),
+        price: tradeResult.avgPrice.toFixed(4),
         status: "filled",
-        filledShares: shares.toFixed(2),
-        totalCost: totalCost.toFixed(2),
+        filledShares: tradeResult.sharesBought.toFixed(2),
+        totalCost: usdcAmount.toFixed(2),
         feePaid: "0.000000",
         makerFeeBps: 0,
-        takerFeeBps: 10,
+        takerFeeBps: 0,
         isMaker: false,
         filledAt: new Date(),
       }).returning();
 
       // Update user balance
-      const newBalance = (parseFloat(user.balanceBrl) - totalCost).toFixed(2);
+      const newBalance = (parseFloat(user.balanceBrl) - usdcAmount).toFixed(2);
       await storage.updateUserBalance(userId, newBalance, user.balanceUsdc);
 
       // Update position
       await storage.createOrUpdatePosition(
         userId,
         validated.marketId,
-        validated.type === "yes" ? shares : 0,
-        validated.type === "no" ? shares : 0,
-        totalCost,
-        validated.type === "yes" ? price : undefined,
-        validated.type === "no" ? price : undefined
+        validated.type === "yes" ? tradeResult.sharesBought : 0,
+        validated.type === "no" ? tradeResult.sharesBought : 0,
+        usdcAmount,
+        validated.type === "yes" ? tradeResult.avgPrice : undefined,
+        validated.type === "no" ? tradeResult.avgPrice : undefined
       );
 
-      // Update market statistics (volume only - prices are fixed)
-      const newTotalVolume = (parseFloat(market.totalVolume) + totalCost).toFixed(2);
-      const newTotalYesShares = validated.type === "yes"
-        ? (parseFloat(market.totalYesShares) + shares).toFixed(2)
-        : market.totalYesShares;
-      const newTotalNoShares = validated.type === "no"
-        ? (parseFloat(market.totalNoShares) + shares).toFixed(2)
-        : market.totalNoShares;
+      // Update market AMM reserves and volume
+      const newTotalVolume = (parseFloat(market.totalVolume) + usdcAmount).toFixed(2);
       
-      // Update volume/shares only - prices remain fixed (MVP simplified)
-      await storage.updateMarketStats(
+      await storage.updateMarketAMM(
         validated.marketId,
-        newTotalVolume,
-        newTotalYesShares,
-        newTotalNoShares
+        tradeResult.newYesReserve.toFixed(2),
+        tradeResult.newNoReserve.toFixed(2),
+        tradeResult.newK.toFixed(4),
+        newTotalVolume
       );
 
       // Create transaction record
       await storage.createTransaction(userId, {
         type: "trade_buy",
-        amount: totalCost.toFixed(2),
+        amount: usdcAmount.toFixed(2),
         currency: "BRL",
-        description: `Bought ${shares} ${validated.type.toUpperCase()} shares in "${market.title}"`,
+        description: `Bought ${tradeResult.sharesBought.toFixed(2)} ${validated.type.toUpperCase()} shares in "${market.title}"`,
       });
 
-      res.json(order);
+      res.json({ ...order, sharesBought: tradeResult.sharesBought });
     } catch (error: any) {
       console.error("Order error:", error);
       res.status(400).send(error.message || "Failed to place order");
@@ -236,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ).refine(val => val > 0 && !isNaN(val), "Shares must be a positive number"),
   });
 
-  // POST /api/orders/sell - Sell shares from a position (requires username)
+  // POST /api/orders/sell - Sell shares using AMM (requires username)
   app.post("/api/orders/sell", ensureUsername, async (req, res) => {
     try {
       const userId = req.user!.id;
@@ -264,26 +271,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Insufficient shares to sell");
       }
 
-      // Calculate proceeds
-      const price = type === "yes" 
-        ? parseFloat(market.yesPrice) 
-        : parseFloat(market.noPrice);
-      const proceeds = shares * price;
+      // Execute sell through AMM
+      const ammState: AMM.AMMState = {
+        yesReserve: parseFloat(market.yesReserve),
+        noReserve: parseFloat(market.noReserve),
+        k: parseFloat(market.k),
+      };
 
-      // Create sell market order - instantly filled at current market price (MVP simplified)
+      const sellResult = AMM.sellShares(shares, type, ammState);
+      const proceeds = sellResult.avgPrice * shares;
+
+      // Create sell order
       const [order] = await db.insert(orders).values({
         userId,
         marketId,
         type: type as "yes" | "no",
         action: "sell",
         shares: shares.toFixed(2),
-        price: price.toFixed(4),
+        price: sellResult.avgPrice.toFixed(4),
         status: "filled",
         filledShares: shares.toFixed(2),
         totalCost: proceeds.toFixed(2),
         feePaid: "0.000000",
         makerFeeBps: 0,
-        takerFeeBps: 10,
+        takerFeeBps: 0,
         isMaker: false,
         filledAt: new Date(),
       }).returning();
@@ -305,21 +316,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         -proceeds
       );
 
-      // Update market statistics (volume only - prices are fixed)
+      // Update market AMM reserves and volume
       const newTotalVolume = (parseFloat(market.totalVolume) + proceeds).toFixed(2);
-      const newTotalYesShares = type === "yes"
-        ? (parseFloat(market.totalYesShares) - shares).toFixed(2)
-        : market.totalYesShares;
-      const newTotalNoShares = type === "no"
-        ? (parseFloat(market.totalNoShares) - shares).toFixed(2)
-        : market.totalNoShares;
       
-      // Update volume/shares only - prices remain fixed (MVP simplified)
-      await storage.updateMarketStats(
+      await storage.updateMarketAMM(
         marketId,
-        newTotalVolume,
-        newTotalYesShares,
-        newTotalNoShares
+        sellResult.newYesReserve.toFixed(2),
+        sellResult.newNoReserve.toFixed(2),
+        sellResult.newK.toFixed(4),
+        newTotalVolume
       );
 
       // Create transaction record

@@ -61,23 +61,23 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Markets table
+// Markets table - AMM (Automated Market Maker) system
 export const markets = pgTable("markets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   description: text("description").notNull(),
   category: marketCategoryEnum("category").notNull(),
-  tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`), // Subcategories/tags for filtering
+  tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`),
   status: marketStatusEnum("status").notNull().default("active"),
   resolutionSource: text("resolution_source"),
   endDate: timestamp("end_date").notNull(),
   resolvedAt: timestamp("resolved_at"),
   resolvedOutcome: orderTypeEnum("resolved_outcome"),
-  yesPrice: decimal("yes_price", { precision: 5, scale: 4 }).notNull().default("0.5000"), // Price in probability (0-1)
-  noPrice: decimal("no_price", { precision: 5, scale: 4 }).notNull().default("0.5000"),
+  // AMM Reserves (liquidity pools) - start at 0, first trade initializes
+  yesReserve: decimal("yes_reserve", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  noReserve: decimal("no_reserve", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  k: decimal("k", { precision: 24, scale: 4 }).notNull().default("0.0000"), // Constant product (x * y = k)
   totalVolume: decimal("total_volume", { precision: 12, scale: 2 }).notNull().default("0.00"),
-  totalYesShares: decimal("total_yes_shares", { precision: 12, scale: 2 }).notNull().default("0.00"),
-  totalNoShares: decimal("total_no_shares", { precision: 12, scale: 2 }).notNull().default("0.00"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -220,11 +220,10 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertMarketSchema = createInsertSchema(markets).omit({
   id: true,
   createdAt: true,
-  yesPrice: true,
-  noPrice: true,
+  yesReserve: true,
+  noReserve: true,
+  k: true,
   totalVolume: true,
-  totalYesShares: true,
-  totalNoShares: true,
   resolvedAt: true,
   resolvedOutcome: true,
 }).extend({
