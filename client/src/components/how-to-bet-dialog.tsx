@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { ChevronRight, ChevronLeft, X } from "lucide-react";
 
 const HOW_TO_BET_STEPS = [
@@ -16,8 +16,8 @@ const HOW_TO_BET_STEPS = [
   },
   {
     number: 3,
-    title: "Negocie sem taxas",
-    description: "Coloque ordens de compra/venda a qualquer momento. Sem limites de aposta e sem taxas de trade."
+    title: "Sem limites de aposta",
+    description: "Coloque ordens de compra/venda a qualquer momento. Negocie livremente, sem restrições."
   },
   {
     number: 4,
@@ -69,6 +69,9 @@ export function HowToBetDialog({ trigger }: HowToBetDialogProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="relative">
           <DialogTitle className="font-accent text-2xl">Como Palpitar</DialogTitle>
+          <DialogDescription className="sr-only">
+            Tutorial em 4 etapas sobre como fazer palpites na plataforma
+          </DialogDescription>
           <DialogClose className="absolute right-0 top-0" data-testid="button-close-dialog">
             <X className="h-4 w-4" />
             <span className="sr-only">Fechar</span>

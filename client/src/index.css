@@ -2,79 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE */
+/* LIGHT FUTURISTIC MODE */
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  --button-outline: rgba(99, 102, 241, .15);
+  --badge-outline: rgba(99, 102, 241, .08);
 
   /* Automatic computation of border around primary / danger buttons */
   --opaque-button-border-intensity: -8; /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --elevate-1: rgba(99, 102, 241, .04);
+  --elevate-2: rgba(99, 102, 241, .12);
 
-  --background: 0 0% 98%;
+  --background: 0 0% 100%;
 
-  --foreground: 0 0% 12%;
+  --foreground: 240 10% 15%;
 
-  --border: 0 0% 88%;
+  --border: 240 6% 92%;
 
-  --card: 0 0% 96%;
+  --card: 0 0% 99%;
 
-  --card-foreground: 0 0% 12%;
+  --card-foreground: 240 10% 15%;
 
-  --card-border: 0 0% 90%;
+  --card-border: 240 6% 94%;
 
-  --sidebar: 0 0% 94%;
+  --sidebar: 240 5% 97%;
 
-  --sidebar-foreground: 0 0% 12%;
+  --sidebar-foreground: 240 10% 15%;
 
-  --sidebar-border: 0 0% 88%;
+  --sidebar-border: 240 6% 92%;
 
-  --sidebar-primary: 160 84% 39%;
+  --sidebar-primary: 268 74% 59%;
 
-  --sidebar-primary-foreground: 160 84% 98%;
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 160 12% 85%;
+  --sidebar-accent: 268 30% 94%;
 
-  --sidebar-accent-foreground: 160 12% 20%;
+  --sidebar-accent-foreground: 268 60% 30%;
 
-  --sidebar-ring: 160 84% 39%;
+  --sidebar-ring: 268 74% 59%;
 
-  --popover: 0 0% 92%;
+  --popover: 0 0% 98%;
 
-  --popover-foreground: 0 0% 12%;
+  --popover-foreground: 240 10% 15%;
 
-  --popover-border: 0 0% 86%;
+  --popover-border: 240 6% 90%;
 
-  --primary: 160 84% 39%;
+  --primary: 268 74% 59%;
 
-  --primary-foreground: 160 84% 98%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 45 93% 47%;
+  --secondary: 220 70% 50%;
 
-  --secondary-foreground: 45 93% 11%;
+  --secondary-foreground: 0 0% 100%;
 
-  --muted: 210 12% 88%;
+  --muted: 240 5% 96%;
 
-  --muted-foreground: 210 12% 38%;
+  --muted-foreground: 240 4% 46%;
 
-  --accent: 275 80% 55%;
+  --accent: 268 74% 59%;
 
-  --accent-foreground: 275 80% 98%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 84% 42%;
+  --destructive: 0 72% 51%;
 
-  --destructive-foreground: 0 84% 97%;
+  --destructive-foreground: 0 0% 100%;
 
-  --input: 0 0% 72%;
-  --ring: 160 84% 39%;
-  --chart-1: 160 84% 39%;
-  --chart-2: 275 80% 55%;
-  --chart-3: 45 93% 47%;
-  --chart-4: 202 89% 53%;
-  --chart-5: 340 82% 52%;
+  --input: 240 6% 90%;
+  --ring: 268 74% 59%;
+  --chart-1: 268 74% 59%;
+  --chart-2: 220 70% 50%;
+  --chart-3: 280 85% 65%;
+  --chart-4: 200 80% 55%;
+  --chart-5: 340 72% 58%;
 
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-accent: Outfit, Inter, -apple-system, sans-serif;
