@@ -147,7 +147,7 @@ export default function MarketDetailPage() {
                   <FileText className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <div className="text-muted-foreground">Volume Total</div>
-                    <div className="font-medium">R$ {parseFloat(market.totalVolume).toLocaleString('pt-BR')}</div>
+                    <div className="font-medium">{parseFloat(market.totalVolume).toLocaleString('pt-BR')} BRL3</div>
                   </div>
                 </div>
               </div>

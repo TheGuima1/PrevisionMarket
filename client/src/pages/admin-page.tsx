@@ -228,7 +228,7 @@ export default function AdminPage() {
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-muted-foreground">Volume Total:</span>
-                          <span className="font-medium ml-2">R$ {parseFloat(market.totalVolume).toLocaleString('pt-BR')}</span>
+                          <span className="font-medium ml-2">{parseFloat(market.totalVolume).toLocaleString('pt-BR')} BRL3</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Encerrou em:</span>
@@ -268,7 +268,6 @@ export default function AdminPage() {
                 ))
               ) : (
                 <Card className="p-12 text-center">
-                  <div className="text-6xl mb-4">✅</div>
                   <h3 className="text-xl font-semibold mb-2">Nenhum mercado pendente</h3>
                   <p className="text-muted-foreground">
                     Todos os mercados encerrados foram resolvidos
@@ -288,7 +287,7 @@ export default function AdminPage() {
                       <div className="flex-1">
                         <div className="font-medium">{market.title}</div>
                         <div className="text-sm text-muted-foreground">
-                          Volume: R$ {parseFloat(market.totalVolume).toLocaleString('pt-BR')}
+                          Volume: {parseFloat(market.totalVolume).toLocaleString('pt-BR')} BRL3
                         </div>
                       </div>
                       <Badge>{market.category}</Badge>

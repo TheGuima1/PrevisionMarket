@@ -76,7 +76,7 @@ export default function DepositPage() {
                 <div>
                   <h4 className="font-semibold text-white mb-1">Insira o valor</h4>
                   <p className="text-white/70 text-sm">
-                    Digite quanto você quer depositar. Mínimo de R$ 10,00.
+                    Digite quanto você quer depositar. Mínimo de 10 BRL3.
                   </p>
                 </div>
               </div>

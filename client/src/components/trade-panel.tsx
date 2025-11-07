@@ -11,7 +11,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TrendingUp, TrendingDown, HelpCircle } from "lucide-react";
 import { probToOdds, formatOdds, formatProbability, calculatePayout, calculateProfit } from "@shared/utils/odds";
-import { formatBRL } from "@shared/utils/currency";
+import { formatBRL3 } from "@shared/utils/currency";
 
 interface TradePanelProps {
   market: Market;
@@ -43,7 +43,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
     onSuccess: () => {
       toast({
         title: "Aposta realizada!",
-        description: `Você apostou ${formatBRL(stakeBRL)} em ${orderType === "yes" ? "SIM" : "NÃO"}`,
+        description: `Você apostou ${formatBRL3(stakeBRL)} em ${orderType === "yes" ? "SIM" : "NÃO"}`,
       });
       setAmountBRL("");
       queryClient.invalidateQueries({ queryKey: ["/api/markets", market.id] });
@@ -110,7 +110,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
                     <HelpCircle className="h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs">Retorno por R$ 1 apostado (incluindo stake)</p>
+                    <p className="text-xs">Retorno por 1 BRL3 apostado (incluindo stake)</p>
                   </TooltipContent>
                 </Tooltip>
               </span>
@@ -125,7 +125,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount-yes">Valor da aposta (R$)</Label>
+            <Label htmlFor="amount-yes">Valor da aposta (BRL3)</Label>
             <Input
               id="amount-yes"
               type="number"
@@ -141,18 +141,18 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
           <div className="space-y-3 bg-muted/30 rounded-lg p-4">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Investimento</span>
-              <span className="font-semibold tabular-nums" data-testid="text-total-cost-yes">{formatBRL(stakeBRL)}</span>
+              <span className="font-semibold tabular-nums" data-testid="text-total-cost-yes">{formatBRL3(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Retorno total (se ganhar)</span>
               <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-payout-yes">
-                {formatBRL(totalPayout)}
+                {formatBRL3(totalPayout)}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Lucro líquido</span>
               <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-profit-yes">
-                {formatBRL(netProfit)}
+                {formatBRL3(netProfit)}
               </span>
             </div>
           </div>
@@ -178,7 +178,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
                     <HelpCircle className="h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs">Retorno por R$ 1 apostado (incluindo stake)</p>
+                    <p className="text-xs">Retorno por 1 BRL3 apostado (incluindo stake)</p>
                   </TooltipContent>
                 </Tooltip>
               </span>
@@ -193,7 +193,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount-no">Valor da aposta (R$)</Label>
+            <Label htmlFor="amount-no">Valor da aposta (BRL3)</Label>
             <Input
               id="amount-no"
               type="number"
@@ -209,18 +209,18 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
           <div className="space-y-3 bg-muted/30 rounded-lg p-4">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Investimento</span>
-              <span className="font-semibold tabular-nums" data-testid="text-total-cost-no">{formatBRL(stakeBRL)}</span>
+              <span className="font-semibold tabular-nums" data-testid="text-total-cost-no">{formatBRL3(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Retorno total (se ganhar)</span>
               <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-payout-no">
-                {formatBRL(totalPayout)}
+                {formatBRL3(totalPayout)}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Lucro líquido</span>
               <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-profit-no">
-                {formatBRL(netProfit)}
+                {formatBRL3(netProfit)}
               </span>
             </div>
           </div>
@@ -240,8 +240,8 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
 
       <div className="pt-4 border-t">
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Saldo BRL:</span>
-          <span className="font-medium">{formatBRL(parseFloat(userBalance?.brl || "0"))}</span>
+          <span>Saldo BRL3:</span>
+          <span className="font-medium">{formatBRL3(parseFloat(userBalance?.brl || "0"))}</span>
         </div>
       </div>
     </Card>
