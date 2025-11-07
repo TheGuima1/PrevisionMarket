@@ -1,0 +1,302 @@
+Perfeito — abri e analisei o seu repositório (`PredictionMarket.zip`) e vi que ele é um app full-stack TS com **Express + Drizzle (Postgres)** no back-end e **Vite + React (Radix/shadcn)** no front. Já existem rotas de **mercados, ordens (CLOB simples), posições, comentários e carteira** (depósito/saque mockados em BRL/USDC), com esquemas em `shared/schema.ts`. A seguir te entrego um **PROMPT EXTREMAMENTE DETALHADO** (em “linguagem para AI Agent”) que implementa exatamente as 6 melhorias que você pediu, mais um pacote de robustez (oráculo, risco, auditoria, anti-fraude, logs, testes). No final, incluo um **mapa de alterações por arquivo** para seu projeto atual.
+
+
+
+---
+
+# PROMPT ÚNICO PARA O AI AGENT (copie e cole)
+
+**Você é um agente de engenharia full-stack, SRE e security, programando em TypeScript.**
+Objetivo: evoluir uma plataforma de previsões espelhando a Polymarket, porém **100% em português**, com **odds decimais**, **moeda nativa = Real (BRL)**, **depósito via Pix CNPJ com QR dinâmico**, **moeda on-chain BRL3** para operação descentralizada e **backoffice completo** (oráculos, risco, cibersegurança, suporte, analytics on-chain). **Implemente com testes, migrações e documentação.**
+Base do projeto já existe (Express/Drizzle/React). **Não quebre endpoints existentes.** Use **feature flags** e **migrations incrementais**.
+
+---
+
+## REQUISITOS DE NEGÓCIO (obrigatórios)
+
+1. **Espelhar Polymarket em português + odds decimais**
+
+   * UI e API devem exibir odds decimais estilo apostas (ex.: “1.25”), onde **paga 1.25x o valor apostado (stake incluído)**.
+   * Conversões (para mercados binários YES/NO que liquidam a 1 BRL por share):
+
+     * `preco_yes` = probabilidade de YES (0–1).
+     * `odds_yes_decimal = 1 / preco_yes` (arredondar para 2 casas na UI; manter 4 casas em cálculos).
+     * `odds_no_decimal = 1 / (1 - preco_yes)` (ou `1/preco_no`).
+   * **Idioma**: todo o front e mensagens da API em PT-BR (mantendo chaves internas em inglês se necessário).
+   * **Começar com 10 slots/mercados âncora** (campos: título PT-BR, descrição, categoria, `endDate`, `resolutionSource`).
+   * **Mirroring opcional**: criar job/worker que consome Subgraph/API do Polymarket para pegar `probabilidade` e **calcular** as odds decimais locais (sem copiar textos/nomes quando não for permitido). Flag: `MIRROR_ENABLED`.
+
+2. **Valores e UI sempre em Real (BRL)**
+
+   * **Moeda padrão** = BRL.
+   * Formatação PT-BR: `R$ 1.234,56`.
+   * `users.balanceBrl` já existe; padronizar toda a exibição/calculadora de ordens em BRL.
+   * **USDC** continua existente apenas se `USDC_ENABLED=true`. Caso contrário, esconder no front e bloquear na API (validação Zod).
+   * No cálculo de P/L e histórico, manter colunas em BRL.
+
+3. **Depósito via Pix (CNPJ da 3Bit) com QR dinâmico + Webhook**
+
+   * Criar módulo `payments/pix`:
+
+     * Endpoint **POST** `/api/wallet/deposit/pix` → cria **cobrança Pix** com `txid`, valor BRL, **QR dinâmico** (payload EMV), `expires_in` e status `PENDING`.
+     * Retornar ao cliente: `{qrCodeImageDataUrl, pixPayload, txid, amountBRL, expiresAt}`.
+     * Criar endpoint **POST** `/api/webhooks/pix` (autenticado via HMAC + IP allowlist) para receber confirmação do PSP; ao confirmar, **creditar saldo** `users.balanceBrl`, criar `transactions` com `type="deposit_pix"` e mudar `pix_charges.status = "CONFIRMED"`.
+     * Criar tabela `pix_charges(id, user_id, txid, amount_brl, status, created_at, confirmed_at, raw_webhook_json)` com índices em `(txid)` e `(user_id, created_at)`.
+     * Gerar **QR estático fallback** caso PSP esteja fora (flag `PIX_DYNAMIC_ENABLED`).
+   * UI: modal “**Depositar via Pix**” com QR, contador regressivo e polling do status `PENDING → CONFIRMED`.
+
+4. **Geração/Integração BRL3 (moeda on-chain)**
+
+   * Criar módulo `onchain/brl3`:
+
+     * Abstração `Brl3Gateway` com métodos:
+
+       * `mintTo(userWallet, amountBRL)`, `burnFrom(userWallet, amountBRL)`, `transfer(from, to, amount)`, `getBalance(addr)`.
+     * **Dois modos** (flag):
+
+       * `BRL3_MODE="CUSTODIAL"`: a plataforma mantém sub-contas e um **cofre** on-chain; o usuário movimenta “saldo BRL3” interno (espelhando on-chain com loteamento/Netting por horário).
+       * `BRL3_MODE="NONCUSTODIAL"`: usuário informa **wallet**; depósitos BRL via Pix → **mint BRL3** para wallet do usuário; saque BRL3 → **burn** e transferir BRL via Pix (processo inverso).
+     * Criar tabela `onchain_events(id, type, tx_hash, user_id, amount_brl3, status, created_at, confirmed_at, raw)` para registrar mints/burns/transfers e conciliar com `transactions`.
+     * Implementar **reconciliação horária**: job que bate `onchain_events` vs. `ledger` (Drizzle) e alerta divergências.
+
+5. **Backoffice completo (automação, auditoria, oráculos, risco, segurança, suporte, on-chain analytics)**
+
+   * **Oráculo**
+
+     * Abstração `OracleAdapter` com drivers: `UMA_OO`, `MANUAL_REVIEW`, `EXTERNAL_FEED`.
+     * Campos novos em `markets`: `oracle_type`, `oracle_bond_brl`, `oracle_liveness_sec`.
+     * Fluxo: `propose(result)` → `challenge` (com bond) → `resolve`. Guardar `audit_trail` em tabela `market_resolution_logs`.
+   * **Gestão de risco & liquidez**
+
+     * Implementar **MM híbrido**: CLOB (orderbook) + **AMM FPMM auxiliar** para mercados com spread alto/baixa liquidez (flag `AMM_SEED_ENABLED`).
+     * **Preço de tela** = `midpoint(bid, ask)`; se spread largo e sem trades recentes, **fallback** ao **AMM** com **spread interno** configurável (`QUOTING_SPREAD_BPS`).
+     * **Custo + spread “visão própria”**: quando usuário **simula compra**, o **quote** retorna: `preco_base`, `slippage_esperada`, `spread_operador_bps`, `taxa_taker_bps`, `custo_total_brl`.
+     * **Risk limits**: por mercado: `max_position_per_user_brl`, `max_notional_brl`, `daily_loss_limit_brl`; por usuário (tier KYC). Bloquear ordens que estorem limites.
+     * **Detecção de anomalias**: regras (wash trading, spoofing, self-match) + job que rotula usuários/mercados com score de risco.
+   * **Cibersegurança**
+
+     * Harden de headers (Helmet), rate-limits por rota sensível, 2FA opcional, logs de auditoria (`audit_logs` com IP, UA, payload hash), segredo HMAC segregado por integração.
+     * **Runbooks**: incident response, chaveamento de secrets, pausa de mercados (circuit breaker).
+   * **Suporte**
+
+     * Inbox admin para tickets (`support_tickets`) + templates de resposta.
+   * **On-chain analytics**
+
+     * Worker que consome **subgraph/indexer** do BRL3 e agrega: `holder_count`, `transfer_volume_24h`, `top_10_wallets`, feedando **dashboard backoffice**.
+
+6. **Cálculo de custo + spread pela plataforma (cobertura de slippage e “house spread”)**
+
+   * Fórmula de cotação (compras):
+
+     * `preco_quote = max(preco_CLOB, preco_AMM)` conforme melhor execução.
+     * `custo_bruto = shares * preco_quote`.
+     * `slippage_estimado = g(liquidez_local, tamanho_ordem, sigma)` (função simples: `k * shares / depth_5_levels`).
+     * `house_spread = custo_bruto * (SPREAD_BPS/10000)`.
+     * `taxa_taker = custo_bruto * (TAKER_BPS/10000)`.
+     * `custo_total = custo_bruto + slippage_estimado + house_spread + taxa_taker`.
+   * Para **vendas**, espelhar simétrico com `preco_quote_sell` e deduzir taxas.
+
+---
+
+## ESPECIFICAÇÃO TÉCNICA (o que alterar/criar)
+
+### Banco (Drizzle / Postgres)
+
+* **Novas tabelas**:
+
+  * `pix_charges(id, user_id, txid, amount_brl numeric(12,2), status enum('PENDING','CONFIRMED','EXPIRED','FAILED'), created_at, confirmed_at, raw_webhook_json jsonb)`.
+  * `onchain_events(id, user_id, type enum('MINT','BURN','TRANSFER'), tx_hash, amount_brl3 numeric(18,6), status enum('PENDING','CONFIRMED','FAILED'), created_at, confirmed_at, raw jsonb)`.
+  * `market_resolution_logs(id, market_id, action enum('PROPOSE','CHALLENGE','RESOLVE'), actor_user_id, bond_brl numeric(12,2), payload jsonb, created_at)`.
+  * `audit_logs(id, user_id, route, method, status, ip, ua, payload_sha256, created_at)`.
+  * `support_tickets(id, user_id, subject, body, status enum('OPEN','PENDING','SOLVED','CLOSED'), created_at, updated_at)`.
+* **Alterações em `markets`**:
+
+  * Add: `oracle_type text`, `oracle_bond_brl numeric(12,2) default 0`, `oracle_liveness_sec int default 86400`.
+  * Manter `yesPrice/noPrice` como prob (0–1). **Não alterar semântica**.
+* **Índices**:
+
+  * `pix_charges(txid) unique`, `orders(market_id,status,created_at)`, `transactions(user_id,created_at)`, `audit_logs(created_at)`.
+
+### API (Express)
+
+* **Carteira**
+
+  * `POST /api/wallet/deposit/pix` → cria cobrança Pix dinâmica; retorna QR/payload.
+  * `POST /api/webhooks/pix` → confirma pagamento (HMAC + allowlist).
+  * Validar `currency === "BRL"` como default; habilitar `USDC` só via flag.
+* **On-chain BRL3**
+
+  * `POST /api/onchain/mint` (admin/backoffice ou automatizado); `POST /api/onchain/burn`; `GET /api/onchain/balance/:wallet`.
+  * Jobs horários: `onchain-reconcile`, `onchain-poll-tx`.
+* **Mercados & Oráculo**
+
+  * `POST /api/admin/markets` já existe → acrescentar campos do oráculo.
+  * `POST /api/admin/markets/:id/propose`, `/challenge`, `/resolve` → escrever no `market_resolution_logs` e mudar `markets.resolved_*`.
+* **Cotações e custos**
+
+  * `POST /api/quotes` → entrada: `{marketId, side:'yes'|'no', shares}`; saída: `{price, odds_decimal, slippage, house_spread_brl, taker_fee_brl, total_brl}`.
+  * **Garantir** que `POST /api/orders` valide contra `quotes` (server-side recomputa e compara).
+* **Anti-fraude & limites**
+
+  * Middleware que checa: `max_position_per_user_brl`, `max_notional_brl`, `daily_loss_limit_brl` por mercado/usuário.
+  * Detector simples de wash trading: `same_user_or_ip` no bid/ask em <60s → flag.
+* **Logs/Auditoria**
+
+  * Middleware global que grava `audit_logs` (hash do body) apenas para rotas `/api`.
+
+### Front-end (React)
+
+* **Odds decimais em PT-BR**
+
+  * Atualizar componentes: `components/odds-display.tsx`, `trade-panel.tsx`, `market-card.tsx`, `order-book.tsx` para renderizar **odds decimais** e valores BRL.
+  * Exibir *tooltip* com “probabilidade implícita” (`1/odds`), mas **odds** são primárias.
+* **Depósito Pix**
+
+  * Modal “Depositar via Pix” com QR, contador e estado. Polling `/api/pix/:txid`.
+* **Backoffice**
+
+  * Página admin: lista mercados, status do oráculo, botões **Propor/Contestar/Resolver**, tabela de `pix_charges`, `onchain_events`, alertas de risco e painel “liquidez por mercado” (depth e spread).
+* **Acessibilidade/L10N**
+
+  * Tudo em PT-BR, datas DD/MM/AAAA, moeda `pt-BR`.
+
+### Algoritmo de Preço / Execução (CLOB + AMM)
+
+* **CLOB** segue como core.
+* **AMM FPMM auxiliar**: reserves `R_yes`, `R_no`; preço `p_yes = R_yes / (R_yes + R_no)` (ou Fórmula LMSR se preferir).
+* **Regras**:
+
+  * Quote = **melhor preço de execução** entre consumir ordens do livro até o tamanho ou usar o **AMM**.
+  * Se **spread>THRESHOLD** ou **depth<MIN_DEPTH**, injetar cotação do **AMM** com `QUOTING_SPREAD_BPS` (plataforma cobra spread).
+  * **Atualizar** `R_yes/R_no` ao executar no AMM; no CLOB, atualizar depth.
+* **Conversões**
+
+  * `odds_yes = 1 / p_yes`, `odds_no = 1 / (1 - p_yes)`; UI arredonda para 2 casas, engine usa 4.
+
+### Risco (exemplos de parâmetros)
+
+* `SPREAD_BPS=25`, `TAKER_BPS=10`, `QUOTING_SPREAD_BPS=15`
+* `max_position_per_user_brl=50_000`, `max_notional_brl=1_000_000`
+* Bloquear ordens se: `exposure(user, market) + notional(order) > max_position_per_user_brl`.
+
+### Segurança
+
+* Helmet, CORS estrito, Rate limit (100 req/5min/user nas rotas sensíveis), proteção contra replay nos webhooks (nonce + timestamp).
+* Segregação de segredos: `PIX_HMAC_SECRET`, `PIX_ALLOWED_IPS`, `ONCHAIN_RPC`, `BRL3_CONTRACT`, `BRL3_MODE`, `MIRROR_ENABLED`.
+* **Circuit breaker**: flag `MARKETS_PAUSED` para travar criação/execução em incidente.
+
+### Observabilidade
+
+* Logs estruturados (pino/winston) + correlação de requestId.
+* Métricas Prometheus: latências por rota, QPS, erro %, spread médio, depth médio, P&L usuário agregado.
+* Alertas: latência P95>1s, erro>2%, falha em reconciliação on-chain, anomalias de risco.
+
+### Testes
+
+* **Unit**: quotes, conversões odds↔prob, limites de risco, parsers Pix.
+* **Integração**: fluxo Pix completo (mock PSP), ordem com mistura CLOB/AMM, oráculo UMA (mock).
+* **E2E**: criar mercado → depositar BRL (Pix) → comprar YES → resolver oráculo → liquidar P/L.
+
+### Documentação
+
+* `docs/odds_ptbr.md` (conceitos, fórmulas)
+* `docs/pix.md` (setup PSP, webhook)
+* `docs/brl3.md` (custodial vs non-custodial)
+* `docs/risk.md` (parâmetros e porquê)
+* `docs/oracle.md` (fluxos e SLAs)
+
+---
+
+## ACEITAÇÃO (Definition of Done)
+
+* UI exibe **odds decimais** e **valores em BRL** por todo o fluxo (lista, detalhes, trade, posições, histórico).
+* Depósito Pix funcional com **QR dinâmico + webhook** mudando saldo e registrando `transactions`.
+* **Quotes** retornam `preco`, `odds`, `slippage`, `house_spread`, `taker_fee`, `total`.
+* Backoffice permite operar **oráculo** (propor/contestar/resolver), ver **risk dashboard**, **pix_charges** e **onchain_events**.
+* Jobs de **reconciliação on-chain** rodando e emitindo alertas.
+* Testes passam (>90% cobertura dos módulos novos).
+* **Feature flags** permitem ligar/desligar: USDC, AMM auxiliar, MIRROR, BRL3 modo, mercados pausados.
+
+---
+
+## PLANO DE MIGRAÇÃO (passes atômicos)
+
+1. **Migrations DB**: criar/alterar tabelas conforme especificação (sem quebrar dados).
+2. **Odds decimais**: adicionar camada de conversão no back-end (`/api/markets`, `/api/quotes`) e UI.
+3. **Pix**: rotas, tabela `pix_charges`, webhook + modal no front.
+4. **Quotes “custo + spread”**: novo endpoint + integração no `trade-panel`.
+5. **BRL3**: módulo, tabela `onchain_events`, jobs de reconciliação; habilitar `CUSTODIAL` por padrão.
+6. **Backoffice**: telas admin + oráculo + risco + analytics.
+7. **Anomalias/limites**: middlewares e workers.
+8. **Testes/Docs/Flags**: finalizar cobertura e documentação.
+
+---
+
+## MAPA DE ALTERAÇÕES NO SEU REPO (arquivos-alvo)
+
+* **Backend**
+
+  * `server/routes.ts`:
+
+    * Adicionar rotas: `/api/wallet/deposit/pix`, `/api/webhooks/pix`, `/api/quotes`, `/api/onchain/*`, `/api/admin/markets/:id/{propose,challenge,resolve}`.
+    * Injetar validações BRL e limites de risco nos endpoints de ordens.
+  * `server/storage.ts`:
+
+    * CRUD para `pix_charges`, `onchain_events`, `market_resolution_logs`, `audit_logs`, `support_tickets`.
+    * Funções para **depth** e **best price** (CLOB) e **estado AMM**.
+  * `server/index.ts`: Helmet, rate-limit, auditoria (`audit_logs`).
+  * `shared/schema.ts`: novas tabelas/campos conforme especificação (manter `yesPrice/noPrice` em prob 0–1).
+  * `jobs/`: `onchain-reconcile.ts`, `mirror-polymarket.ts`, `risk-anomaly-scan.ts`.
+
+* **Frontend**
+
+  * `client/src/components/odds-display.tsx` (odds decimais + tooltip prob).
+  * `client/src/components/trade-panel.tsx` (consumir `/api/quotes` e mostrar custos).
+  * `client/src/components/market-card.tsx`, `order-book.tsx` (BRL e odds).
+  * `client/src/pages/admin/*` (backoffice: oráculo, pix, on-chain, risco, tickets).
+  * `client/src/i18n/pt-BR.ts` (strings PT-BR).
+
+* **Config**
+
+  * `.env`: `PIX_HMAC_SECRET`, `PIX_ALLOWED_IPS`, `MIRROR_ENABLED`, `AMM_SEED_ENABLED`, `BRL3_MODE`, `BRL3_CONTRACT`, `ONCHAIN_RPC`, `MARKETS_PAUSED`, `USDC_ENABLED`.
+  * `docker-compose` (se houver): Postgres + worker.
+
+---
+
+## EXEMPLOS DE CÓDIGO (trechos chave)
+
+**Conversão odds ↔ prob (server util):**
+
+```ts
+export const probToOdds = (p: number) => {
+  const clamp = Math.min(Math.max(p, 1e-6), 1 - 1e-6);
+  return {
+    yes: +(1 / clamp).toFixed(4),
+    no: +(1 / (1 - clamp)).toFixed(4),
+  };
+};
+```
+
+**Resposta de `/api/quotes`:**
+
+```ts
+{
+  price: 0.6150,                 // prob yes/no (0–1) da execução
+  odds_decimal: 1.6260,          // 1/price (lado escolhido)
+  slippage_brl: 2.35,
+  house_spread_brl: 1.54,
+  taker_fee_brl: 0.77,
+  total_brl: 104.66
+}
+```
+
+**Middleware Limites de Risco (esboço):**
+
+```ts
+if (exposureUserMarketBRL(userId, marketId) + notional(order) > MAX_POS_BRL)
+  return res.status(400).send("Limite de posição excedido");
+```
+
+---
+
+Se quiser, eu também preparo **scripts de seed** para os 10 mercados iniciais (slots) já em PT-BR, e um **checklist de produção** (secrets, flags, runbooks). Quer que eu já gere as migrations + endpoints base?
