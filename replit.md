@@ -7,21 +7,37 @@ MatrizPIX é uma plataforma de mercado de previsões (prediction market) inspira
 **Fase Atual**: FASE 1 Completa ✅ | MVP Completo + Decimal Odds + PT-BR
 
 ### Tarefas Recentes Concluídas (07 Nov 2025)
+- ✅ **MVP/POC SIMPLIFICATION** (07 Nov 2025) - COMPLETO
+  - ✅ **TradePanel Simplificado**: Removidas limit orders para foco MVP
+    - Apenas market orders (SIM/NÃO tabs)
+    - Interface simplificada: valor em BRL → cálculo automático de shares
+    - Sem complexidade de CLOB (orderbook, limit price, buy/sell toggle)
+    - Mantidas: Decimal odds display, payout preview, PT-BR labels
+  - ✅ **Seed Data com Volume Realista**: 
+    - Criados trades seed para todos os 8 mercados
+    - Volume entre R$ 127,50 e R$ 984,00 (não mais R$ 0)
+    - Mercados aparecem "ativos" desde o primeiro acesso
+  - ✅ **Matemática de Odds Verificada**:
+    - YES order: shares = stakeBRL / yesPrice, odds = 1 / yesPrice
+    - NO order: shares = stakeBRL / noPrice, odds = 1 / noPrice
+    - Payout correto: shares × R$ 1,00 (se ganhar)
+    - Exemplo: R$ 100 em YES (45%) → 222 shares × 2.22x = R$ 222 payout
+  - ✅ **E2E Test Passed**: TradePanel simplificado, odds decimais corretas, BRL formatting, volumes realistas
+  - ✅ **Production-ready**: MVP focado em simplicidade sem sacrificar UX
+
 - ✅ **FASE 1: Decimal Odds + PT-BR Localization** (07 Nov 2025) - COMPLETO
   - ✅ **Utilities criados**: 
     - `shared/utils/odds.ts`: probToOdds(), oddsToProb(), formatOdds() para conversão/formatação
     - `shared/utils/currency.ts`: formatBRL(), formatBRLCompact(), formatDateTimeBR()
   - ✅ **Decimal odds como PRIMARY display**:
     - MarketCard: Odds decimais em destaque com tooltip de probabilidade
-    - TradePanel: Odds decimais para Market Orders e Limit Orders
-    - OrderBook: Preços exibidos como odds decimais (ex: 2.50x)
+    - TradePanel: Odds decimais para Market Orders (limit orders removidas no MVP)
     - Portfolio: BRL formatting em todos valores monetários
   - ✅ **100% PT-BR Localization**:
     - Categorias: "Em Alta", "Urgente", "Novos", "Eleições", "Política", etc.
-    - OrderBook: "COMPRA (SIM)", "VENDA (NÃO)"
     - HomePage: "Aposte no Futuro", "Filtrar por tag", "Nenhum mercado encontrado"
-    - TradePanel: "Ordem a Mercado", "Ordem Limitada"
-    - Toasts: "Erro ao criar ordem limitada"
+    - TradePanel: "Apostar", "Investimento", "Retorno total", "Lucro líquido"
+    - Toasts: "Aposta realizada!", "Erro ao executar ordem"
   - ✅ **E2E Test Passed**: Decimal odds display, BRL formatting, PT-BR labels
   - ✅ **Architect Review**: PASS - Production-ready, all deliverables met
   
