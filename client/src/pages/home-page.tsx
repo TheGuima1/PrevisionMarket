@@ -35,7 +35,13 @@ export default function HomePage() {
 
   // Filter by category and tag
   const filteredMarkets = markets?.filter((m) => {
-    const categoryMatch = selectedCategory === "all" || m.category === selectedCategory;
+    // Special categories: trending, breaking, new - show all markets for now
+    // In future: trending = high volume, breaking = ending soon, new = recently created
+    const specialCategories = ["trending", "breaking", "new"];
+    const categoryMatch = 
+      selectedCategory === "all" || 
+      specialCategories.includes(selectedCategory) ||
+      m.category === selectedCategory;
     const tagMatch = !selectedTag || (m.tags && m.tags.includes(selectedTag));
     return categoryMatch && tagMatch;
   });

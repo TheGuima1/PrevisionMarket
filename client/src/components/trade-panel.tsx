@@ -30,9 +30,16 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
   const odds = probToOdds(probability);
   
   const stakeBRL = amountBRL ? parseFloat(amountBRL) : 0;
-  const sharesNum = stakeBRL / probability;
-  const totalPayout = stakeBRL > 0 ? calculatePayout(stakeBRL, odds) : 0;
-  const netProfit = stakeBRL > 0 ? calculateProfit(stakeBRL, odds) : 0;
+  
+  // For market orders: use current market probability
+  // For limit orders: use the user's chosen limit price
+  const effectivePrice = orderMode === "limit" && limitPrice && parseFloat(limitPrice) > 0 
+    ? parseFloat(limitPrice) 
+    : probability;
+  
+  const sharesNum = stakeBRL / effectivePrice;
+  const totalPayout = stakeBRL > 0 ? calculatePayout(stakeBRL, probToOdds(effectivePrice)) : 0;
+  const netProfit = stakeBRL > 0 ? calculateProfit(stakeBRL, probToOdds(effectivePrice)) : 0;
 
   const buyMutation = useMutation({
     mutationFn: async () => {
