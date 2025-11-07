@@ -59,7 +59,7 @@ export function HowToBetDialog({ trigger }: HowToBetDialogProps) {
   const step = HOW_TO_BET_STEPS[currentStep];
 
   const defaultTrigger = (
-    <Button variant="ghost" size="sm" data-testid="button-how-to-bet">
+    <Button variant="ghost" size="sm" className="text-[#c2b2e2]" data-testid="button-how-to-bet">
       Como Palpitar
     </Button>
   );
