@@ -30,19 +30,19 @@ const categoryColors: Record<string, string> = {
 };
 
 const categoryLabels: Record<string, string> = {
-  trending: "Trending",
-  breaking: "Breaking",
-  new: "New",
-  elections: "Elections",
-  politics: "Politics",
-  sports: "Sports",
-  finance: "Finance",
-  crypto: "Crypto",
-  geopolitics: "Geopolitics",
-  tech: "Tech",
-  culture: "Culture",
-  world: "World",
-  economy: "Economy",
+  trending: "Em Alta",
+  breaking: "Urgente",
+  new: "Novos",
+  elections: "Eleições",
+  politics: "Política",
+  sports: "Esportes",
+  finance: "Finanças",
+  crypto: "Cripto",
+  geopolitics: "Geopolítica",
+  tech: "Tecnologia",
+  culture: "Cultura",
+  world: "Mundo",
+  economy: "Economia",
 };
 
 export function MarketCard({ market, isPublic = false }: MarketCardProps) {

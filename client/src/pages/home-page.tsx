@@ -9,20 +9,20 @@ import { TrendingUp, Zap, Newspaper, Vote, Trophy, DollarSign, Bitcoin, Globe2, 
 
 // Polymarket-style categories with 13 categories
 const categories = [
-  { value: "all", label: "All Markets", icon: Globe2 },
-  { value: "trending", label: "Trending", icon: TrendingUp },
-  { value: "breaking", label: "Breaking", icon: Zap },
-  { value: "new", label: "New", icon: Newspaper },
-  { value: "elections", label: "Elections", icon: Award },
-  { value: "politics", label: "Politics", icon: Vote },
-  { value: "sports", label: "Sports", icon: Trophy },
-  { value: "finance", label: "Finance", icon: DollarSign },
-  { value: "crypto", label: "Crypto", icon: Bitcoin },
-  { value: "geopolitics", label: "Geopolitics", icon: MapPin },
-  { value: "tech", label: "Tech", icon: Cpu },
-  { value: "culture", label: "Culture", icon: Palette },
-  { value: "world", label: "World", icon: Globe2 },
-  { value: "economy", label: "Economy", icon: LineChart },
+  { value: "all", label: "Todos os Mercados", icon: Globe2 },
+  { value: "trending", label: "Em Alta", icon: TrendingUp },
+  { value: "breaking", label: "Urgente", icon: Zap },
+  { value: "new", label: "Novos", icon: Newspaper },
+  { value: "elections", label: "Eleições", icon: Award },
+  { value: "politics", label: "Política", icon: Vote },
+  { value: "sports", label: "Esportes", icon: Trophy },
+  { value: "finance", label: "Finanças", icon: DollarSign },
+  { value: "crypto", label: "Cripto", icon: Bitcoin },
+  { value: "geopolitics", label: "Geopolítica", icon: MapPin },
+  { value: "tech", label: "Tecnologia", icon: Cpu },
+  { value: "culture", label: "Cultura", icon: Palette },
+  { value: "world", label: "Mundo", icon: Globe2 },
+  { value: "economy", label: "Economia", icon: LineChart },
 ];
 
 export default function HomePage() {
@@ -53,10 +53,10 @@ export default function HomePage() {
         {/* Hero Section */}
         <div className="space-y-2">
           <h1 className="font-accent text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-            Bet on What Happens Next
+            Aposte no Futuro
           </h1>
           <p className="text-muted-foreground max-w-2xl">
-            Trade on predictions about future events. Prices reflect the collective wisdom of the market.
+            Negocie previsões sobre eventos futuros. Os preços refletem a sabedoria coletiva do mercado.
           </p>
         </div>
 
@@ -92,7 +92,7 @@ export default function HomePage() {
         {/* Tag Filters */}
         {allTags.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Filter by tag:</p>
+            <p className="text-sm text-muted-foreground">Filtrar por tag:</p>
             <div className="flex flex-wrap gap-2">
               {allTags.slice(0, 15).map((tag) => (
                 <Badge
@@ -125,11 +125,11 @@ export default function HomePage() {
         ) : (
           <div className="text-center py-16 space-y-4">
             <div className="text-6xl opacity-50">📊</div>
-            <h3 className="text-xl font-semibold">No markets found</h3>
+            <h3 className="text-xl font-semibold">Nenhum mercado encontrado</h3>
             <p className="text-muted-foreground">
               {selectedCategory === "all" && !selectedTag
-                ? "No active markets at the moment"
-                : "Try adjusting your filters"
+                ? "Nenhum mercado ativo no momento"
+                : "Tente ajustar seus filtros"
               }
             </p>
           </div>

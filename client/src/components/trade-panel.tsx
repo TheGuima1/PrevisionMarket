@@ -89,7 +89,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao criar limit order",
+        title: "Erro ao criar ordem limitada",
         description: error.message,
         variant: "destructive",
       });

@@ -68,7 +68,7 @@ export function OrderBook({ marketId }: OrderBookProps) {
           <div className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-semibold text-primary">BIDS (SIM)</span>
+              <span className="text-xs font-semibold text-primary">COMPRA (SIM)</span>
             </div>
             {!orderbook?.bids || orderbook.bids.length === 0 ? (
               <div className="text-xs text-muted-foreground text-center py-4">
@@ -113,7 +113,7 @@ export function OrderBook({ marketId }: OrderBookProps) {
           <div className="border-t pt-3 space-y-1">
             <div className="flex items-center gap-2 mb-2">
               <TrendingDown className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-xs font-semibold text-destructive">ASKS (NÃO)</span>
+              <span className="text-xs font-semibold text-destructive">VENDA (NÃO)</span>
             </div>
             {!orderbook?.asks || orderbook.asks.length === 0 ? (
               <div className="text-xs text-muted-foreground text-center py-4">
