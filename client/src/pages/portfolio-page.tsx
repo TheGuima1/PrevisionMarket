@@ -212,7 +212,7 @@ export default function PortfolioPage() {
                 <h3 className="font-accent text-xl font-semibold">Depositar</h3>
                 <Tabs defaultValue="pix">
                   <TabsList className="grid w-full grid-cols-1">
-                    <TabsTrigger value="pix" data-testid="tab-deposit-pix">Depositar BRL3</TabsTrigger>
+                    <TabsTrigger value="pix" data-testid="tab-deposit-pix">Depositar via PIX</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
@@ -223,7 +223,7 @@ export default function PortfolioPage() {
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="deposit-pix">Valor em BRL3</Label>
+                      <Label htmlFor="deposit-pix">Valor em R$</Label>
                       <Input
                         id="deposit-pix"
                         type="number"
@@ -255,7 +255,7 @@ export default function PortfolioPage() {
                 <h3 className="font-accent text-xl font-semibold">Sacar</h3>
                 <Tabs defaultValue="pix">
                   <TabsList className="grid w-full grid-cols-1">
-                    <TabsTrigger value="pix" data-testid="tab-withdraw-pix">Sacar BRL3</TabsTrigger>
+                    <TabsTrigger value="pix" data-testid="tab-withdraw-pix">Sacar via PIX</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
@@ -266,7 +266,7 @@ export default function PortfolioPage() {
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="withdraw-pix">Valor em BRL3</Label>
+                      <Label htmlFor="withdraw-pix">Valor em R$</Label>
                       <Input
                         id="withdraw-pix"
                         type="number"
