@@ -46,8 +46,8 @@ export default function AuthPage() {
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-6">
           <div className="space-y-2 text-center">
-            <h1 className="font-accent text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              MatrizPIX
+            <h1 className="font-accent text-4xl font-bold bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 bg-clip-text text-transparent">
+              Palpites.AI
             </h1>
             <p className="text-muted-foreground">
               Mercado de previsões brasileiro

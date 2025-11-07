@@ -17,7 +17,7 @@ export function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Olá! 🐕 Sou o assistente da MatrizPIX. Posso te ajudar a entender a plataforma, explicar odds, analisar mercados e muito mais!",
+      content: "Olá! Sou o assistente da Palpites.AI. Posso te ajudar a entender a plataforma, explicar odds, analisar mercados e muito mais!",
     },
   ]);
   const [input, setInput] = useState("");
@@ -42,8 +42,8 @@ export function AIAssistant() {
   };
 
   const quickActions = [
-    { label: "Explicar Odds", prompt: "Como funcionam as odds na MatrizPIX? Explique os formatos decimal, americano e probabilidade." },
-    { label: "Como Funciona", prompt: "Explique como funciona a plataforma MatrizPIX de mercados de previsão." },
+    { label: "Explicar Odds", prompt: "Como funcionam as odds na Palpites.AI? Explique os formatos decimal, americano e probabilidade." },
+    { label: "Como Funciona", prompt: "Explique como funciona a plataforma Palpites.AI de mercados de previsão." },
     { label: "Sentimento do Mercado", prompt: "Quais são os mercados mais populares agora e qual é o sentimento geral?" },
     { label: "Recomendar Mercados", prompt: "Recomende mercados interessantes para começar." },
   ];
@@ -74,7 +74,7 @@ export function AIAssistant() {
             <Dog className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-accent font-semibold">Assistente MatrizPIX</h3>
+            <h3 className="font-accent font-semibold">Assistente Palpites.AI</h3>
             <p className="text-xs text-muted-foreground">Aqui para ajudar!</p>
           </div>
         </div>

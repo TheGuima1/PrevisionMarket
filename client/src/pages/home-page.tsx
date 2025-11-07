@@ -56,7 +56,6 @@ export default function HomePage() {
     if (error) {
       return (
         <div className="text-center py-16 space-y-4">
-          <div className="text-6xl opacity-50">⚠️</div>
           <h3 className="text-xl font-semibold text-destructive">Erro ao carregar mercados</h3>
           <p className="text-muted-foreground">
             {error instanceof Error ? error.message : "Tente recarregar a página"}
@@ -68,7 +67,6 @@ export default function HomePage() {
     if (tabMarkets.length === 0) {
       return (
         <div className="text-center py-16 space-y-4">
-          <div className="text-6xl opacity-50">📊</div>
           <h3 className="text-xl font-semibold">Nenhum mercado encontrado</h3>
           <p className="text-muted-foreground">Nenhum mercado disponível nesta categoria</p>
         </div>
