@@ -15,6 +15,7 @@ import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { formatBRL, formatDateTimeBR } from "@shared/utils/currency";
 
 export default function PortfolioPage() {
   const { toast } = useToast();
@@ -98,7 +99,7 @@ export default function PortfolioPage() {
               <span>Valor Total</span>
             </div>
             <div className="text-3xl font-bold tabular-nums" data-testid="text-total-value">
-              R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              {formatBRL(totalValue)}
             </div>
           </Card>
 
@@ -108,7 +109,7 @@ export default function PortfolioPage() {
               <span>Investido</span>
             </div>
             <div className="text-3xl font-bold tabular-nums" data-testid="text-total-invested">
-              R$ {totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              {formatBRL(totalInvested)}
             </div>
           </Card>
 
@@ -118,7 +119,7 @@ export default function PortfolioPage() {
               <span>P&L Total</span>
             </div>
             <div className={`text-3xl font-bold tabular-nums ${totalPnL >= 0 ? 'text-primary' : 'text-destructive'}`} data-testid="text-total-pnl">
-              {totalPnL >= 0 ? '+' : ''}R$ {totalPnL.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              {totalPnL >= 0 ? '+' : ''}{formatBRL(totalPnL)}
             </div>
           </Card>
         </div>
@@ -172,14 +173,14 @@ export default function PortfolioPage() {
                           <div>
                             <div className="text-muted-foreground mb-1">Valor Atual</div>
                             <div className="font-semibold tabular-nums">
-                              R$ {currentValue.toFixed(2)}
+                              {formatBRL(currentValue)}
                             </div>
                           </div>
                           <div>
                             <div className="text-muted-foreground mb-1">P&L</div>
                             <div className={`font-semibold tabular-nums flex items-center gap-1 ${pnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
                               {pnl >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                              {pnl >= 0 ? '+' : ''}R$ {pnl.toFixed(2)} ({pnlPercent.toFixed(1)}%)
+                              {pnl >= 0 ? '+' : ''}{formatBRL(pnl)} ({pnlPercent.toFixed(1)}%)
                             </div>
                           </div>
                         </div>
@@ -390,13 +391,13 @@ export default function PortfolioPage() {
                             {tx.type.replace('_', ' ')}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {new Date(tx.createdAt).toLocaleString('pt-BR')}
+                            {formatDateTimeBR(tx.createdAt)}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-semibold tabular-nums">
-                          {tx.currency} {parseFloat(tx.amount).toFixed(tx.currency === 'USDC' ? 6 : 2)}
+                          {tx.currency === 'BRL' ? formatBRL(parseFloat(tx.amount)) : `${parseFloat(tx.amount).toFixed(6)} USDC`}
                         </div>
                       </div>
                     </div>

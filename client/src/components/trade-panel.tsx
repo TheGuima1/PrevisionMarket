@@ -4,11 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Market } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, HelpCircle } from "lucide-react";
+import { probToOdds, formatOdds, formatProbability, calculatePayout, calculateProfit } from "@shared/utils/odds";
+import { formatBRL } from "@shared/utils/currency";
 
 interface TradePanelProps {
   market: Market;
@@ -23,10 +26,13 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
   const [limitAction, setLimitAction] = useState<"buy" | "sell">("buy");
   const { toast } = useToast();
 
-  const price = orderType === "yes" ? parseFloat(market.yesPrice) : parseFloat(market.noPrice);
-  const totalCost = shares ? (parseFloat(shares) * price).toFixed(2) : "0.00";
-  const potentialPayout = shares ? parseFloat(shares).toFixed(2) : "0.00";
-  const potentialProfit = shares ? (parseFloat(shares) - parseFloat(totalCost)).toFixed(2) : "0.00";
+  const probability = orderType === "yes" ? parseFloat(market.yesPrice) : parseFloat(market.noPrice);
+  const odds = probToOdds(probability);
+  
+  const sharesNum = shares ? parseFloat(shares) : 0;
+  const stakeBRL = sharesNum * probability;
+  const totalPayout = sharesNum > 0 ? calculatePayout(stakeBRL, odds) : 0;
+  const netProfit = sharesNum > 0 ? calculateProfit(stakeBRL, odds) : 0;
 
   const buyMutation = useMutation({
     mutationFn: async () => {
@@ -69,7 +75,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
     },
     onSuccess: () => {
       toast({
-        title: "Limit Order criada!",
+        title: "Ordem limitada criada!",
         description: `${limitAction === "buy" ? "Compra" : "Venda"} de ${shares} ações ${orderType === "yes" ? "SIM" : "NÃO"} a ${(parseFloat(limitPrice) * 100).toFixed(1)}%`,
       });
       setShares("");
@@ -127,17 +133,17 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
       <div className="space-y-2">
         <h3 className="font-accent text-xl font-semibold">Negociar</h3>
         <p className="text-sm text-muted-foreground">
-          Escolha entre order market ou limit
+          Escolha entre ordem a mercado ou limitada
         </p>
       </div>
 
       <Tabs value={orderMode} onValueChange={(v) => setOrderMode(v as "market" | "limit")}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="market" data-testid="tab-order-market">
-            Market Order
+            Ordem a Mercado
           </TabsTrigger>
           <TabsTrigger value="limit" data-testid="tab-order-limit">
-            Limit Order
+            Ordem Limitada
           </TabsTrigger>
         </TabsList>
 
@@ -163,21 +169,26 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
         </TabsList>
 
         <TabsContent value="yes" className="mt-6 space-y-6">
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-2">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Preço atual (SIM)</span>
-              <span className="text-2xl font-bold tabular-nums text-primary" data-testid="text-yes-price">
-                {(price * 100).toFixed(1)}%
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                Odds SIM
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Retorno por R$ 1 apostado (incluindo stake)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+              <span className="text-3xl font-bold tabular-nums text-primary" data-testid="text-yes-odds">
+                {formatOdds(odds)}
               </span>
             </div>
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Decimal: {(1 / price).toFixed(2)}</span>
-              <span>
-                Americano: {price >= 0.5 
-                  ? `-${Math.round((price / (1 - price)) * 100)}`
-                  : `+${Math.round(((1 - price) / price) * 100)}`
-                }
-              </span>
+            <div className="flex justify-between items-center text-xs text-muted-foreground pt-1 border-t border-primary/10">
+              <span>Probabilidade impl\u00edcita</span>
+              <span data-testid="text-yes-probability">{formatProbability(probability)}</span>
             </div>
           </div>
 
@@ -197,19 +208,19 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
 
           <div className="space-y-3 bg-muted/30 rounded-lg p-4">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Custo total</span>
-              <span className="font-semibold tabular-nums" data-testid="text-total-cost-yes">R$ {totalCost}</span>
+              <span className="text-muted-foreground">Investimento</span>
+              <span className="font-semibold tabular-nums" data-testid="text-total-cost-yes">{formatBRL(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Ganho potencial</span>
+              <span className="text-muted-foreground">Retorno total (se ganhar)</span>
               <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-payout-yes">
-                R$ {potentialPayout}
+                {formatBRL(totalPayout)}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Lucro potencial</span>
+              <span className="text-muted-foreground">Lucro l\u00edquido</span>
               <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-profit-yes">
-                R$ {potentialProfit}
+                {formatBRL(netProfit)}
               </span>
             </div>
           </div>
@@ -226,21 +237,26 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
         </TabsContent>
 
         <TabsContent value="no" className="mt-6 space-y-6">
-          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4 space-y-2">
+          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Preço atual (NÃO)</span>
-              <span className="text-2xl font-bold tabular-nums text-destructive" data-testid="text-no-price">
-                {(price * 100).toFixed(1)}%
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                Odds NÃO
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Retorno por R$ 1 apostado (incluindo stake)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+              <span className="text-3xl font-bold tabular-nums text-destructive" data-testid="text-no-odds">
+                {formatOdds(odds)}
               </span>
             </div>
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Decimal: {(1 / price).toFixed(2)}</span>
-              <span>
-                Americano: {price >= 0.5 
-                  ? `-${Math.round((price / (1 - price)) * 100)}`
-                  : `+${Math.round(((1 - price) / price) * 100)}`
-                }
-              </span>
+            <div className="flex justify-between items-center text-xs text-muted-foreground pt-1 border-t border-destructive/10">
+              <span>Probabilidade impl\u00edcita</span>
+              <span data-testid="text-no-probability">{formatProbability(probability)}</span>
             </div>
           </div>
 
@@ -260,19 +276,19 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
 
           <div className="space-y-3 bg-muted/30 rounded-lg p-4">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Custo total</span>
-              <span className="font-semibold tabular-nums" data-testid="text-total-cost-no">R$ {totalCost}</span>
+              <span className="text-muted-foreground">Investimento</span>
+              <span className="font-semibold tabular-nums" data-testid="text-total-cost-no">{formatBRL(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Ganho potencial</span>
+              <span className="text-muted-foreground">Retorno total (se ganhar)</span>
               <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-payout-no">
-                R$ {potentialPayout}
+                {formatBRL(totalPayout)}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Lucro potencial</span>
+              <span className="text-muted-foreground">Lucro l\u00edquido</span>
               <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-profit-no">
-                R$ {potentialProfit}
+                {formatBRL(netProfit)}
               </span>
             </div>
           </div>
@@ -324,7 +340,17 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
             </Tabs>
 
             <div className="space-y-2">
-              <Label htmlFor="limit-price">Preço (0.01 - 0.99)</Label>
+              <Label htmlFor="limit-price" className="flex items-center gap-1">
+                Probabilidade (0.01 - 0.99)
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Probabilidade em decimal (0.50 = 50%)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <Input
                 id="limit-price"
                 type="number"
@@ -336,9 +362,6 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
                 step="0.01"
                 data-testid="input-limit-price"
               />
-              <p className="text-xs text-muted-foreground">
-                Preço em decimal (ex: 0.50 = 50%)
-              </p>
             </div>
 
             <div className="space-y-2">
@@ -355,17 +378,23 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               />
             </div>
 
-            <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+            <div className="bg-muted/30 rounded-lg p-4 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Preço por ação</span>
+                <span className="text-muted-foreground">Odds da ordem</span>
                 <span className="font-semibold tabular-nums">
-                  {limitPrice ? `${(parseFloat(limitPrice) * 100).toFixed(1)}%` : "-"}
+                  {limitPrice ? formatOdds(probToOdds(parseFloat(limitPrice))) : "-"}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total estimado</span>
+                <span className="text-muted-foreground">Probabilidade</span>
+                <span className="font-semibold tabular-nums text-xs">
+                  {limitPrice ? formatProbability(parseFloat(limitPrice)) : "-"}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm border-t border-border pt-2">
+                <span className="text-muted-foreground">Valor estimado</span>
                 <span className="font-semibold tabular-nums">
-                  R$ {limitPrice && shares ? (parseFloat(limitPrice) * parseFloat(shares)).toFixed(2) : "0.00"}
+                  {limitPrice && shares ? formatBRL(parseFloat(limitPrice) * parseFloat(shares)) : formatBRL(0)}
                 </span>
               </div>
             </div>
@@ -387,7 +416,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
       <div className="pt-4 border-t">
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>Saldo BRL:</span>
-          <span className="font-medium">R$ {parseFloat(userBalance?.brl || "0").toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+          <span className="font-medium">{formatBRL(parseFloat(userBalance?.brl || "0"))}</span>
         </div>
       </div>
     </Card>

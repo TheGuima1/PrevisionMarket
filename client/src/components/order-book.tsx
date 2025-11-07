@@ -3,7 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { probToOdds, formatOdds, formatProbability } from "@shared/utils/odds";
 
 interface OrderBookProps {
   marketId: string;
@@ -32,7 +34,7 @@ export function OrderBook({ marketId }: OrderBookProps) {
         <div className="flex items-center gap-2 justify-between">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
-            <h3 className="font-accent text-xl font-semibold">Order Book</h3>
+            <h3 className="font-accent text-xl font-semibold">Livro de Ofertas</h3>
           </div>
         </div>
         <Skeleton className="h-64" />
@@ -48,7 +50,7 @@ export function OrderBook({ marketId }: OrderBookProps) {
       <div className="flex items-center gap-2 justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" />
-          <h3 className="font-accent text-xl font-semibold">Order Book</h3>
+          <h3 className="font-accent text-xl font-semibold">Livro de Ofertas</h3>
         </div>
         <Badge variant="outline" className="text-xs">
           Atualiza a cada 5s
@@ -56,7 +58,7 @@ export function OrderBook({ marketId }: OrderBookProps) {
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-xs font-medium text-muted-foreground pb-2 border-b">
-        <div>Preço</div>
+        <div>Odds</div>
         <div className="text-right">Quantidade</div>
         <div className="text-right">Ordens</div>
       </div>
@@ -75,26 +77,34 @@ export function OrderBook({ marketId }: OrderBookProps) {
             ) : (
               orderbook.bids.map((bid, idx) => {
                 const depthPercent = (bid.totalShares / maxBidDepth) * 100;
+                const probability = parseFloat(bid.price);
+                const odds = probToOdds(probability);
                 return (
-                  <div
-                    key={idx}
-                    className="relative grid grid-cols-3 gap-2 text-xs py-1.5 px-2 rounded hover-elevate"
-                    data-testid={`orderbook-bid-${idx}`}
-                  >
-                    <div
-                      className="absolute inset-0 bg-primary/10 rounded"
-                      style={{ width: `${depthPercent}%` }}
-                    />
-                    <div className="relative font-medium text-primary">
-                      {(parseFloat(bid.price) * 100).toFixed(1)}%
-                    </div>
-                    <div className="relative text-right tabular-nums">
-                      {bid.totalShares.toFixed(2)}
-                    </div>
-                    <div className="relative text-right text-muted-foreground">
-                      {bid.numOrders}
-                    </div>
-                  </div>
+                  <Tooltip key={idx}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="relative grid grid-cols-3 gap-2 text-xs py-1.5 px-2 rounded hover-elevate cursor-help"
+                        data-testid={`orderbook-bid-${idx}`}
+                      >
+                        <div
+                          className="absolute inset-0 bg-primary/10 rounded"
+                          style={{ width: `${depthPercent}%` }}
+                        />
+                        <div className="relative font-medium text-primary">
+                          {formatOdds(odds)}
+                        </div>
+                        <div className="relative text-right tabular-nums">
+                          {bid.totalShares.toFixed(2)}
+                        </div>
+                        <div className="relative text-right text-muted-foreground">
+                          {bid.numOrders}
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Prob: {formatProbability(probability)}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 );
               })
             )}
@@ -112,26 +122,34 @@ export function OrderBook({ marketId }: OrderBookProps) {
             ) : (
               orderbook.asks.map((ask, idx) => {
                 const depthPercent = (ask.totalShares / maxAskDepth) * 100;
+                const probability = parseFloat(ask.price);
+                const odds = probToOdds(probability);
                 return (
-                  <div
-                    key={idx}
-                    className="relative grid grid-cols-3 gap-2 text-xs py-1.5 px-2 rounded hover-elevate"
-                    data-testid={`orderbook-ask-${idx}`}
-                  >
-                    <div
-                      className="absolute inset-0 bg-destructive/10 rounded"
-                      style={{ width: `${depthPercent}%` }}
-                    />
-                    <div className="relative font-medium text-destructive">
-                      {(parseFloat(ask.price) * 100).toFixed(1)}%
-                    </div>
-                    <div className="relative text-right tabular-nums">
-                      {ask.totalShares.toFixed(2)}
-                    </div>
-                    <div className="relative text-right text-muted-foreground">
-                      {ask.numOrders}
-                    </div>
-                  </div>
+                  <Tooltip key={idx}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="relative grid grid-cols-3 gap-2 text-xs py-1.5 px-2 rounded hover-elevate cursor-help"
+                        data-testid={`orderbook-ask-${idx}`}
+                      >
+                        <div
+                          className="absolute inset-0 bg-destructive/10 rounded"
+                          style={{ width: `${depthPercent}%` }}
+                        />
+                        <div className="relative font-medium text-destructive">
+                          {formatOdds(odds)}
+                        </div>
+                        <div className="relative text-right tabular-nums">
+                          {ask.totalShares.toFixed(2)}
+                        </div>
+                        <div className="relative text-right text-muted-foreground">
+                          {ask.numOrders}
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Prob: {formatProbability(probability)}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 );
               })
             )}
