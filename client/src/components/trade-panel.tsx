@@ -19,27 +19,17 @@ interface TradePanelProps {
 }
 
 export function TradePanel({ market, userBalance }: TradePanelProps) {
-  const [orderMode, setOrderMode] = useState<"market" | "limit">("market");
   const [orderType, setOrderType] = useState<"yes" | "no">("yes");
   const [amountBRL, setAmountBRL] = useState("");
-  const [limitPrice, setLimitPrice] = useState("");
-  const [limitAction, setLimitAction] = useState<"buy" | "sell">("buy");
   const { toast } = useToast();
 
   const probability = orderType === "yes" ? parseFloat(market.yesPrice) : parseFloat(market.noPrice);
   const odds = probToOdds(probability);
   
   const stakeBRL = amountBRL ? parseFloat(amountBRL) : 0;
-  
-  // For market orders: use current market probability
-  // For limit orders: use the user's chosen limit price
-  const effectivePrice = orderMode === "limit" && limitPrice && parseFloat(limitPrice) > 0 
-    ? parseFloat(limitPrice) 
-    : probability;
-  
-  const sharesNum = stakeBRL / effectivePrice;
-  const totalPayout = stakeBRL > 0 ? calculatePayout(stakeBRL, probToOdds(effectivePrice)) : 0;
-  const netProfit = stakeBRL > 0 ? calculateProfit(stakeBRL, probToOdds(effectivePrice)) : 0;
+  const sharesNum = stakeBRL / probability;
+  const totalPayout = stakeBRL > 0 ? calculatePayout(stakeBRL, odds) : 0;
+  const netProfit = stakeBRL > 0 ? calculateProfit(stakeBRL, odds) : 0;
 
   const buyMutation = useMutation({
     mutationFn: async () => {
@@ -69,41 +59,6 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
     },
   });
 
-  const limitOrderMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/clob/orders", {
-        marketId: market.id,
-        action: limitAction,
-        type: orderType,
-        shares: sharesNum,
-        price: parseFloat(limitPrice),
-      });
-      return await res.json();
-    },
-    onSuccess: () => {
-      const limitOdds = probToOdds(parseFloat(limitPrice));
-      toast({
-        title: "Ordem limitada criada!",
-        description: `${limitAction === "buy" ? "Compra" : "Venda"} de ${formatBRL(stakeBRL)} em ${orderType === "yes" ? "SIM" : "NÃO"} com odds ${formatOdds(limitOdds)}`,
-      });
-      setAmountBRL("");
-      setLimitPrice("");
-      queryClient.invalidateQueries({ queryKey: ["/api/clob/orderbook", market.id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/clob/my-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/markets", market.id] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Erro ao criar ordem limitada",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleBuy = () => {
     if (!amountBRL || parseFloat(amountBRL) <= 0) {
       toast({
@@ -116,48 +71,17 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
     buyMutation.mutate();
   };
 
-  const handleLimitOrder = () => {
-    if (!amountBRL || parseFloat(amountBRL) <= 0) {
-      toast({
-        title: "Valor inválido",
-        description: "Digite um valor válido em reais",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!limitPrice || parseFloat(limitPrice) <= 0 || parseFloat(limitPrice) >= 1) {
-      toast({
-        title: "Preço inválido",
-        description: "Digite um preço entre 0.01 e 0.99",
-        variant: "destructive",
-      });
-      return;
-    }
-    limitOrderMutation.mutate();
-  };
-
   return (
     <Card className="p-6 space-y-6">
       <div className="space-y-2">
-        <h3 className="font-accent text-xl font-semibold">Negociar</h3>
+        <h3 className="font-accent text-xl font-semibold">Apostar</h3>
         <p className="text-sm text-muted-foreground">
-          Escolha entre ordem a mercado ou limitada
+          Escolha SIM ou NÃO e defina o valor da aposta
         </p>
       </div>
 
-      <Tabs value={orderMode} onValueChange={(v) => setOrderMode(v as "market" | "limit")}>
+      <Tabs value={orderType} onValueChange={(v) => setOrderType(v as "yes" | "no")}>
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="market" data-testid="tab-order-market">
-            Ordem a Mercado
-          </TabsTrigger>
-          <TabsTrigger value="limit" data-testid="tab-order-limit">
-            Ordem Limitada
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="market" className="mt-6">
-          <Tabs value={orderType} onValueChange={(v) => setOrderType(v as "yes" | "no")}>
-            <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger 
             value="yes" 
             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -195,7 +119,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               </span>
             </div>
             <div className="flex justify-between items-center text-xs text-muted-foreground pt-1 border-t border-primary/10">
-              <span>Probabilidade impl\u00edcita</span>
+              <span>Probabilidade implícita</span>
               <span data-testid="text-yes-probability">{formatProbability(probability)}</span>
             </div>
           </div>
@@ -226,7 +150,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Lucro l\u00edquido</span>
+              <span className="text-muted-foreground">Lucro líquido</span>
               <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-profit-yes">
                 {formatBRL(netProfit)}
               </span>
@@ -263,7 +187,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               </span>
             </div>
             <div className="flex justify-between items-center text-xs text-muted-foreground pt-1 border-t border-destructive/10">
-              <span>Probabilidade impl\u00edcita</span>
+              <span>Probabilidade implícita</span>
               <span data-testid="text-no-probability">{formatProbability(probability)}</span>
             </div>
           </div>
@@ -294,7 +218,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Lucro l\u00edquido</span>
+              <span className="text-muted-foreground">Lucro líquido</span>
               <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-profit-no">
                 {formatBRL(netProfit)}
               </span>
@@ -311,113 +235,6 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
           >
             {buyMutation.isPending ? "Executando..." : "Apostar em NÃO"}
           </Button>
-        </TabsContent>
-      </Tabs>
-        </TabsContent>
-
-        <TabsContent value="limit" className="mt-6 space-y-6">
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <Button
-                variant={limitAction === "buy" ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setLimitAction("buy")}
-                data-testid="button-limit-buy"
-              >
-                Comprar
-              </Button>
-              <Button
-                variant={limitAction === "sell" ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setLimitAction("sell")}
-                data-testid="button-limit-sell"
-              >
-                Vender
-              </Button>
-            </div>
-
-            <Tabs value={orderType} onValueChange={(v) => setOrderType(v as "yes" | "no")}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="yes" data-testid="tab-limit-yes">
-                  SIM
-                </TabsTrigger>
-                <TabsTrigger value="no" data-testid="tab-limit-no">
-                  NÃO
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <div className="space-y-2">
-              <Label htmlFor="limit-price" className="flex items-center gap-1">
-                Probabilidade (0.01 - 0.99)
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">Probabilidade em decimal (0.50 = 50%)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <Input
-                id="limit-price"
-                type="number"
-                placeholder="0.50"
-                value={limitPrice}
-                onChange={(e) => setLimitPrice(e.target.value)}
-                min="0.01"
-                max="0.99"
-                step="0.01"
-                data-testid="input-limit-price"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="limit-amount">Valor da aposta (R$)</Label>
-              <Input
-                id="limit-amount"
-                type="number"
-                placeholder="10.00"
-                value={amountBRL}
-                onChange={(e) => setAmountBRL(e.target.value)}
-                min="0.01"
-                step="0.01"
-                data-testid="input-limit-amount"
-              />
-            </div>
-
-            <div className="bg-muted/30 rounded-lg p-4 space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Odds da ordem</span>
-                <span className="font-semibold tabular-nums">
-                  {limitPrice ? formatOdds(probToOdds(parseFloat(limitPrice))) : "-"}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Probabilidade</span>
-                <span className="font-semibold tabular-nums text-xs">
-                  {limitPrice ? formatProbability(parseFloat(limitPrice)) : "-"}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm border-t border-border pt-2">
-                <span className="text-muted-foreground">Investimento total</span>
-                <span className="font-semibold tabular-nums">
-                  {formatBRL(stakeBRL)}
-                </span>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              onClick={handleLimitOrder}
-              disabled={!amountBRL || !limitPrice || limitOrderMutation.isPending}
-              className="w-full"
-              size="lg"
-              data-testid="button-limit-execute"
-            >
-              {limitOrderMutation.isPending ? "Criando..." : `${limitAction === "buy" ? "Apostar" : "Vender"} ${orderType === "yes" ? "SIM" : "NÃO"}`}
-            </Button>
-          </div>
         </TabsContent>
       </Tabs>
 

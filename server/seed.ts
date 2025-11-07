@@ -1,6 +1,7 @@
 // Seed script to populate database with demo data
 import { db } from "./db";
-import { users, markets } from "@shared/schema";
+import { users, markets, orders, positions } from "@shared/schema";
+import { sql, eq } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
@@ -124,9 +125,122 @@ async function seed() {
     },
   ];
 
+  const createdMarkets = [];
   for (const market of demoMarkets) {
     const [created] = await db.insert(markets).values(market).returning();
+    createdMarkets.push(created);
     console.log("Created market:", created.title);
+  }
+
+  // Create seed trades to populate markets with realistic volume
+  console.log("\nCreating seed trades...");
+  
+  const tradesToCreate = [
+    // Lula 2026 - Moderate volume
+    { marketId: createdMarkets[0].id, userId: admin.id, type: "yes" as const, shares: "500.00", totalCost: "225.00" },
+    { marketId: createdMarkets[0].id, userId: demo.id, type: "no" as const, shares: "800.00", totalCost: "440.00" },
+    
+    // Taxa Selic - High volume
+    { marketId: createdMarkets[1].id, userId: admin.id, type: "yes" as const, shares: "1200.00", totalCost: "744.00" },
+    { marketId: createdMarkets[1].id, userId: demo.id, type: "yes" as const, shares: "300.00", totalCost: "186.00" },
+    
+    // Copa América - Medium volume
+    { marketId: createdMarkets[2].id, userId: admin.id, type: "no" as const, shares: "600.00", totalCost: "390.00" },
+    { marketId: createdMarkets[2].id, userId: demo.id, type: "yes" as const, shares: "200.00", totalCost: "70.00" },
+    
+    // Oscar Brasil - Low volume
+    { marketId: createdMarkets[3].id, userId: demo.id, type: "no" as const, shares: "400.00", totalCost: "288.00" },
+    
+    // Vida em Marte - Very low volume
+    { marketId: createdMarkets[4].id, userId: admin.id, type: "no" as const, shares: "150.00", totalCost: "127.50" },
+    
+    // Dólar R$6 - High volume
+    { marketId: createdMarkets[5].id, userId: admin.id, type: "yes" as const, shares: "900.00", totalCost: "522.00" },
+    { marketId: createdMarkets[5].id, userId: demo.id, type: "no" as const, shares: "1100.00", totalCost: "462.00" },
+    
+    // Flamengo campeão - Medium volume
+    { marketId: createdMarkets[6].id, userId: admin.id, type: "no" as const, shares: "700.00", totalCost: "546.00" },
+    { marketId: createdMarkets[6].id, userId: demo.id, type: "yes" as const, shares: "100.00", totalCost: "22.00" },
+    
+    // Carnaval 2M - Medium volume
+    { marketId: createdMarkets[7].id, userId: admin.id, type: "yes" as const, shares: "800.00", totalCost: "600.00" },
+    { marketId: createdMarkets[7].id, userId: demo.id, type: "no" as const, shares: "300.00", totalCost: "75.00" },
+  ];
+
+  // Create orders and update market volumes
+  for (const trade of tradesToCreate) {
+    await db.insert(orders).values({
+      marketId: trade.marketId,
+      userId: trade.userId,
+      type: trade.type,
+      action: "buy",
+      status: "filled",
+      shares: trade.shares,
+      filledShares: trade.shares,
+      price: (parseFloat(trade.totalCost) / parseFloat(trade.shares)).toFixed(4),
+      totalCost: trade.totalCost,
+    });
+  }
+
+  // Update each market's total volume and shares
+  for (const market of createdMarkets) {
+    const marketTrades = tradesToCreate.filter(t => t.marketId === market.id);
+    
+    const totalVolume = marketTrades.reduce((sum, t) => sum + parseFloat(t.totalCost), 0).toFixed(2);
+    const totalYesShares = marketTrades
+      .filter(t => t.type === "yes")
+      .reduce((sum, t) => sum + parseFloat(t.shares), 0)
+      .toFixed(2);
+    const totalNoShares = marketTrades
+      .filter(t => t.type === "no")
+      .reduce((sum, t) => sum + parseFloat(t.shares), 0)
+      .toFixed(2);
+
+    await db.update(markets)
+      .set({ 
+        totalVolume,
+        totalYesShares,
+        totalNoShares,
+      })
+      .where(eq(markets.id, market.id));
+    
+    console.log(`Market "${market.title}": Volume R$ ${totalVolume}, YES ${totalYesShares}, NO ${totalNoShares}`);
+  }
+
+  // Create positions for users
+  console.log("\nCreating user positions...");
+  
+  for (const market of createdMarkets) {
+    const adminTrades = tradesToCreate.filter(t => t.marketId === market.id && t.userId === admin.id);
+    const demoTrades = tradesToCreate.filter(t => t.marketId === market.id && t.userId === demo.id);
+    
+    if (adminTrades.length > 0) {
+      const yesShares = adminTrades.filter(t => t.type === "yes").reduce((sum, t) => sum + parseFloat(t.shares), 0).toFixed(2);
+      const noShares = adminTrades.filter(t => t.type === "no").reduce((sum, t) => sum + parseFloat(t.shares), 0).toFixed(2);
+      const totalInvested = adminTrades.reduce((sum, t) => sum + parseFloat(t.totalCost), 0).toFixed(2);
+      
+      await db.insert(positions).values({
+        userId: admin.id,
+        marketId: market.id,
+        yesShares,
+        noShares,
+        totalInvested,
+      });
+    }
+    
+    if (demoTrades.length > 0) {
+      const yesShares = demoTrades.filter(t => t.type === "yes").reduce((sum, t) => sum + parseFloat(t.shares), 0).toFixed(2);
+      const noShares = demoTrades.filter(t => t.type === "no").reduce((sum, t) => sum + parseFloat(t.shares), 0).toFixed(2);
+      const totalInvested = demoTrades.reduce((sum, t) => sum + parseFloat(t.totalCost), 0).toFixed(2);
+      
+      await db.insert(positions).values({
+        userId: demo.id,
+        marketId: market.id,
+        yesShares,
+        noShares,
+        totalInvested,
+      });
+    }
   }
 
   console.log("\nSeed completed successfully!");
