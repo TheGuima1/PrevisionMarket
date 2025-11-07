@@ -10,7 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TrendingUp, TrendingDown, HelpCircle } from "lucide-react";
-import { probToOdds, formatOdds, formatProbability, calculatePayout, calculateProfit } from "@shared/utils/odds";
+import { probToOdds, formatOdds, formatProbability, calculatePayout, calculateProfit, getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/odds";
 import { formatBRL3 } from "@shared/utils/currency";
 
 interface TradePanelProps {
@@ -23,20 +23,26 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
   const [amountBRL, setAmountBRL] = useState("");
   const { toast } = useToast();
 
-  const probability = orderType === "yes" ? parseFloat(market.yesPrice) : parseFloat(market.noPrice);
+  const probability = orderType === "yes" 
+    ? getYesPriceFromReserves(market.yesReserve, market.noReserve)
+    : getNoPriceFromReserves(market.yesReserve, market.noReserve);
   const odds = probToOdds(probability);
   
   const stakeBRL = amountBRL ? parseFloat(amountBRL) : 0;
-  const sharesNum = stakeBRL / probability;
-  const totalPayout = stakeBRL > 0 ? calculatePayout(stakeBRL, odds) : 0;
-  const netProfit = stakeBRL > 0 ? calculateProfit(stakeBRL, odds) : 0;
+  
+  const estimatedShares = stakeBRL > 0 && probability > 0 
+    ? stakeBRL / probability 
+    : 0;
+  
+  const estimatedPayout = stakeBRL > 0 ? calculatePayout(stakeBRL, odds) : 0;
+  const estimatedProfit = stakeBRL > 0 ? calculateProfit(stakeBRL, odds) : 0;
 
   const buyMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/orders", {
         marketId: market.id,
         type: orderType,
-        shares: sharesNum,
+        usdcAmount: stakeBRL,
       });
       return await res.json();
     },
@@ -146,13 +152,13 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Retorno total (se ganhar)</span>
               <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-payout-yes">
-                {formatBRL3(totalPayout)}
+                {formatBRL3(estimatedPayout)}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Lucro líquido</span>
               <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-profit-yes">
-                {formatBRL3(netProfit)}
+                {formatBRL3(estimatedProfit)}
               </span>
             </div>
           </div>
@@ -214,13 +220,13 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Retorno total (se ganhar)</span>
               <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-payout-no">
-                {formatBRL3(totalPayout)}
+                {formatBRL3(estimatedPayout)}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Lucro líquido</span>
               <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-profit-no">
-                {formatBRL3(netProfit)}
+                {formatBRL3(estimatedProfit)}
               </span>
             </div>
           </div>

@@ -75,26 +75,37 @@ export function buyShares(
 
 /**
  * Initialize market with first trade
- * First trader gets shares at ~1:1 ratio and sets initial reserves
+ * First trader bootstraps the market by providing initial liquidity
+ * 
+ * The deposit is split:
+ * - 50% goes to trader as shares at 0.5 price
+ * - 50% provides initial symmetric liquidity to the pool
+ * 
+ * Example: $100 buy YES
+ * - Trader gets: 100 YES shares (cost: $50 @ 0.5 price)
+ * - Pool gets: (50 YES, 50 NO) with k=2500
+ * - Trader effectively contributes $50 liquidity to bootstrap market
  */
 function initializeMarket(usdcIn: number, outcome: 'yes' | 'no'): TradeResult {
-  if (outcome === 'yes') {
-    return {
-      sharesBought: usdcIn,
-      avgPrice: 1.0,
-      newYesReserve: usdcIn,
-      newNoReserve: EPSILON, // Small amount to avoid div/0
-      newK: usdcIn * EPSILON,
-    };
-  } else {
-    return {
-      sharesBought: usdcIn,
-      avgPrice: 1.0,
-      newYesReserve: EPSILON,
-      newNoReserve: usdcIn,
-      newK: usdcIn * EPSILON,
-    };
-  }
+  // Split deposit: 50% for shares, 50% for liquidity
+  const sharesCost = usdcIn / 2;
+  const liquiditySeed = usdcIn / 2;
+  
+  // Trader gets shares at 0.5 price
+  const sharesBought = sharesCost / 0.5; // 2x shares
+  
+  // Pool gets symmetric reserves from liquidity portion
+  const newYesReserve = liquiditySeed;
+  const newNoReserve = liquiditySeed;
+  const newK = newYesReserve * newNoReserve;
+  
+  return {
+    sharesBought,
+    avgPrice: 0.5,
+    newYesReserve,
+    newNoReserve,
+    newK,
+  };
 }
 
 /**

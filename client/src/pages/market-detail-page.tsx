@@ -19,6 +19,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/odds";
 
 const categoryLabels: Record<string, string> = {
   politica: "Política",
@@ -160,8 +161,8 @@ export default function MarketDetailPage() {
               )}
 
               <div className="grid sm:grid-cols-2 gap-6 pt-4">
-                <OddsDisplay probability={parseFloat(market.yesPrice)} />
-                <OddsDisplay probability={parseFloat(market.noPrice)} />
+                <OddsDisplay probability={getYesPriceFromReserves(market.yesReserve, market.noReserve)} />
+                <OddsDisplay probability={getNoPriceFromReserves(market.yesReserve, market.noReserve)} />
               </div>
             </Card>
 

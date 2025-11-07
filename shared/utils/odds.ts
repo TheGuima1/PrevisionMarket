@@ -85,3 +85,37 @@ export function calculatePayout(stakeBRL: number, odds: number): number {
 export function calculateProfit(stakeBRL: number, odds: number): number {
   return stakeBRL * (odds - 1);
 }
+
+/**
+ * Calcula probabilidade (preço) de YES a partir das reservas AMM
+ * Formula AMM: yesPrice = noReserve / (yesReserve + noReserve)
+ * @returns Probabilidade YES (0-1), ou 0.5 se sem liquidez
+ */
+export function getYesPriceFromReserves(yesReserve: string, noReserve: string): number {
+  const yes = parseFloat(yesReserve);
+  const no = parseFloat(noReserve);
+  
+  if (yes === 0 && no === 0) return 0.5;
+  
+  const total = yes + no;
+  if (total === 0) return 0.5;
+  
+  return no / total;
+}
+
+/**
+ * Calcula probabilidade (preço) de NO a partir das reservas AMM
+ * Formula AMM: noPrice = yesReserve / (yesReserve + noReserve)
+ * @returns Probabilidade NO (0-1), ou 0.5 se sem liquidez
+ */
+export function getNoPriceFromReserves(yesReserve: string, noReserve: string): number {
+  const yes = parseFloat(yesReserve);
+  const no = parseFloat(noReserve);
+  
+  if (yes === 0 && no === 0) return 0.5;
+  
+  const total = yes + no;
+  if (total === 0) return 0.5;
+  
+  return yes / total;
+}

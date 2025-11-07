@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Users, DollarSign } from "lucide-react";
 import { Link } from "wouter";
 import type { Market } from "@shared/schema";
-import { probToOdds, formatOdds, formatProbability } from "@shared/utils/odds";
+import { probToOdds, formatOdds, formatProbability, getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/odds";
 import { formatBRLCompact } from "@shared/utils/currency";
 
 interface MarketCardProps {
@@ -46,14 +46,15 @@ const categoryLabels: Record<string, string> = {
 };
 
 export function MarketCard({ market, isPublic = false }: MarketCardProps) {
-  const yesPrice = parseFloat(market.yesPrice);
-  const noPrice = parseFloat(market.noPrice);
+  const yesPrice = getYesPriceFromReserves(market.yesReserve, market.noReserve);
+  const noPrice = getNoPriceFromReserves(market.yesReserve, market.noReserve);
   
   const yesOdds = probToOdds(yesPrice);
   const noOdds = probToOdds(noPrice);
   
   const volume = parseFloat(market.totalVolume);
-  const totalShares = parseFloat(market.totalYesShares) + parseFloat(market.totalNoShares);
+  const totalReserves = parseFloat(market.yesReserve) + parseFloat(market.noReserve);
+  const totalShares = totalReserves > 0 ? totalReserves : 0;
 
   return (
     <Card className="overflow-hidden hover-elevate transition-all duration-200" data-testid={`card-market-${market.id}`}>

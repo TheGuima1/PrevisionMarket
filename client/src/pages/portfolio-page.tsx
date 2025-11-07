@@ -16,6 +16,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
+import { getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/odds";
 
 export default function PortfolioPage() {
   const { toast } = useToast();
@@ -67,8 +68,8 @@ export default function PortfolioPage() {
   const calculatePnL = (position: Position & { market: Market }) => {
     const yesShares = parseFloat(position.yesShares);
     const noShares = parseFloat(position.noShares);
-    const yesPrice = parseFloat(position.market.yesPrice);
-    const noPrice = parseFloat(position.market.noPrice);
+    const yesPrice = getYesPriceFromReserves(position.market.yesReserve, position.market.noReserve);
+    const noPrice = getNoPriceFromReserves(position.market.yesReserve, position.market.noReserve);
     const totalInvested = parseFloat(position.totalInvested);
 
     const currentValue = (yesShares * yesPrice) + (noShares * noPrice);
