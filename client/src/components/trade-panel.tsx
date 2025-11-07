@@ -21,7 +21,7 @@ interface TradePanelProps {
 export function TradePanel({ market, userBalance }: TradePanelProps) {
   const [orderMode, setOrderMode] = useState<"market" | "limit">("market");
   const [orderType, setOrderType] = useState<"yes" | "no">("yes");
-  const [shares, setShares] = useState("");
+  const [amountBRL, setAmountBRL] = useState("");
   const [limitPrice, setLimitPrice] = useState("");
   const [limitAction, setLimitAction] = useState<"buy" | "sell">("buy");
   const { toast } = useToast();
@@ -29,26 +29,26 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
   const probability = orderType === "yes" ? parseFloat(market.yesPrice) : parseFloat(market.noPrice);
   const odds = probToOdds(probability);
   
-  const sharesNum = shares ? parseFloat(shares) : 0;
-  const stakeBRL = sharesNum * probability;
-  const totalPayout = sharesNum > 0 ? calculatePayout(stakeBRL, odds) : 0;
-  const netProfit = sharesNum > 0 ? calculateProfit(stakeBRL, odds) : 0;
+  const stakeBRL = amountBRL ? parseFloat(amountBRL) : 0;
+  const sharesNum = stakeBRL / probability;
+  const totalPayout = stakeBRL > 0 ? calculatePayout(stakeBRL, odds) : 0;
+  const netProfit = stakeBRL > 0 ? calculateProfit(stakeBRL, odds) : 0;
 
   const buyMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/orders", {
         marketId: market.id,
         type: orderType,
-        shares: parseFloat(shares),
+        shares: sharesNum,
       });
       return await res.json();
     },
     onSuccess: () => {
       toast({
-        title: "Ordem executada!",
-        description: `Você comprou ${shares} ações ${orderType === "yes" ? "SIM" : "NÃO"}`,
+        title: "Aposta realizada!",
+        description: `Você apostou ${formatBRL(stakeBRL)} em ${orderType === "yes" ? "SIM" : "NÃO"}`,
       });
-      setShares("");
+      setAmountBRL("");
       queryClient.invalidateQueries({ queryKey: ["/api/markets", market.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
@@ -68,17 +68,18 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
         marketId: market.id,
         action: limitAction,
         type: orderType,
-        shares: parseFloat(shares),
+        shares: sharesNum,
         price: parseFloat(limitPrice),
       });
       return await res.json();
     },
     onSuccess: () => {
+      const limitOdds = probToOdds(parseFloat(limitPrice));
       toast({
         title: "Ordem limitada criada!",
-        description: `${limitAction === "buy" ? "Compra" : "Venda"} de ${shares} ações ${orderType === "yes" ? "SIM" : "NÃO"} a ${(parseFloat(limitPrice) * 100).toFixed(1)}%`,
+        description: `${limitAction === "buy" ? "Compra" : "Venda"} de ${formatBRL(stakeBRL)} em ${orderType === "yes" ? "SIM" : "NÃO"} com odds ${formatOdds(limitOdds)}`,
       });
-      setShares("");
+      setAmountBRL("");
       setLimitPrice("");
       queryClient.invalidateQueries({ queryKey: ["/api/clob/orderbook", market.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/clob/my-orders"] });
@@ -97,10 +98,10 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
   });
 
   const handleBuy = () => {
-    if (!shares || parseFloat(shares) <= 0) {
+    if (!amountBRL || parseFloat(amountBRL) <= 0) {
       toast({
-        title: "Quantidade inválida",
-        description: "Digite uma quantidade válida de ações",
+        title: "Valor inválido",
+        description: "Digite um valor válido em reais",
         variant: "destructive",
       });
       return;
@@ -109,10 +110,10 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
   };
 
   const handleLimitOrder = () => {
-    if (!shares || parseFloat(shares) <= 0) {
+    if (!amountBRL || parseFloat(amountBRL) <= 0) {
       toast({
-        title: "Quantidade inválida",
-        description: "Digite uma quantidade válida de ações",
+        title: "Valor inválido",
+        description: "Digite um valor válido em reais",
         variant: "destructive",
       });
       return;
@@ -193,16 +194,16 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="shares-yes">Quantidade de ações</Label>
+            <Label htmlFor="amount-yes">Valor da aposta (R$)</Label>
             <Input
-              id="shares-yes"
+              id="amount-yes"
               type="number"
               placeholder="0.00"
-              value={shares}
-              onChange={(e) => setShares(e.target.value)}
+              value={amountBRL}
+              onChange={(e) => setAmountBRL(e.target.value)}
               min="0"
               step="0.01"
-              data-testid="input-shares-yes"
+              data-testid="input-amount-yes"
             />
           </div>
 
@@ -227,12 +228,12 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
 
           <Button
             onClick={handleBuy}
-            disabled={!shares || buyMutation.isPending}
+            disabled={!amountBRL || buyMutation.isPending}
             className="w-full bg-primary hover:bg-primary/90"
             size="lg"
             data-testid="button-buy-yes-execute"
           >
-            {buyMutation.isPending ? "Executando..." : "Comprar SIM"}
+            {buyMutation.isPending ? "Executando..." : "Apostar em SIM"}
           </Button>
         </TabsContent>
 
@@ -261,16 +262,16 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="shares-no">Quantidade de ações</Label>
+            <Label htmlFor="amount-no">Valor da aposta (R$)</Label>
             <Input
-              id="shares-no"
+              id="amount-no"
               type="number"
               placeholder="0.00"
-              value={shares}
-              onChange={(e) => setShares(e.target.value)}
+              value={amountBRL}
+              onChange={(e) => setAmountBRL(e.target.value)}
               min="0"
               step="0.01"
-              data-testid="input-shares-no"
+              data-testid="input-amount-no"
             />
           </div>
 
@@ -295,13 +296,13 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
 
           <Button
             onClick={handleBuy}
-            disabled={!shares || buyMutation.isPending}
+            disabled={!amountBRL || buyMutation.isPending}
             className="w-full"
             variant="destructive"
             size="lg"
             data-testid="button-buy-no-execute"
           >
-            {buyMutation.isPending ? "Executando..." : "Comprar NÃO"}
+            {buyMutation.isPending ? "Executando..." : "Apostar em NÃO"}
           </Button>
         </TabsContent>
       </Tabs>
@@ -365,16 +366,16 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="limit-shares">Quantidade de ações</Label>
+              <Label htmlFor="limit-amount">Valor da aposta (R$)</Label>
               <Input
-                id="limit-shares"
+                id="limit-amount"
                 type="number"
                 placeholder="10.00"
-                value={shares}
-                onChange={(e) => setShares(e.target.value)}
+                value={amountBRL}
+                onChange={(e) => setAmountBRL(e.target.value)}
                 min="0.01"
                 step="0.01"
-                data-testid="input-limit-shares"
+                data-testid="input-limit-amount"
               />
             </div>
 
@@ -392,9 +393,9 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
                 </span>
               </div>
               <div className="flex justify-between text-sm border-t border-border pt-2">
-                <span className="text-muted-foreground">Valor estimado</span>
+                <span className="text-muted-foreground">Investimento total</span>
                 <span className="font-semibold tabular-nums">
-                  {limitPrice && shares ? formatBRL(parseFloat(limitPrice) * parseFloat(shares)) : formatBRL(0)}
+                  {formatBRL(stakeBRL)}
                 </span>
               </div>
             </div>
@@ -402,12 +403,12 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
             <Button
               type="button"
               onClick={handleLimitOrder}
-              disabled={!shares || !limitPrice || limitOrderMutation.isPending}
+              disabled={!amountBRL || !limitPrice || limitOrderMutation.isPending}
               className="w-full"
               size="lg"
               data-testid="button-limit-execute"
             >
-              {limitOrderMutation.isPending ? "Criando..." : `${limitAction === "buy" ? "Comprar" : "Vender"} ${orderType === "yes" ? "SIM" : "NÃO"}`}
+              {limitOrderMutation.isPending ? "Criando..." : `${limitAction === "buy" ? "Apostar" : "Vender"} ${orderType === "yes" ? "SIM" : "NÃO"}`}
             </Button>
           </div>
         </TabsContent>
