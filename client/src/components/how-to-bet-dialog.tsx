@@ -37,6 +37,9 @@ export function HowToBetDialog({ trigger }: HowToBetDialogProps) {
   const goToNext = () => {
     if (currentStep < HOW_TO_BET_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
+    } else {
+      setOpen(false);
+      setCurrentStep(0);
     }
   };
 
@@ -112,11 +115,10 @@ export function HowToBetDialog({ trigger }: HowToBetDialogProps) {
             </Button>
             <Button
               onClick={goToNext}
-              disabled={currentStep === HOW_TO_BET_STEPS.length - 1}
               className="flex-1"
               data-testid="button-wizard-next"
             >
-              Próximo
+              {currentStep === HOW_TO_BET_STEPS.length - 1 ? "Finalizar" : "Próximo"}
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
