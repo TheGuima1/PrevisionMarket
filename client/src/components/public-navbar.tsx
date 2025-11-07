@@ -11,14 +11,23 @@ export function PublicNavbar() {
         {/* Logo */}
         <Link href="/" data-testid="link-home">
           <span className="flex items-center gap-2 hover-elevate px-3 py-1 rounded-md transition-all cursor-pointer">
-            <span className="font-accent text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              MatrizPIX
+            <span className="font-accent text-2xl font-bold bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 bg-clip-text text-transparent">
+              Palpites.AI
             </span>
           </span>
         </Link>
 
         {/* Auth Buttons */}
         <div className="flex items-center gap-2">
+          <Button 
+            variant="outline"
+            size="sm" 
+            onClick={() => setLocation("/wallet/deposit")}
+            className="bg-brand-500/10 border-brand-500/20 text-brand-300 hover:bg-brand-500/20"
+            data-testid="button-deposit-pix"
+          >
+            Depositar via PIX
+          </Button>
           <Button 
             variant="ghost" 
             size="sm" 

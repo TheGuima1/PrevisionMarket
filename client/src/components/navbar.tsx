@@ -29,11 +29,8 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between gap-4">
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home">
-              <div className="bg-gradient-to-br from-primary to-accent p-2 rounded-lg">
-                <span className="text-xl font-bold text-white">M</span>
-              </div>
-              <span className="font-accent text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                MatrizPIX
+              <span className="font-accent text-2xl font-bold bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 bg-clip-text text-transparent">
+                Palpites.AI
               </span>
             </div>
           </Link>
@@ -72,11 +69,8 @@ export function Navbar() {
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex flex-col items-end gap-0.5">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary font-mono tabular-nums" data-testid="badge-balance-brl">
-                  R$ {parseFloat(user?.balanceBrl || "0").toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </Badge>
-                <Badge variant="outline" className="bg-accent/5 border-accent/20 text-accent font-mono tabular-nums" data-testid="badge-balance-usdc">
-                  {parseFloat(user?.balanceUsdc || "0").toFixed(2)} USDC
+                <Badge variant="outline" className="bg-brand-500/10 border-brand-500/20 text-brand-300 font-mono tabular-nums" data-testid="badge-balance-brl3">
+                  {parseFloat(user?.balanceBrl || "0").toLocaleString('pt-BR', { minimumFractionDigits: 2 })} BRL3
                 </Badge>
               </div>
             </div>

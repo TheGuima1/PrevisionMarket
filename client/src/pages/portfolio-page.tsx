@@ -33,7 +33,7 @@ export default function PortfolioPage() {
   });
 
   const depositMutation = useMutation({
-    mutationFn: async (data: { amount: string; currency: "BRL" | "USDC"; type: string }) => {
+    mutationFn: async (data: { amount: string; currency: "BRL3"; type: string }) => {
       const res = await apiRequest("POST", "/api/wallet/deposit", data);
       return await res.json();
     },
@@ -49,7 +49,7 @@ export default function PortfolioPage() {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: async (data: { amount: string; currency: "BRL" | "USDC"; type: string }) => {
+    mutationFn: async (data: { amount: string; currency: "BRL3"; type: string }) => {
       const res = await apiRequest("POST", "/api/wallet/withdraw", data);
       return await res.json();
     },
@@ -212,20 +212,19 @@ export default function PortfolioPage() {
               <Card className="p-6 space-y-4">
                 <h3 className="font-accent text-xl font-semibold">Depositar</h3>
                 <Tabs defaultValue="pix">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="pix" data-testid="tab-deposit-pix">Pix</TabsTrigger>
-                    <TabsTrigger value="usdc" data-testid="tab-deposit-usdc">USDC</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-1">
+                    <TabsTrigger value="pix" data-testid="tab-deposit-pix">Depositar BRL3</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
-                    <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4 text-sm">
-                      <span className="font-medium">⚠️ DEMO MODE</span>
+                    <div className="bg-brand-500/10 border border-brand-500/20 rounded-lg p-4 text-sm">
+                      <span className="font-medium">💰 Depósito via PIX</span>
                       <p className="text-muted-foreground mt-1">
-                        Esta é uma simulação. Fundos são adicionados instantaneamente.
+                        Pague com PIX → saldo é tokenizado em BRL3 on-chain na sua conta.
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="deposit-pix">Valor em BRL</Label>
+                      <Label htmlFor="deposit-pix">Valor em BRL3</Label>
                       <Input
                         id="deposit-pix"
                         type="number"
@@ -240,48 +239,14 @@ export default function PortfolioPage() {
                     <Button
                       onClick={() => depositMutation.mutate({
                         amount: depositAmount,
-                        currency: "BRL",
+                        currency: "BRL3",
                         type: "deposit_pix"
                       })}
                       disabled={!depositAmount || depositMutation.isPending}
-                      className="w-full"
+                      className="w-full bg-brand-500 hover:bg-brand-400"
                       data-testid="button-deposit-pix"
                     >
-                      {depositMutation.isPending ? "Processando..." : "Depositar via Pix"}
-                    </Button>
-                  </TabsContent>
-
-                  <TabsContent value="usdc" className="space-y-4 mt-4">
-                    <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm">
-                      <span className="font-medium">⚠️ DEMO MODE</span>
-                      <p className="text-muted-foreground mt-1">
-                        Esta é uma simulação. Fundos USDC são adicionados instantaneamente.
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="deposit-usdc">Valor em USDC</Label>
-                      <Input
-                        id="deposit-usdc"
-                        type="number"
-                        placeholder="0.000000"
-                        value={depositAmount}
-                        onChange={(e) => setDepositAmount(e.target.value)}
-                        min="0"
-                        step="0.000001"
-                        data-testid="input-deposit-usdc"
-                      />
-                    </div>
-                    <Button
-                      onClick={() => depositMutation.mutate({
-                        amount: depositAmount,
-                        currency: "USDC",
-                        type: "deposit_usdc"
-                      })}
-                      disabled={!depositAmount || depositMutation.isPending}
-                      className="w-full"
-                      data-testid="button-deposit-usdc"
-                    >
-                      {depositMutation.isPending ? "Processando..." : "Depositar USDC"}
+                      {depositMutation.isPending ? "Processando..." : "Depositar via PIX"}
                     </Button>
                   </TabsContent>
                 </Tabs>
@@ -290,20 +255,19 @@ export default function PortfolioPage() {
               <Card className="p-6 space-y-4">
                 <h3 className="font-accent text-xl font-semibold">Sacar</h3>
                 <Tabs defaultValue="pix">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="pix" data-testid="tab-withdraw-pix">Pix</TabsTrigger>
-                    <TabsTrigger value="usdc" data-testid="tab-withdraw-usdc">USDC</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-1">
+                    <TabsTrigger value="pix" data-testid="tab-withdraw-pix">Sacar BRL3</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
-                    <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4 text-sm">
-                      <span className="font-medium">⚠️ DEMO MODE</span>
+                    <div className="bg-brand-500/10 border border-brand-500/20 rounded-lg p-4 text-sm">
+                      <span className="font-medium">💸 Saque via PIX</span>
                       <p className="text-muted-foreground mt-1">
-                        Esta é uma simulação. Saques são processados instantaneamente.
+                        Converta BRL3 → PIX e receba na sua conta bancária.
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="withdraw-pix">Valor em BRL</Label>
+                      <Label htmlFor="withdraw-pix">Valor em BRL3</Label>
                       <Input
                         id="withdraw-pix"
                         type="number"
@@ -318,7 +282,7 @@ export default function PortfolioPage() {
                     <Button
                       onClick={() => withdrawMutation.mutate({
                         amount: withdrawAmount,
-                        currency: "BRL",
+                        currency: "BRL3",
                         type: "withdrawal_pix"
                       })}
                       disabled={!withdrawAmount || withdrawMutation.isPending}
@@ -326,42 +290,7 @@ export default function PortfolioPage() {
                       variant="outline"
                       data-testid="button-withdraw-pix"
                     >
-                      {withdrawMutation.isPending ? "Processando..." : "Sacar via Pix"}
-                    </Button>
-                  </TabsContent>
-
-                  <TabsContent value="usdc" className="space-y-4 mt-4">
-                    <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm">
-                      <span className="font-medium">⚠️ DEMO MODE</span>
-                      <p className="text-muted-foreground mt-1">
-                        Esta é uma simulação. Saques USDC são processados instantaneamente.
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="withdraw-usdc">Valor em USDC</Label>
-                      <Input
-                        id="withdraw-usdc"
-                        type="number"
-                        placeholder="0.000000"
-                        value={withdrawAmount}
-                        onChange={(e) => setWithdrawAmount(e.target.value)}
-                        min="0"
-                        step="0.000001"
-                        data-testid="input-withdraw-usdc"
-                      />
-                    </div>
-                    <Button
-                      onClick={() => withdrawMutation.mutate({
-                        amount: withdrawAmount,
-                        currency: "USDC",
-                        type: "withdrawal_usdc"
-                      })}
-                      disabled={!withdrawAmount || withdrawMutation.isPending}
-                      className="w-full"
-                      variant="outline"
-                      data-testid="button-withdraw-usdc"
-                    >
-                      {withdrawMutation.isPending ? "Processando..." : "Sacar USDC"}
+                      {withdrawMutation.isPending ? "Processando..." : "Sacar via PIX"}
                     </Button>
                   </TabsContent>
                 </Tabs>
@@ -397,7 +326,7 @@ export default function PortfolioPage() {
                       </div>
                       <div className="text-right">
                         <div className="font-semibold tabular-nums">
-                          {tx.currency === 'BRL' ? formatBRL(parseFloat(tx.amount)) : `${parseFloat(tx.amount).toFixed(6)} USDC`}
+                          {formatBRL(parseFloat(tx.amount))}
                         </div>
                       </div>
                     </div>

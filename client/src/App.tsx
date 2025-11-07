@@ -13,6 +13,7 @@ import MarketDetailPage from "@/pages/market-detail-page";
 import PortfolioPage from "@/pages/portfolio-page";
 import AdminPage from "@/pages/admin-page";
 import AuthPage from "@/pages/auth-page";
+import DepositPage from "@/pages/deposit-page";
 import NotFound from "@/pages/not-found";
 
 function UsernameGuard({ children }: { children: React.ReactNode }) {
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/market/:id" component={MarketDetailPage} />
+      <Route path="/wallet/deposit" component={DepositPage} />
       
       {/* Protected Routes */}
       <ProtectedRoute path="/portfolio" component={PortfolioPage} />

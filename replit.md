@@ -1,7 +1,7 @@
-# MatrizPIX - Plataforma Brasileira de Prediction Markets
+# Palpites.AI - Plataforma de Prediction Markets com BRL3
 
 ## Overview
-MatrizPIX is a prediction market platform, inspired by Polymarket, specifically designed for the Brazilian market. Its core purpose is to allow users to bet on future events using Pix and crypto (mocked for MVP). The project aims to provide a robust, user-friendly, and localized platform for prediction markets, with ambitions for real-time features, advanced trading tools, and decentralized integration in future phases. The MVP is complete, featuring decimal odds, full PT-BR localization, and a production-ready deployment.
+Palpites.AI is a prediction market platform, inspired by Polymarket, designed for the Brazilian market. Users deposit via PIX, receive BRL3 tokens on-chain, and use them to trade on future events. The project aims to provide a robust, user-friendly, and localized platform for prediction markets, with ambitions for real-time features, advanced trading tools, and decentralized integration in future phases. The MVP is complete, featuring decimal odds, full PT-BR localization, and a production-ready deployment.
 
 ## User Preferences
 - **Communication Style**: I prefer clear and concise language. Avoid overly technical jargon unless necessary, and provide explanations when complex concepts are introduced.

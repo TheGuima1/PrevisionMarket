@@ -96,3 +96,17 @@ export function formatDateTimeBR(date: Date | string): string {
     minute: '2-digit',
   }).format(dateObj);
 }
+
+/**
+ * Formata valor em BRL3 (token nativo da plataforma)
+ * @param value Valor numérico
+ * @returns String formatada (ex: "1.234,56 BRL3")
+ */
+export function formatBRL3(value: number | string): string {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numValue) + ' BRL3';
+}

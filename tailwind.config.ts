@@ -9,8 +9,29 @@ export default {
         lg: ".5625rem", /* 9px */
         md: ".375rem", /* 6px */
         sm: ".1875rem", /* 3px */
+        xl2: "1rem", /* 16px - clean futuristic radius */
+      },
+      boxShadow: {
+        soft: "0 10px 30px rgba(0,0,0,0.25)",
       },
       colors: {
+        brand: {
+          50: "#F4EFFE",
+          100: "#E9DFFE",
+          200: "#CFB7FB",
+          300: "#B38EF7",
+          400: "#996AF2",
+          500: "#7E46ED", // primary purple from logo
+          600: "#6C39CB",
+          700: "#5A2DA9",
+          800: "#482287",
+          900: "#361865",
+        },
+        surface: {
+          DEFAULT: "#0F1220", // base dark background
+          2: "#171A2A",       // cards
+          3: "#1F2340",       // hover/highlight
+        },
         // Flat / base colors (regular buttons)
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",

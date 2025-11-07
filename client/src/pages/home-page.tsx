@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PublicNavbar } from "@/components/public-navbar";
 import { MarketCard } from "@/components/market-card";
+import HowItWorks from "@/components/how-it-works";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Market } from "@shared/schema";
@@ -89,14 +90,17 @@ export default function HomePage() {
       
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Hero Section */}
-        <div className="space-y-2">
-          <h1 className="font-accent text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-            Aposte no Futuro
+        <div className="space-y-3 text-center max-w-3xl mx-auto">
+          <h1 className="font-accent text-3xl md:text-4xl font-bold text-white">
+            Acerte previsões. Ganhe em BRL3.
           </h1>
-          <p className="text-muted-foreground max-w-2xl">
-            Negocie previsões sobre eventos futuros. Os preços refletem a sabedoria coletiva do mercado.
+          <p className="text-white/70 text-base">
+            Probabilidade = preço. Cada cota vencedora paga 1 BRL3.
           </p>
         </div>
+
+        {/* How It Works Section */}
+        <HowItWorks />
 
         {/* Markets Section - Centered Layout */}
         <div className="max-w-7xl mx-auto">
