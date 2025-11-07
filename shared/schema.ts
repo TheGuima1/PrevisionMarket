@@ -261,6 +261,15 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   ).pipe(z.number().min(0.01, "Price must be at least 0.01").max(0.99, "Price must be at most 0.99")),
 });
 
+// Simplified Market Order schema (MVP - no limit orders, auto price from market)
+export const insertMarketOrderSchema = z.object({
+  marketId: z.string(),
+  type: z.enum(["yes", "no"]),
+  shares: z.union([z.string(), z.number()]).transform(val => 
+    typeof val === "string" ? parseFloat(val) : val
+  ).pipe(z.number().positive("Shares must be greater than 0")),
+});
+
 // Cancel order schema
 export const cancelOrderSchema = z.object({
   orderId: z.string(),

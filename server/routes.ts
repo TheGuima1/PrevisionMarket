@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { insertMarketSchema, insertOrderSchema, insertCommentSchema } from "@shared/schema";
+import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, orders } from "@shared/schema";
 import OpenAI from "openai";
 import { z } from "zod";
 import { db } from "./db";
@@ -132,11 +132,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== ORDER ROUTES =====
   
-  // POST /api/orders - Place a buy order (requires username)
+  // POST /api/orders - Place a buy market order (requires username)
   app.post("/api/orders", ensureUsername, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const validated = insertOrderSchema.parse(req.body);
+      const validated = insertMarketOrderSchema.parse(req.body);
       
       const market = await storage.getMarket(validated.marketId);
       if (!market || market.status !== "active") {
@@ -158,14 +158,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Insufficient balance");
       }
 
-      // Create order
-      const order = await storage.createOrder(userId, {
+      // Create market order - instantly filled at current market price (MVP simplified, no CLOB matching)
+      const [order] = await db.insert(orders).values({
+        userId,
         marketId: validated.marketId,
         type: validated.type,
         action: "buy",
-        shares,
-        price,
-      });
+        shares: shares.toFixed(2),
+        price: price.toFixed(4),
+        status: "filled",
+        filledShares: shares.toFixed(2),
+        totalCost: totalCost.toFixed(2),
+        feePaid: "0.000000",
+        makerFeeBps: 0,
+        takerFeeBps: 10,
+        isMaker: false,
+        filledAt: new Date(),
+      }).returning();
 
       // Update user balance
       const newBalance = (parseFloat(user.balanceBrl) - totalCost).toFixed(2);
@@ -267,14 +276,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : parseFloat(market.noPrice);
       const proceeds = shares * price;
 
-      // Create sell order
-      const order = await storage.createOrder(userId, {
+      // Create sell market order - instantly filled at current market price (MVP simplified)
+      const [order] = await db.insert(orders).values({
+        userId,
         marketId,
         type: type as "yes" | "no",
         action: "sell",
-        shares,
-        price,
-      });
+        shares: shares.toFixed(2),
+        price: price.toFixed(4),
+        status: "filled",
+        filledShares: shares.toFixed(2),
+        totalCost: proceeds.toFixed(2),
+        feePaid: "0.000000",
+        makerFeeBps: 0,
+        takerFeeBps: 10,
+        isMaker: false,
+        filledAt: new Date(),
+      }).returning();
 
       // Update user balance
       const user = await storage.getUser(userId);
