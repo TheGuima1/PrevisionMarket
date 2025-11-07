@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, orders } from "@shared/schema";
+import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, orders, markets } from "@shared/schema";
 import OpenAI from "openai";
 import { z } from "zod";
 import { db } from "./db";
@@ -46,16 +46,20 @@ function ensureUsername(req: Request, res: Response, next: Function) {
 // Auto-seed database if empty (production safety)
 async function autoSeedIfEmpty() {
   try {
-    const userCount = await db.select({ count: sql<number>`count(*)` }).from(users);
-    const count = Number(userCount[0]?.count ?? 0);
+    const userCountResult = await db.select({ count: sql<number>`count(*)` }).from(users);
+    const marketCountResult = await db.select({ count: sql<number>`count(*)` }).from(markets);
     
-    if (count === 0) {
-      console.log("🌱 Database is empty, running auto-seed...");
+    const numUsers = Number(userCountResult[0]?.count ?? 0);
+    const numMarkets = Number(marketCountResult[0]?.count ?? 0);
+    
+    // Run seed if DB is completely empty OR if there are no markets (6 markets expected)
+    if (numUsers === 0 || numMarkets < 6) {
+      console.log(`🌱 Database needs seeding (${numUsers} users, ${numMarkets} markets). Running auto-seed...`);
       const { seed } = await import("./seed");
       await seed();
       console.log("✅ Auto-seed completed successfully!");
     } else {
-      console.log(`✓ Database already has ${count} users, skipping seed`);
+      console.log(`✓ Database already has ${numUsers} users and ${numMarkets} markets, skipping seed`);
     }
   } catch (error) {
     console.error("❌ Auto-seed failed:", error);
