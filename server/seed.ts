@@ -4,6 +4,7 @@ import { users, markets, orders, positions } from "@shared/schema";
 import { sql, eq } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
+import * as AMM from "./amm-engine";
 
 const scryptAsync = promisify(scrypt);
 
@@ -16,33 +17,51 @@ async function hashPassword(password: string) {
 export async function seed() {
   console.log("Seeding database...");
 
-  // Create admin user
-  const adminPassword = await hashPassword("admin123");
-  const [admin] = await db.insert(users).values({
-    username: "admin",
-    email: "admin@matrizpix.com",
-    password: adminPassword,
-    balanceBrl: "10000.00",
-    balanceUsdc: "10000.000000",
-    isAdmin: true,
-  }).returning();
+  // Check if users already exist
+  const existingAdmin = await db.select().from(users).where(eq(users.username, "admin"));
+  const existingDemo = await db.select().from(users).where(eq(users.username, "demo"));
   
-  console.log("Created admin user:", admin.username);
-
-  // Create demo user
-  const demoPassword = await hashPassword("demo123");
-  const [demo] = await db.insert(users).values({
-    username: "demo",
-    email: "demo@matrizpix.com",
-    password: demoPassword,
-    balanceBrl: "5000.00",
-    balanceUsdc: "5000.000000",
-  }).returning();
+  let admin, demo;
   
-  console.log("Created demo user:", demo.username);
+  if (existingAdmin.length === 0) {
+    // Create admin user
+    const adminPassword = await hashPassword("admin123");
+    [admin] = await db.insert(users).values({
+      username: "admin",
+      email: "admin@matrizpix.com",
+      password: adminPassword,
+      balanceBrl: "10000.00",
+      balanceUsdc: "10000.000000",
+      isAdmin: true,
+    }).returning();
+    
+    console.log("Created admin user:", admin.username);
+  } else {
+    admin = existingAdmin[0];
+    console.log("Admin user already exists");
+  }
 
-  // 6 fixed markets - AMM system starts with ZERO liquidity
-  // First trader will initialize reserves
+  if (existingDemo.length === 0) {
+    // Create demo user
+    const demoPassword = await hashPassword("demo123");
+    [demo] = await db.insert(users).values({
+      username: "demo",
+      email: "demo@matrizpix.com",
+      password: demoPassword,
+      balanceBrl: "5000.00",
+      balanceUsdc: "5000.000000",
+    }).returning();
+    
+    console.log("Created demo user:", demo.username);
+  } else {
+    demo = existingDemo[0];
+    console.log("Demo user already exists");
+  }
+
+  // 6 fixed markets - AMM system with admin-seeded liquidity
+  // Each market gets R$ 100 initial seed (50 YES + 50 NO reserves)
+  const SEED_LIQUIDITY = 100; // R$ 100 per market
+  
   const demoMarkets = [
     {
       title: "Lula será reeleito presidente em 2026?",
@@ -51,9 +70,6 @@ export async function seed() {
       tags: ["Lula", "Brasil", "Eleições"],
       resolutionSource: "TSE - Tribunal Superior Eleitoral",
       endDate: new Date("2026-10-30T23:59:59Z"),
-      yesReserve: "0.00",
-      noReserve: "0.00",
-      k: "0.0000",
     },
     {
       title: "US Government Shutdown durará até fevereiro?",
@@ -62,9 +78,6 @@ export async function seed() {
       tags: ["USA", "Shutdown", "Government"],
       resolutionSource: "Official US Government sources",
       endDate: new Date("2025-02-01T23:59:59Z"),
-      yesReserve: "0.00",
-      noReserve: "0.00",
-      k: "0.0000",
     },
     {
       title: "Trump será presidente dos EUA em 2025?",
@@ -73,9 +86,6 @@ export async function seed() {
       tags: ["Trump", "USA", "Elections"],
       resolutionSource: "Official US Presidential Inauguration",
       endDate: new Date("2025-01-31T23:59:59Z"),
-      yesReserve: "0.00",
-      noReserve: "0.00",
-      k: "0.0000",
     },
     {
       title: "Bitcoin atingirá $100.000 em 2025?",
@@ -84,9 +94,6 @@ export async function seed() {
       tags: ["Bitcoin", "BTC", "Crypto"],
       resolutionSource: "CoinMarketCap - BTC/USD price",
       endDate: new Date("2025-12-31T23:59:59Z"),
-      yesReserve: "0.00",
-      noReserve: "0.00",
-      k: "0.0000",
     },
     {
       title: "IA substituirá 50% dos empregos até 2030?",
@@ -95,9 +102,6 @@ export async function seed() {
       tags: ["AI", "Jobs", "Technology"],
       resolutionSource: "World Economic Forum / ILO reports",
       endDate: new Date("2030-12-31T23:59:59Z"),
-      yesReserve: "0.00",
-      noReserve: "0.00",
-      k: "0.0000",
     },
     {
       title: "Brasil sediará Copa do Mundo 2030?",
@@ -106,24 +110,28 @@ export async function seed() {
       tags: ["Copa", "Brasil", "FIFA"],
       resolutionSource: "FIFA Official Announcement",
       endDate: new Date("2025-06-30T23:59:59Z"),
-      yesReserve: "0.00",
-      noReserve: "0.00",
-      k: "0.0000",
     },
   ];
 
   const createdMarkets = [];
   for (const market of demoMarkets) {
-    const [created] = await db.insert(markets).values(market).returning();
+    // Seed each market with R$ 100 symmetric liquidity
+    const ammState = AMM.seedMarket(SEED_LIQUIDITY);
+    
+    const [created] = await db.insert(markets).values({
+      ...market,
+      yesReserve: ammState.yesReserve.toFixed(2),
+      noReserve: ammState.noReserve.toFixed(2),
+      k: ammState.k.toFixed(4),
+      seedLiquidity: SEED_LIQUIDITY.toFixed(2),
+    }).returning();
+    
     createdMarkets.push(created);
-    console.log("Created market:", created.title);
+    console.log(`Created market with R$ ${SEED_LIQUIDITY} seed:`, created.title);
   }
 
-  // AMM system: Markets start with ZERO liquidity
-  // Note: With AMM, we don't create seed trades initially
-  // First user trade will initialize reserves
-  console.log("\nMarkets created with zero initial liquidity (AMM system)");
-  console.log("First trader will initialize market reserves");
+  console.log("\nAll markets seeded with admin liquidity (50/50 reserves)");
+  console.log("Traders can now execute trades immediately with 2% spread");
 
   console.log("\nSeed completed successfully!");
   console.log("\nLogin credentials:");

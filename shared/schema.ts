@@ -73,10 +73,11 @@ export const markets = pgTable("markets", {
   endDate: timestamp("end_date").notNull(),
   resolvedAt: timestamp("resolved_at"),
   resolvedOutcome: orderTypeEnum("resolved_outcome"),
-  // AMM Reserves (liquidity pools) - start at 0, first trade initializes
+  // AMM Reserves (liquidity pools) - admin-seeded at market creation
   yesReserve: decimal("yes_reserve", { precision: 12, scale: 2 }).notNull().default("0.00"),
   noReserve: decimal("no_reserve", { precision: 12, scale: 2 }).notNull().default("0.00"),
   k: decimal("k", { precision: 24, scale: 4 }).notNull().default("0.0000"), // Constant product (x * y = k)
+  seedLiquidity: decimal("seed_liquidity", { precision: 12, scale: 2 }).notNull().default("0.00"), // Admin-provided initial liquidity
   totalVolume: decimal("total_volume", { precision: 12, scale: 2 }).notNull().default("0.00"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

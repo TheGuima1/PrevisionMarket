@@ -137,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== ORDER ROUTES =====
   
-  // POST /api/orders - Place a buy market order using AMM (requires username)
+  // POST /api/orders - Place a buy market order using AMM with 2% spread (requires username)
   app.post("/api/orders", ensureUsername, async (req, res) => {
     try {
       const userId = req.user!.id;
@@ -166,29 +166,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Insufficient balance");
       }
 
-      // Execute trade through AMM
+      // Execute trade through AMM with 2% spread
       const ammState: AMM.AMMState = {
         yesReserve: parseFloat(market.yesReserve),
         noReserve: parseFloat(market.noReserve),
         k: parseFloat(market.k),
       };
 
-      const tradeResult = AMM.buyShares(usdcAmount, validated.type, ammState);
+      const tradeResult = AMM.buyShares(usdcAmount, validated.type, ammState, 200); // 200 bps = 2% spread
 
-      // Create filled order
+      // Calculate true avgPrice including spread (user paid usdcAmount for sharesBought shares)
+      const trueAvgPrice = usdcAmount / tradeResult.sharesBought;
+      const spreadFee = tradeResult.spreadFee || 0;
+
+      // Create filled order with consistent accounting
       const [order] = await db.insert(orders).values({
         userId,
         marketId: validated.marketId,
         type: validated.type,
         action: "buy",
         shares: tradeResult.sharesBought.toFixed(2),
-        price: tradeResult.avgPrice.toFixed(4),
+        price: trueAvgPrice.toFixed(4), // True price including spread
         status: "filled",
         filledShares: tradeResult.sharesBought.toFixed(2),
-        totalCost: usdcAmount.toFixed(2),
-        feePaid: "0.000000",
+        totalCost: usdcAmount.toFixed(2), // What user actually paid
+        feePaid: spreadFee.toFixed(6), // 2% spread fee
         makerFeeBps: 0,
-        takerFeeBps: 0,
+        takerFeeBps: 200, // 2% = 200 bps
         isMaker: false,
         filledAt: new Date(),
       }).returning();
@@ -197,15 +201,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newBalance = (parseFloat(user.balanceBrl) - usdcAmount).toFixed(2);
       await storage.updateUserBalance(userId, newBalance, user.balanceUsdc);
 
-      // Update position
+      // Update position with true avg price (including spread)
       await storage.createOrUpdatePosition(
         userId,
         validated.marketId,
         validated.type === "yes" ? tradeResult.sharesBought : 0,
         validated.type === "no" ? tradeResult.sharesBought : 0,
-        usdcAmount,
-        validated.type === "yes" ? tradeResult.avgPrice : undefined,
-        validated.type === "no" ? tradeResult.avgPrice : undefined
+        usdcAmount, // Total cost paid
+        validated.type === "yes" ? trueAvgPrice : undefined, // True price including spread
+        validated.type === "no" ? trueAvgPrice : undefined
       );
 
       // Update market AMM reserves and volume
@@ -628,12 +632,37 @@ Your role:
     }
   });
 
-  // POST /api/admin/markets - Create a new market
+  // POST /api/admin/markets - Create a new market with admin seed liquidity
   app.post("/api/admin/markets", requireAdmin, async (req, res) => {
     try {
-      const validated = insertMarketSchema.parse(req.body);
-      const market = await storage.createMarket(validated);
-      res.json(market);
+      // Validate market data + seed liquidity
+      const schema = insertMarketSchema.extend({
+        seedLiquidity: z.union([z.string(), z.number()]).transform(val => 
+          typeof val === "string" ? parseFloat(val) : val
+        ).pipe(z.number().min(10, "Minimum seed liquidity is R$ 10")),
+      });
+      
+      const validated = schema.parse(req.body);
+      const seedAmount = validated.seedLiquidity;
+      
+      // Seed AMM with symmetric reserves
+      const ammState = AMM.seedMarket(seedAmount);
+      
+      // Create market with seeded reserves
+      const market = await db.insert(markets).values({
+        title: validated.title,
+        description: validated.description,
+        category: validated.category,
+        tags: validated.tags || [],
+        resolutionSource: validated.resolutionSource,
+        endDate: validated.endDate,
+        yesReserve: ammState.yesReserve.toFixed(2),
+        noReserve: ammState.noReserve.toFixed(2),
+        k: ammState.k.toFixed(4),
+        seedLiquidity: seedAmount.toFixed(2),
+      }).returning();
+      
+      res.json(market[0]);
     } catch (error: any) {
       console.error("Admin market creation error:", error);
       if (error.name === "ZodError") {

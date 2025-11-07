@@ -20,6 +20,7 @@ export interface TradeResult {
   newYesReserve: number;
   newNoReserve: number;
   newK: number;
+  spreadFee?: number; // 2% spread fee (optional for backward compatibility)
 }
 
 const EPSILON = 0.01; // Minimum reserve to avoid division by zero
@@ -49,68 +50,71 @@ export function getPrice(outcome: 'yes' | 'no', state: AMMState): number | null 
 }
 
 /**
- * Execute a buy trade in the AMM
- * Handles both zero-liquidity initialization and normal trades
+ * Execute a buy trade in the AMM with 2% spread
+ * Requires admin-seeded liquidity (no zero-liquidity bootstrap)
  * 
- * @param usdcIn Amount of USDC to spend
+ * @param usdcIn Amount of USDC to spend (user pays full amount)
  * @param outcome 'yes' or 'no'
  * @param currentState Current AMM reserves
+ * @param spreadBps Spread in basis points (default: 200 = 2%)
  * @returns Trade result with shares bought and new state
  */
 export function buyShares(
   usdcIn: number,
   outcome: 'yes' | 'no',
-  currentState: AMMState
+  currentState: AMMState,
+  spreadBps: number = 200
 ): TradeResult {
   let { yesReserve, noReserve, k } = currentState;
   
-  // CASE 1: Zero liquidity - first trade initializes the market
-  if (yesReserve === 0 && noReserve === 0) {
-    return initializeMarket(usdcIn, outcome);
+  // Validate market has liquidity (admin must seed first)
+  // Use threshold to avoid precision issues (0.01 = 1 cent minimum)
+  if (yesReserve < 0.01 || noReserve < 0.01 || k < 0.0001) {
+    throw new Error("Market not initialized. Admin must seed liquidity first.");
   }
   
-  // CASE 2: Normal trade with existing liquidity
-  return executeTradeWithCPMM(usdcIn, outcome, yesReserve, noReserve, k);
+  // Apply 2% spread: reduce effective buying power
+  const spreadMultiplier = 1 - (spreadBps / 10000);
+  const effectiveUsdcIn = usdcIn * spreadMultiplier; // Only 98% goes to AMM
+  const spreadFee = usdcIn - effectiveUsdcIn; // 2% captured as fee
+  
+  // Execute trade with spread-adjusted amount
+  const result = executeTradeWithCPMM(effectiveUsdcIn, outcome, yesReserve, noReserve, k);
+  
+  return {
+    ...result,
+    spreadFee,
+  };
 }
 
 /**
- * Initialize market with first trade
- * First trader bootstraps the market by providing initial liquidity
+ * Seed market with initial admin liquidity
+ * Creates symmetric pool for fair price discovery
  * 
- * The deposit is split:
- * - 50% goes to trader as shares at 0.5 price
- * - 50% provides initial symmetric liquidity to the pool
- * 
- * Example: $100 buy YES
- * - Trader gets: 100 YES shares (cost: $50 @ 0.5 price)
- * - Pool gets: (50 YES, 50 NO) with k=2500
- * - Trader effectively contributes $50 liquidity to bootstrap market
+ * @param seedAmount Total liquidity to seed (split 50/50)
+ * @returns Initial AMM state with reserves and k
  */
-function initializeMarket(usdcIn: number, outcome: 'yes' | 'no'): TradeResult {
-  // Split deposit: 50% for shares, 50% for liquidity
-  const sharesCost = usdcIn / 2;
-  const liquiditySeed = usdcIn / 2;
+export function seedMarket(seedAmount: number): AMMState {
+  if (seedAmount <= 0) {
+    throw new Error("Seed amount must be positive");
+  }
   
-  // Trader gets shares at 0.5 price
-  const sharesBought = sharesCost / 0.5; // 2x shares
-  
-  // Pool gets symmetric reserves from liquidity portion
-  const newYesReserve = liquiditySeed;
-  const newNoReserve = liquiditySeed;
-  const newK = newYesReserve * newNoReserve;
+  // Split seed symmetrically: 50% YES, 50% NO
+  const halfSeed = seedAmount / 2;
   
   return {
-    sharesBought,
-    avgPrice: 0.5,
-    newYesReserve,
-    newNoReserve,
-    newK,
+    yesReserve: halfSeed,
+    noReserve: halfSeed,
+    k: halfSeed * halfSeed,
   };
 }
 
 /**
  * Execute trade using Constant Product Market Maker formula
- * Simulates buying along the bonding curve
+ * Formula: (x + deposit) * (y - shares) = k
+ * 
+ * When buying YES: deposit USDC to YES pool, withdraw YES shares
+ * When buying NO: deposit USDC to NO pool, withdraw NO shares
  */
 function executeTradeWithCPMM(
   usdcIn: number,
@@ -119,63 +123,43 @@ function executeTradeWithCPMM(
   noReserve: number,
   k: number
 ): TradeResult {
-  let sharesBought = 0;
-  let totalCost = 0;
-  const step = 0.01; // Granularity for curve simulation
+  // Use direct CPMM formula instead of incremental simulation
+  // Formula: (reserve_outcome + deposit) * (reserve_opposite - shares) = k
   
-  let currentYesReserve = yesReserve;
-  let currentNoReserve = noReserve;
+  let newYesReserve: number;
+  let newNoReserve: number;
+  let sharesBought: number;
   
-  // Buy shares incrementally along the curve
-  while (totalCost < usdcIn) {
-    const price = outcome === 'yes'
-      ? currentNoReserve / (currentYesReserve + currentNoReserve)
-      : currentYesReserve / (currentYesReserve + currentNoReserve);
+  if (outcome === 'yes') {
+    // Buy YES: deposit to YES reserve, withdraw YES shares
+    // (yesReserve + usdcIn) * (yesReserve - sharesBought) = k
+    // But we need to maintain the invariant differently for binary markets
+    // Actually: buyer deposits USDC, pool returns YES shares
+    // New formula: (yesReserve - shares) * noReserve = k (NO side unchanged)
     
-    const costForThisStep = price * step;
+    // Solve for shares: noReserve * (yesReserve - shares) = k
+    // yesReserve - shares = k / noReserve
+    // shares = yesReserve - (k / noReserve)
     
-    // Check if we can afford this step
-    if (totalCost + costForThisStep > usdcIn) {
-      // Partial step - use remaining budget
-      const remaining = usdcIn - totalCost;
-      const partialShares = remaining / price;
-      sharesBought += partialShares;
-      totalCost = usdcIn;
-      
-      // Update reserves for partial step
-      if (outcome === 'yes') {
-        currentYesReserve -= partialShares;
-        currentNoReserve += remaining;
-      } else {
-        currentNoReserve -= partialShares;
-        currentYesReserve += remaining;
-      }
-      break;
-    }
+    newNoReserve = noReserve + usdcIn; // USDC goes to NO side
+    newYesReserve = k / newNoReserve; // Maintain invariant
+    sharesBought = yesReserve - newYesReserve; // Shares removed from YES pool
     
-    // Full step
-    sharesBought += step;
-    totalCost += costForThisStep;
-    
-    // Update reserves (swap USDC for shares)
-    if (outcome === 'yes') {
-      currentYesReserve -= step;
-      currentNoReserve += costForThisStep;
-    } else {
-      currentNoReserve -= step;
-      currentYesReserve += costForThisStep;
-    }
+  } else {
+    // Buy NO: deposit to NO reserve, withdraw NO shares  
+    newYesReserve = yesReserve + usdcIn; // USDC goes to YES side
+    newNoReserve = k / newYesReserve; // Maintain invariant
+    sharesBought = noReserve - newNoReserve; // Shares removed from NO pool
   }
   
-  // Calculate new k (should be approximately maintained)
-  const newK = currentYesReserve * currentNoReserve;
-  const avgPrice = totalCost / sharesBought;
+  const avgPrice = usdcIn / sharesBought;
+  const newK = newYesReserve * newNoReserve;
   
   return {
     sharesBought,
     avgPrice,
-    newYesReserve: currentYesReserve,
-    newNoReserve: currentNoReserve,
+    newYesReserve,
+    newNoReserve,
     newK,
   };
 }
