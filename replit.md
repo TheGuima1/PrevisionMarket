@@ -20,15 +20,17 @@ The platform utilizes a vibrant Brazilian color scheme with a "verde-turquesa" p
 - **Backend**: Node.js, Express
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
 - **Authentication**: Passport.js with sessions
-- **Prediction Market Core**:
-    - **Instant-Fill Market Orders (MVP)**: Simplified trading system where all market orders are instantly filled at current market price (yesPrice/noPrice) without CLOB matching. Orders immediately marked as status="filled" and appear in recent trades feed. Future: Full CLOB with limit orders and partial fills.
-    - **Odds Calculation**: Automatic price calculation (AMM-like) with support for decimal odds as the primary display, alongside American and percentage probability.
-    - **Localization**: Full PT-BR localization for all UI elements, categories, and messages.
-    - **Recent Activity Feed**: Real-time display of recent filled orders with auto-refresh (5s polling), showing username, market, type (YES/NO), shares, BRL value, and relative timestamps.
+- **Prediction Market Core (Simplified MVP)**:
+    - **Static Prices (No AMM)**: Prices are fixed at seed time and never change after trades. No dynamic price calculation or AMM. Trades execute at current static price (yesPrice/noPrice).
+    - **6 Fixed Markets**: Platform seeds exactly 6 markets mirroring Polymarket: Lula 2026 (45%), Shutdown (32%), Trump 2025 (99%), Bitcoin $100k (68%), IA Jobs (15%), Copa 2030 (8%).
+    - **Instant-Fill Market Orders**: All orders instantly filled at static price, marked as status="filled", and appear in recent trades feed.
+    - **5-Tab Navigation**: Trending tab shows top 4 markets by volume. Category tabs: Política (3 markets), Crypto (1), Tech (1), Sports (1).
+    - **Localization**: Full PT-BR localization for all UI elements and messages.
+    - **Recent Activity Feed**: Real-time display of recent filled orders with auto-refresh (5s polling).
 
 ### Feature Specifications
 - **Authentication**: Email/password login/registration, unique username setup post-login, protected routes, and admin-specific routes.
-- **Public Landing Page**: Polymarket-style homepage with public access, category pills (13 Polymarket categories + "All Markets"), tag-based filtering, and real-time market odds display.
+- **Public Landing Page**: Polymarket-style homepage with public access, 5-tab navigation (Trending + 4 categories), and real-time market odds display. Trending shows top 4 markets by volume.
 - **Market Detail Page**: Comprehensive market information, multiple odds formats, Reddit-style discussion system, and integration with the trading panel.
 - **Trading Panel**: Visual YES/NO toggle, quantity input, automatic calculation of cost, potential gain, and profit.
 - **Portfolio**: Overview of total value, invested amount, P&L, active positions with per-position P&L, mock wallet (Pix and USDC), and transaction history.
