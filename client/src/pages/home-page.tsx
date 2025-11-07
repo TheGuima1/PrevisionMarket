@@ -29,7 +29,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  const { data: markets, isLoading } = useQuery<Market[]>({
+  const { data: markets, isLoading, error } = useQuery<Market[]>({
     queryKey: ["/api/markets"],
   });
 
@@ -121,6 +121,14 @@ export default function HomePage() {
             {[...Array(6)].map((_, i) => (
               <Skeleton key={i} className="h-56 rounded-lg" />
             ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-16 space-y-4">
+            <div className="text-6xl opacity-50">⚠️</div>
+            <h3 className="text-xl font-semibold text-destructive">Erro ao carregar mercados</h3>
+            <p className="text-muted-foreground">
+              {error instanceof Error ? error.message : "Tente recarregar a página"}
+            </p>
           </div>
         ) : filteredMarkets && filteredMarkets.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-markets">
