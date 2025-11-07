@@ -1,0 +1,105 @@
+Objetivo: Consertar a versão publicada do projeto MatrizPIX (Replit) para que a homepage liste os mercados como no Preview. Hoje o front abre, mas aparece “Nenhum mercado encontrado” porque o backend /api não está ativo em produção.
+
+Tarefas obrigatórias (faça e commite):
+
+Server único para front + API
+
+Se ainda não existir, crie server/index.ts (ou .js) com Express:
+
+app.use('/api', rotasApiExistentes) (importe as rotas atuais).
+
+app.use(express.static(path.resolve(__dirname, '../client/dist')))
+
+app.get('*', (_,res)=>res.sendFile(path.resolve(__dirname,'../client/dist/index.html')))
+
+app.listen(process.env.PORT || 3000)
+
+Remova qualquer dependência do vite preview no start de produção.
+
+Build do client e integração
+
+Confirme que o client está em client/.
+
+client/vite.config.ts: NÃO use base com URL absoluta. Mantenha padrão.
+
+No código do client, toda chamada de API deve usar const API = import.meta.env.VITE_API_URL || '/api';
+
+Scripts no package.json (raiz)
+
+"build": "cd client && npm i && npm run build"
+
+"start": "node dist/server/index.js" (vamos gerar build do server também)
+
+"build:server": "tsc -p server/tsconfig.json" (ou transpile com esbuild)
+
+"postbuild": "npm run build:server"
+
+Resultado: após npm run build, teremos client/dist e dist/server/index.js.
+
+Drizzle/DB
+
+Aponte DATABASE_URL=sqlite:./data/market.db.
+
+Garanta que ./data/ é criada no boot (fs.mkdirSync se necessário).
+
+No start, rode migrations (ex.: await drizzleMigrate()).
+
+Se o DB estiver vazio, rode um seed() que crie 8–10 mercados com status='active' e endsAt no futuro (UTC) para não filtrar tudo.
+
+Env/Secrets no Replit
+
+Adicione Secrets:
+
+NODE_ENV=production
+
+DATABASE_URL=sqlite:./data/market.db
+
+SEED_ON_BOOT=true (opcional, só para primeira vez)
+
+Não defina VITE_API_URL em produção (deixe o fallback '/api').
+
+Deploy (Replit)
+
+Comando de deploy:
+
+Build: npm ci && npm run build
+
+Start: npm run start
+
+Apenas um processo web (o server). Ele serve o front e as rotas /api.
+
+Teste E2E
+
+Abra a URL publicada e valide:
+
+GET /api/markets retorna lista (HTTP 200, array > 0).
+
+Front lista 8+ cards de mercado, sem “Nenhum mercado encontrado”.
+
+Console sem erros; rede sem 404/ CORS.
+
+Fallbacks & Hardening
+
+Se o fetch a /api/markets falhar, mostre toast de erro e retry automático (ex.: 2 tentativas com backoff).
+
+Ajuste filtros: por padrão, mostrar status='active' e endsAt >= now(). Garanta que now() usa UTC (evita sumir por fuso).
+
+Adicione rota GET /health que retorna {ok:true, time:...}.
+
+Critérios de aceite:
+
+Na URL publicada aparecem os mesmos mercados do Preview.
+
+GET /api/markets funcional em produção.
+
+Sem mensagens “Nenhum mercado encontrado” quando há seed.
+
+Sem 404 de /api/* e sem CORS errors no console.
+
+Extras (se der tempo):
+
+Adicionar PM2 ou simples retry no boot do DB.
+
+Log estruturado de requests (pino/morgan).
+
+robots.txt e security headers básicos (helmet).

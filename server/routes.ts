@@ -5,6 +5,9 @@ import { setupAuth } from "./auth";
 import { insertMarketSchema, insertOrderSchema, insertCommentSchema } from "@shared/schema";
 import OpenAI from "openai";
 import { z } from "zod";
+import { db } from "./db";
+import { users } from "@shared/schema";
+import { sql } from "drizzle-orm";
 
 // Initialize OpenAI for AI assistant
 // Using Replit's AI Integrations service (no API key needed)
@@ -40,9 +43,55 @@ function ensureUsername(req: Request, res: Response, next: Function) {
   next();
 }
 
+// Auto-seed database if empty (production safety)
+async function autoSeedIfEmpty() {
+  try {
+    const userCount = await db.select({ count: sql<number>`count(*)` }).from(users);
+    const count = Number(userCount[0]?.count ?? 0);
+    
+    if (count === 0) {
+      console.log("🌱 Database is empty, running auto-seed...");
+      const { seed } = await import("./seed");
+      await seed();
+      console.log("✅ Auto-seed completed successfully!");
+    } else {
+      console.log(`✓ Database already has ${count} users, skipping seed`);
+    }
+  } catch (error) {
+    console.error("❌ Auto-seed failed:", error);
+    // Don't crash the server if seed fails
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Create HTTP server FIRST (before any async operations)
+  const server = createServer(app);
+
   // Setup authentication routes
   setupAuth(app);
+
+  // Health check endpoint
+  app.get("/health", async (_req, res) => {
+    try {
+      // Check database connection
+      await db.execute(sql`SELECT 1`);
+      const marketCount = await db.select({ count: sql<number>`count(*)` }).from(users);
+      res.json({ 
+        ok: true, 
+        time: new Date().toISOString(),
+        dbConnected: true,
+        users: Number(marketCount[0]?.count ?? 0)
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        ok: false, 
+        error: "Database connection failed" 
+      });
+    }
+  });
+
+  // Auto-seed on first boot (production)
+  await autoSeedIfEmpty();
 
   // ===== MARKET ROUTES =====
   
@@ -603,6 +652,6 @@ Your role:
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  // Return the server instance created at the beginning
+  return server;
 }

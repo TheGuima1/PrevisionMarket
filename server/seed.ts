@@ -13,7 +13,7 @@ async function hashPassword(password: string) {
   return `${buf.toString("hex")}.${salt}`;
 }
 
-async function seed() {
+export async function seed() {
   console.log("Seeding database...");
 
   // Create admin user
@@ -247,11 +247,14 @@ async function seed() {
   console.log("\nLogin credentials:");
   console.log("Admin: username='admin', password='admin123'");
   console.log("Demo: username='demo', password='demo123'");
-  
-  process.exit(0);
 }
 
-seed().catch((error) => {
-  console.error("Seed failed:", error);
-  process.exit(1);
-});
+// Only run directly if this file is executed (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  seed()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error("Seed failed:", error);
+      process.exit(1);
+    });
+}
