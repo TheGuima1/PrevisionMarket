@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PublicNavbar } from "@/components/public-navbar";
 import { MarketCard } from "@/components/market-card";
+import { RecentActivityFeed } from "@/components/recent-activity-feed";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import type { Market } from "@shared/schema";
@@ -115,39 +116,51 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Markets Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-56 rounded-lg" />
-            ))}
+        {/* Main Content Grid - Markets + Activity Feed */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Markets Section - 2/3 width on desktop */}
+          <div className="lg:col-span-2">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} className="h-56 rounded-lg" />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-16 space-y-4">
+                <div className="text-6xl opacity-50">⚠️</div>
+                <h3 className="text-xl font-semibold text-destructive">Erro ao carregar mercados</h3>
+                <p className="text-muted-foreground">
+                  {error instanceof Error ? error.message : "Tente recarregar a página"}
+                </p>
+              </div>
+            ) : filteredMarkets && filteredMarkets.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="grid-markets">
+                {filteredMarkets.map((market) => (
+                  <MarketCard key={market.id} market={market} isPublic />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16 space-y-4">
+                <div className="text-6xl opacity-50">📊</div>
+                <h3 className="text-xl font-semibold">Nenhum mercado encontrado</h3>
+                <p className="text-muted-foreground">
+                  {selectedCategory === "all" && !selectedTag
+                    ? "Nenhum mercado ativo no momento"
+                    : "Tente ajustar seus filtros"
+                  }
+                </p>
+              </div>
+            )}
           </div>
-        ) : error ? (
-          <div className="text-center py-16 space-y-4">
-            <div className="text-6xl opacity-50">⚠️</div>
-            <h3 className="text-xl font-semibold text-destructive">Erro ao carregar mercados</h3>
-            <p className="text-muted-foreground">
-              {error instanceof Error ? error.message : "Tente recarregar a página"}
-            </p>
+
+          {/* Recent Activity Sidebar - 1/3 width on desktop, full width on mobile */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6">
+              <RecentActivityFeed />
+            </div>
           </div>
-        ) : filteredMarkets && filteredMarkets.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-markets">
-            {filteredMarkets.map((market) => (
-              <MarketCard key={market.id} market={market} isPublic />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 space-y-4">
-            <div className="text-6xl opacity-50">📊</div>
-            <h3 className="text-xl font-semibold">Nenhum mercado encontrado</h3>
-            <p className="text-muted-foreground">
-              {selectedCategory === "all" && !selectedTag
-                ? "Nenhum mercado ativo no momento"
-                : "Tente ajustar seus filtros"
-              }
-            </p>
-          </div>
-        )}
+        </div>
       </main>
     </div>
   );

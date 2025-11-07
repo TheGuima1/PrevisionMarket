@@ -25,6 +25,16 @@ import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
 
+export interface RecentTrade {
+  id: string;
+  marketTitle: string;
+  username: string;
+  type: "yes" | "no";
+  filledShares: string;
+  price: string;
+  executedAt: Date;
+}
+
 export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
@@ -58,7 +68,10 @@ export interface IStorage {
   createOrder(userId: string, order: Omit<InsertOrder, "id" | "userId">): Promise<Order>;
   getOrdersByMarket(marketId: string): Promise<Order[]>;
   getOpenOrders(marketId: string, type: "yes" | "no", action: "buy" | "sell"): Promise<Order[]>;
-  getOrderBook(marketId: string): Promise<{ bids: Order[]; asks: Order[] }>;
+  getOrderBook(marketId: string): Promise<{ 
+    bids: { price: string; totalShares: number; numOrders: number }[]; 
+    asks: { price: string; totalShares: number; numOrders: number }[] 
+  }>;
   cancelOrder(orderId: string, userId: string): Promise<void>;
   matchOrder(newOrder: Order): Promise<void>;
 
@@ -70,11 +83,14 @@ export interface IStorage {
   getTransactions(userId: string): Promise<Transaction[]>;
   createTransaction(userId: string, transaction: Omit<InsertTransaction, "id" | "userId">): Promise<Transaction>;
 
+  // Recent trades method
+  getRecentTrades(limit?: number): Promise<RecentTrade[]>;
+
   sessionStore: any;
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: any;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
@@ -518,6 +534,37 @@ export class DatabaseStorage implements IStorage {
       .values({ ...insertTransaction, userId })
       .returning();
     return transaction;
+  }
+
+  // Recent trades implementation
+  async getRecentTrades(limit: number = 20): Promise<RecentTrade[]> {
+    const result = await db
+      .select({
+        id: orders.id,
+        marketTitle: markets.title,
+        username: users.username,
+        type: orders.type,
+        filledShares: orders.filledShares,
+        price: orders.price,
+        filledAt: orders.filledAt,
+        createdAt: orders.createdAt,
+      })
+      .from(orders)
+      .innerJoin(users, eq(orders.userId, users.id))
+      .innerJoin(markets, eq(orders.marketId, markets.id))
+      .where(eq(orders.status, "filled"))
+      .orderBy(desc(orders.filledAt))
+      .limit(limit);
+
+    return result.map((row) => ({
+      id: row.id,
+      marketTitle: row.marketTitle,
+      username: row.username || "Anônimo",
+      type: row.type as "yes" | "no",
+      filledShares: row.filledShares,
+      price: row.price,
+      executedAt: row.filledAt || row.createdAt,
+    }));
   }
 }
 

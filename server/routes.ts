@@ -119,6 +119,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/recent-trades - Get recent trades across all markets (PUBLIC)
+  app.get("/api/recent-trades", async (_req, res) => {
+    try {
+      const recentTrades = await storage.getRecentTrades(20);
+      res.json(recentTrades);
+    } catch (error) {
+      console.error("Failed to fetch recent trades:", error);
+      res.status(500).send("Failed to fetch recent trades");
+    }
+  });
+
   // ===== ORDER ROUTES =====
   
   // POST /api/orders - Place a buy order (requires username)
@@ -151,9 +162,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.createOrder(userId, {
         marketId: validated.marketId,
         type: validated.type,
-        shares: shares.toString(),
-        price: price.toFixed(4),
-        totalCost: totalCost.toFixed(2),
+        action: "buy",
+        shares,
+        price,
       });
 
       // Update user balance
@@ -260,9 +271,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.createOrder(userId, {
         marketId,
         type: type as "yes" | "no",
-        shares: (-shares).toString(),  // Negative to indicate sell
-        price: price.toFixed(4),
-        totalCost: (-proceeds).toFixed(2),  // Negative cost = proceeds
+        action: "sell",
+        shares,
+        price,
       });
 
       // Update user balance
