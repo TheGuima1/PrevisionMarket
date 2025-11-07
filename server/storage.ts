@@ -48,7 +48,7 @@ export interface IStorage {
   getMarkets(category?: string): Promise<Market[]>;
   getMarket(id: string): Promise<Market | undefined>;
   createMarket(market: InsertMarket): Promise<Market>;
-  updateMarketPrices(marketId: string, yesPrice: string, noPrice: string, totalVolume: string, totalYesShares: string, totalNoShares: string): Promise<void>;
+  updateMarketStats(marketId: string, totalVolume: string, totalYesShares: string, totalNoShares: string): Promise<void>;
   resolveMarket(marketId: string, outcome: "yes" | "no" | "cancelled"): Promise<void>;
 
   // Position methods
@@ -164,10 +164,8 @@ export class DatabaseStorage implements IStorage {
     return market;
   }
 
-  async updateMarketPrices(
+  async updateMarketStats(
     marketId: string,
-    yesPrice: string,
-    noPrice: string,
     totalVolume: string,
     totalYesShares: string,
     totalNoShares: string
@@ -175,8 +173,6 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(markets)
       .set({
-        yesPrice,
-        noPrice,
         totalVolume,
         totalYesShares,
         totalNoShares,

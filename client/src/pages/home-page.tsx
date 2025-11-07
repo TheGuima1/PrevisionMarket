@@ -4,57 +4,85 @@ import { PublicNavbar } from "@/components/public-navbar";
 import { MarketCard } from "@/components/market-card";
 import { RecentActivityFeed } from "@/components/recent-activity-feed";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Market } from "@shared/schema";
-import { TrendingUp, Zap, Newspaper, Vote, Trophy, DollarSign, Bitcoin, Globe2, Cpu, Palette, MapPin, LineChart, Award } from "lucide-react";
+import { TrendingUp, Vote, Bitcoin, Cpu, Trophy } from "lucide-react";
 
-// Polymarket-style categories with 13 categories
-const categories = [
-  { value: "all", label: "Todos os Mercados", icon: Globe2 },
-  { value: "trending", label: "Em Alta", icon: TrendingUp },
-  { value: "breaking", label: "Urgente", icon: Zap },
-  { value: "new", label: "Novos", icon: Newspaper },
-  { value: "elections", label: "Eleições", icon: Award },
+// Simplified 5-tab navigation system
+const tabs = [
+  { value: "trending", label: "Trending", icon: TrendingUp },
   { value: "politics", label: "Política", icon: Vote },
-  { value: "sports", label: "Esportes", icon: Trophy },
-  { value: "finance", label: "Finanças", icon: DollarSign },
-  { value: "crypto", label: "Cripto", icon: Bitcoin },
-  { value: "geopolitics", label: "Geopolítica", icon: MapPin },
-  { value: "tech", label: "Tecnologia", icon: Cpu },
-  { value: "culture", label: "Cultura", icon: Palette },
-  { value: "world", label: "Mundo", icon: Globe2 },
-  { value: "economy", label: "Economia", icon: LineChart },
+  { value: "crypto", label: "Crypto", icon: Bitcoin },
+  { value: "tech", label: "Tech", icon: Cpu },
+  { value: "sports", label: "Sports", icon: Trophy },
 ];
 
 export default function HomePage() {
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
-
   const { data: markets, isLoading, error } = useQuery<Market[]>({
     queryKey: ["/api/markets"],
     staleTime: 0,
-    gcTime: 0, // Don't cache at all
+    gcTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
 
-  // Filter by category and tag
-  const filteredMarkets = markets?.filter((m) => {
-    // Special categories: trending, breaking, new - show all markets for now
-    // In future: trending = high volume, breaking = ending soon, new = recently created
-    const specialCategories = ["trending", "breaking", "new"];
-    const categoryMatch = 
-      selectedCategory === "all" || 
-      specialCategories.includes(selectedCategory) ||
-      m.category === selectedCategory;
-    const tagMatch = !selectedTag || (m.tags && m.tags.includes(selectedTag));
-    return categoryMatch && tagMatch;
-  });
+  // Filter markets by tab
+  const getMarketsByTab = (tabValue: string): Market[] => {
+    if (!markets) return [];
+    
+    if (tabValue === "trending") {
+      // Top 4 markets by totalVolume
+      return [...markets]
+        .sort((a, b) => parseFloat(b.totalVolume) - parseFloat(a.totalVolume))
+        .slice(0, 4);
+    }
+    
+    // Filter by category
+    return markets.filter(m => m.category === tabValue);
+  };
 
-  // Extract all unique tags from markets
-  const allTags = Array.from(
-    new Set(markets?.flatMap((m) => m.tags || []) || [])
-  ).sort();
+  // Render markets grid for a tab
+  const renderMarketsGrid = (tabMarkets: Market[], tabValue: string) => {
+    if (isLoading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-56 rounded-lg" />
+          ))}
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-16 space-y-4">
+          <div className="text-6xl opacity-50">⚠️</div>
+          <h3 className="text-xl font-semibold text-destructive">Erro ao carregar mercados</h3>
+          <p className="text-muted-foreground">
+            {error instanceof Error ? error.message : "Tente recarregar a página"}
+          </p>
+        </div>
+      );
+    }
+
+    if (tabMarkets.length === 0) {
+      return (
+        <div className="text-center py-16 space-y-4">
+          <div className="text-6xl opacity-50">📊</div>
+          <h3 className="text-xl font-semibold">Nenhum mercado encontrado</h3>
+          <p className="text-muted-foreground">Nenhum mercado disponível nesta categoria</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid={`grid-markets-${tabValue}`}>
+        {tabMarkets.map((market) => (
+          <MarketCard key={market.id} market={market} isPublic />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,91 +99,34 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Category Pills - Polymarket Style */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {categories.map((cat) => {
-            const Icon = cat.icon;
-            const isActive = selectedCategory === cat.value;
-            return (
-              <button
-                key={cat.value}
-                onClick={() => {
-                  setSelectedCategory(cat.value);
-                  setSelectedTag(null);
-                }}
-                className={`
-                  flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap
-                  transition-all hover-elevate active-elevate-2
-                  ${isActive 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted text-muted-foreground'
-                  }
-                `}
-                data-testid={`button-category-${cat.value}`}
-              >
-                <Icon className="h-4 w-4" />
-                <span className="font-medium text-sm">{cat.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Tag Filters */}
-        {allTags.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Filtrar por tag:</p>
-            <div className="flex flex-wrap gap-2">
-              {allTags.slice(0, 15).map((tag) => (
-                <Badge
-                  key={tag}
-                  variant={selectedTag === tag ? "default" : "outline"}
-                  className="cursor-pointer hover-elevate active-elevate-2"
-                  onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                  data-testid={`badge-tag-${tag}`}
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Main Content Grid - Markets + Activity Feed */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Markets Section - 2/3 width on desktop */}
+          {/* Markets Section with Tabs - 2/3 width on desktop */}
           <div className="lg:col-span-2">
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-56 rounded-lg" />
-                ))}
-              </div>
-            ) : error ? (
-              <div className="text-center py-16 space-y-4">
-                <div className="text-6xl opacity-50">⚠️</div>
-                <h3 className="text-xl font-semibold text-destructive">Erro ao carregar mercados</h3>
-                <p className="text-muted-foreground">
-                  {error instanceof Error ? error.message : "Tente recarregar a página"}
-                </p>
-              </div>
-            ) : filteredMarkets && filteredMarkets.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="grid-markets">
-                {filteredMarkets.map((market) => (
-                  <MarketCard key={market.id} market={market} isPublic />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16 space-y-4">
-                <div className="text-6xl opacity-50">📊</div>
-                <h3 className="text-xl font-semibold">Nenhum mercado encontrado</h3>
-                <p className="text-muted-foreground">
-                  {selectedCategory === "all" && !selectedTag
-                    ? "Nenhum mercado ativo no momento"
-                    : "Tente ajustar seus filtros"
-                  }
-                </p>
-              </div>
-            )}
+            <Tabs defaultValue="trending" className="w-full">
+              <TabsList className="w-full grid grid-cols-5 mb-6">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger 
+                      key={tab.value} 
+                      value={tab.value}
+                      className="flex items-center gap-2"
+                      data-testid={`tab-${tab.value}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+
+              {tabs.map((tab) => (
+                <TabsContent key={tab.value} value={tab.value}>
+                  {renderMarketsGrid(getMarketsByTab(tab.value), tab.value)}
+                </TabsContent>
+              ))}
+            </Tabs>
           </div>
 
           {/* Recent Activity Sidebar - 1/3 width on desktop, full width on mobile */}

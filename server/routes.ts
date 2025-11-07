@@ -191,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validated.type === "no" ? price : undefined
       );
 
-      // Update market statistics
+      // Update market statistics (volume only - prices are fixed)
       const newTotalVolume = (parseFloat(market.totalVolume) + totalCost).toFixed(2);
       const newTotalYesShares = validated.type === "yes"
         ? (parseFloat(market.totalYesShares) + shares).toFixed(2)
@@ -200,19 +200,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? (parseFloat(market.totalNoShares) + shares).toFixed(2)
         : market.totalNoShares;
       
-      // Simple price update based on order flow (basic AMM-like)
-      const totalShares = parseFloat(newTotalYesShares) + parseFloat(newTotalNoShares);
-      const newYesPrice = totalShares > 0 
-        ? (parseFloat(newTotalYesShares) / totalShares).toFixed(4)
-        : "0.5000";
-      const newNoPrice = totalShares > 0
-        ? (parseFloat(newTotalNoShares) / totalShares).toFixed(4)
-        : "0.5000";
-
-      await storage.updateMarketPrices(
+      // Update volume/shares only - prices remain fixed (MVP simplified)
+      await storage.updateMarketStats(
         validated.marketId,
-        newYesPrice,
-        newNoPrice,
         newTotalVolume,
         newTotalYesShares,
         newTotalNoShares
@@ -311,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         -proceeds
       );
 
-      // Update market statistics
+      // Update market statistics (volume only - prices are fixed)
       const newTotalVolume = (parseFloat(market.totalVolume) + proceeds).toFixed(2);
       const newTotalYesShares = type === "yes"
         ? (parseFloat(market.totalYesShares) - shares).toFixed(2)
@@ -320,19 +310,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? (parseFloat(market.totalNoShares) - shares).toFixed(2)
         : market.totalNoShares;
       
-      // Update prices
-      const totalShares = parseFloat(newTotalYesShares) + parseFloat(newTotalNoShares);
-      const newYesPrice = totalShares > 0 
-        ? (parseFloat(newTotalYesShares) / totalShares).toFixed(4)
-        : "0.5000";
-      const newNoPrice = totalShares > 0
-        ? (parseFloat(newTotalNoShares) / totalShares).toFixed(4)
-        : "0.5000";
-
-      await storage.updateMarketPrices(
+      // Update volume/shares only - prices remain fixed (MVP simplified)
+      await storage.updateMarketStats(
         marketId,
-        newYesPrice,
-        newNoPrice,
         newTotalVolume,
         newTotalYesShares,
         newTotalNoShares
