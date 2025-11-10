@@ -37,7 +37,7 @@ const categoryLabels: Record<string, string> = {
   politics: "Política",
   sports: "Esportes",
   finance: "Finanças",
-  crypto: "Cripto",
+  crypto: "Crypto",
   geopolitics: "Geopolítica",
   tech: "Tecnologia",
   culture: "Cultura",
