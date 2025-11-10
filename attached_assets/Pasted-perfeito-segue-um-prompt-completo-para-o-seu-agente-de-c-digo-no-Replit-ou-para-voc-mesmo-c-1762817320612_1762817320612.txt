@@ -1,0 +1,534 @@
+perfeito — segue um **prompt completo para o seu agente de código no Replit** (ou para você mesmo) corrigindo a inversão das odds, espelhando a Polymarket de forma invisível ao usuário, atualizando a cada 60s e **congelando** quando houver variação ≥5% em 1 minuto. Inclui: instruções, arquitetura, endpoints, **código TS/Node** (backend + adaptador Polymarket), funções utilitárias, e ajustes no front. Copie e cole tudo abaixo no seu agente.
+
+---
+
+# 🎯 OBJETIVO (leia antes de codar)
+
+1. **Consertar odds invertidas** (SIM/YES e NÃO/NO) em todos os lugares.
+2. **Espelhar** mercados da Polymarket em **mercados Palpites.AI** (o usuário *só* vê Palpites.AI).
+3. **Atualizar odds** a cada **60s**.
+4. Se a odd mudar **≥5% em 1 min**, **congelar** a atualização visível desse mercado até:
+
+   * duas leituras consecutivas ficarem dentro do limiar (<5% do último valor estável), **ou**
+   * decorrido um **timeout de 120s** (fail-safe).
+5. Aplicar **spread interno de 2%** nas execuções (o cliente **não** vê esse spread na UI).
+6. Garantir **mapeamento correto** do “Yes/No” vindo da Polymarket → “SIM/NÃO” local.
+7. Tudo versionado e isolado em um **serviço de espelhamento** + **API** consumida pelo front.
+
+---
+
+# 🧩 VARIÁVEIS DE AMBIENTE (adicione em *Secrets* no Replit)
+
+```
+ENABLE_POLYMARKET=true
+POLYMARKET_GAMMA_URL=https://gamma-api.polymarket.com
+POLYMARKET_CLOB_URL=https://clob.polymarket.com
+POLYMARKET_SLUGS=us-recession-in-2025,fed-rate-hike-in-2025,fed-emergency-rate-cut-in-2025,br-presidential-first-round-outright
+SPREAD_BPS=200            # 2% = 200 bps
+MIRROR_POLL_MS=60000      # 60s
+MIRROR_SPIKE_THRESHOLD=0.05     # 5% (em probabilidade)
+MIRROR_STABILIZE_NEED=2         # 2 leituras consecutivas estáveis
+MIRROR_FAILSAFE_SEC=120
+PORT=3000
+```
+
+> use os **slugs reais** que você definiu. O front **NÃO** deve chamar Polymarket diretamente — só as rotas locais.
+
+---
+
+# 🏗️ ARQUITETURA (resumo)
+
+* **mirror-service/**: worker que busca Polymarket, normaliza (garante YES/NO correto), aplica lógica de **freeze** e publica em cache (em memória ou Redis, se disponível).
+* **api/**: expõe somente rotas da **Palpites.AI**:
+
+  * `GET /api/markets` → lista de mercados (com odds exibíveis, já estáveis/freeze-aware)
+  * `GET /api/markets/:slug` → detalhe
+  * **(execução)** `POST /api/orders/preview` e `POST /api/orders` → aplicam **spread interno** 2% na precificação efetiva (o front mostra sem spread).
+* **frontend**: troca chamadas diretas por `/api/markets*`; remove qualquer rastro visual “Polymarket”.
+
+---
+
+# 📦 ESTRUTURA DE ARQUIVOS (sugestão)
+
+```
+/server
+  /src
+    /mirror
+      adapter.polymarket.ts
+      mirror.state.ts
+      mirror.worker.ts
+    /pricing
+      odds.ts
+      spread.ts
+    /api
+      markets.routes.ts
+      orders.routes.ts
+      server.ts
+    /types.ts
+    /utils/logger.ts
+  package.json
+```
+
+---
+
+# 📐 TIPOS BÁSICOS (server/src/types.ts)
+
+```ts
+export type Side = 'YES' | 'NO';
+
+export interface MirrorMarket {
+  slug: string;            // slug local (igual ao Polymarket para referência)
+  title: string;
+  category?: string;
+  volumeUsd?: number;
+  // Probabilidade verdadeira vindo da fonte (0..1) — usada internamente
+  probYes_raw: number;
+  probNo_raw: number;      // = 1 - probYes_raw
+  // Probabilidade exibível (após lógica de freeze). O front usa estas:
+  probYes_display: number;
+  probNo_display: number;
+  // Estado de estabilidade/congelamento
+  frozen: boolean;
+  freezeReason?: 'SPIKE' | 'MANUAL';
+  lastStableYes: number;   // último valor estável exibido
+  lastUpdate: number;      // epoch ms da última leitura
+}
+
+export interface MirrorSnapshot {
+  markets: Record<string, MirrorMarket>;
+  updatedAt: number;
+}
+```
+
+---
+
+# 🔢 UTILITÁRIOS DE ODDS E SPREAD (server/src/pricing/odds.ts)
+
+```ts
+// conversões seguras
+export const clamp01 = (p: number) => Math.max(0, Math.min(1, p));
+
+// prob (0..1) -> odds decimais (pagamento x)
+export const probToDecimal = (p: number) => (p <= 0 ? Infinity : Number((1 / p).toFixed(2)));
+
+// odds decimais -> prob (0..1)
+export const decimalToProb = (o: number) => clamp01(1 / o);
+
+// aplica 2% de spread internamente (em probabilidade efetiva de compra)
+// regra simples: buy YES paga um "premium", buy NO idem (simetria)
+export const applySpreadOnExecution = (probYes: number, bps: number, side: 'YES'|'NO') => {
+  const spread = bps / 10000; // 200 bps -> 0.02
+  if (side === 'YES') {
+    // encarece YES: aumenta prob efetiva (pagar mais caro)
+    const p = clamp01(probYes * (1 + spread));
+    return { probYes_exec: p, probNo_exec: 1 - p };
+  } else {
+    // encarece NO: diminui probYes (equivale a pagar mais caro no NO)
+    const p = clamp01(probYes * (1 - spread));
+    return { probYes_exec: p, probNo_exec: 1 - p };
+  }
+};
+```
+
+---
+
+# 💱 ADAPTADOR POLYMARKET (server/src/mirror/adapter.polymarket.ts)
+
+> **Correção de inversão**: sempre ler o rótulo do outcome; mapear `'Yes'|'YES'` → YES, e `'No'|'NO'` → NO. Nunca assumir ordem no array.
+
+```ts
+import fetch from 'node-fetch';
+import { clamp01 } from '../pricing/odds';
+
+const GAMMA = process.env.POLYMARKET_GAMMA_URL!;
+const CLOB  = process.env.POLYMARKET_CLOB_URL!;
+
+export interface PolyMarketRaw {
+  slug: string;
+  question: string;
+  outcomes: Array<{ name: string; price?: number; lastPrice?: number }>;
+  volume?: number;
+}
+
+function extractProbYes(raw: PolyMarketRaw): number {
+  // Tenta localizar outcome rotulado como "Yes" (case-insensitive)
+  const yes = raw.outcomes.find(o => /^yes$/i.test(o.name));
+  const no  = raw.outcomes.find(o => /^no$/i.test(o.name));
+
+  // Polymarket normalmente expressa preço do YES em "cents" (0..1)
+  // Algumas respostas vêm em price ou lastPrice; preferir price.
+  const yesP = yes?.price ?? yes?.lastPrice;
+  const noP  = no?.price ?? no?.lastPrice;
+
+  if (typeof yesP === 'number') {
+    return clamp01(yesP);
+  }
+  if (typeof noP === 'number') {
+    // se só houver preço do NO, usa 1 - no
+    return clamp01(1 - noP);
+  }
+  // fallback: se não veio preço, não quebrar
+  return 0.5;
+}
+
+export async function fetchPolyBySlug(slug: string): Promise<{ probYes: number; title: string; volumeUsd?: number }> {
+  // 1) buscar metadata/odds no Gamma
+  const metaRes = await fetch(`${GAMMA}/markets?slug=${encodeURIComponent(slug)}`);
+  if (!metaRes.ok) throw new Error(`Gamma fetch failed: ${metaRes.status}`);
+  const arr = (await metaRes.json()) as PolyMarketRaw[];
+  const m = arr[0];
+  if (!m) throw new Error(`Market not found for slug=${slug}`);
+
+  const probYes = extractProbYes(m);
+  return {
+    probYes,
+    title: m.question,
+    volumeUsd: m.volume,
+  };
+}
+```
+
+> **Obs.**: se o endpoint exato diferir, mantenha a lógica: **achar explicitamente o outcome “Yes”** por **nome**, nunca por posição.
+
+---
+
+# ❄️ ESTADO & LÓGICA DE FREEZE (server/src/mirror/mirror.state.ts)
+
+```ts
+import { MirrorMarket, MirrorSnapshot } from '../types';
+
+const SPIKE_TH = Number(process.env.MIRROR_SPIKE_THRESHOLD ?? 0.05);
+const NEED_STABLE = Number(process.env.MIRROR_STABILIZE_NEED ?? 2);
+const FAILSAFE_SEC = Number(process.env.MIRROR_FAILSAFE_SEC ?? 120);
+
+const state: MirrorSnapshot = {
+  markets: {},
+  updatedAt: Date.now(),
+};
+
+function shouldFreeze(prevStableYes: number, newYes: number): boolean {
+  const delta = Math.abs(newYes - prevStableYes);
+  return delta >= SPIKE_TH;
+}
+
+export function getSnapshot(): MirrorSnapshot {
+  return state;
+}
+
+export function upsertMarket(slug: string, payload: {
+  title: string;
+  probYes_raw: number;
+  volumeUsd?: number;
+}) {
+  const now = Date.now();
+  const prev = state.markets[slug];
+
+  if (!prev) {
+    state.markets[slug] = {
+      slug,
+      title: payload.title,
+      volumeUsd: payload.volumeUsd,
+      probYes_raw: payload.probYes_raw,
+      probNo_raw: 1 - payload.probYes_raw,
+      probYes_display: payload.probYes_raw,
+      probNo_display: 1 - payload.probYes_raw,
+      frozen: false,
+      lastStableYes: payload.probYes_raw,
+      lastUpdate: now,
+    };
+    state.updatedAt = now;
+    return;
+  }
+
+  // Atualiza valores crus
+  prev.probYes_raw = payload.probYes_raw;
+  prev.probNo_raw = 1 - payload.probYes_raw;
+  prev.volumeUsd = payload.volumeUsd;
+  prev.lastUpdate = now;
+
+  // Lógica de freeze
+  if (!prev.frozen) {
+    if (shouldFreeze(prev.lastStableYes, payload.probYes_raw)) {
+      prev.frozen = true;
+      prev.freezeReason = 'SPIKE';
+      // mantém display no último estável
+      prev.probYes_display = prev.lastStableYes;
+      prev.probNo_display = 1 - prev.lastStableYes;
+      // anotar contador interno
+      (prev as any).__stableCount = 0;
+      (prev as any).__frozenAt = now;
+    } else {
+      // sem spike → atualiza display e lastStable
+      prev.probYes_display = payload.probYes_raw;
+      prev.probNo_display = 1 - payload.probYes_raw;
+      prev.lastStableYes = payload.probYes_raw;
+    }
+  } else {
+    // congelado: verificar se estabilizou
+    const within = !shouldFreeze(prev.lastStableYes, payload.probYes_raw);
+    if (within) {
+      (prev as any).__stableCount = ((prev as any).__stableCount ?? 0) + 1;
+    } else {
+      (prev as any).__stableCount = 0;
+    }
+    const elapsed = (now - ((prev as any).__frozenAt ?? now)) / 1000;
+
+    if (((prev as any).__stableCount ?? 0) >= (Number(process.env.MIRROR_STABILIZE_NEED) || 2) || elapsed >= FAILSAFE_SEC) {
+      // descongela e joga display para o valor cru atual
+      prev.frozen = false;
+      prev.freezeReason = undefined;
+      prev.probYes_display = payload.probYes_raw;
+      prev.probNo_display = 1 - payload.probYes_raw;
+      prev.lastStableYes = payload.probYes_raw;
+      delete (prev as any).__stableCount;
+      delete (prev as any).__frozenAt;
+    } else {
+      // continua congelado, display permanece no lastStable
+      prev.probYes_display = prev.lastStableYes;
+      prev.probNo_display = 1 - prev.lastStableYes;
+    }
+  }
+
+  state.updatedAt = now;
+}
+```
+
+---
+
+# 🔁 WORKER DE ESPELHO (server/src/mirror/mirror.worker.ts)
+
+```ts
+import { fetchPolyBySlug } from './adapter.polymarket';
+import { upsertMarket } from './mirror.state';
+
+const POLY_SLUGS = (process.env.POLYMARKET_SLUGS ?? '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+export async function pollOnce() {
+  for (const slug of POLY_SLUGS) {
+    try {
+      const { probYes, title, volumeUsd } = await fetchPolyBySlug(slug);
+      upsertMarket(slug, { title, probYes_raw: probYes, volumeUsd });
+    } catch (e) {
+      console.error('[mirror] fetch error', slug, e);
+    }
+  }
+}
+
+export function startMirror() {
+  const interval = Number(process.env.MIRROR_POLL_MS ?? 60000);
+  pollOnce(); // imediatamente
+  setInterval(pollOnce, interval);
+}
+```
+
+---
+
+# 🌐 ROTAS DE MERCADO (server/src/api/markets.routes.ts)
+
+```ts
+import { Router } from 'express';
+import { getSnapshot } from '../mirror/mirror.state';
+import { probToDecimal } from '../pricing/odds';
+
+const r = Router();
+
+r.get('/markets', (req, res) => {
+  const snap = getSnapshot();
+  const items = Object.values(snap.markets).map(m => ({
+    slug: m.slug,
+    title: m.title,
+    volume: m.volumeUsd,
+    frozen: m.frozen,
+    yes: {
+      prob: m.probYes_display,
+      decimal: probToDecimal(m.probYes_display),
+      percent: Math.round(m.probYes_display * 1000) / 10, // 1 casa
+    },
+    no: {
+      prob: m.probNo_display,
+      decimal: probToDecimal(m.probNo_display),
+      percent: Math.round(m.probNo_display * 1000) / 10,
+    },
+    updatedAt: snap.updatedAt,
+  }));
+  res.json({ markets: items, updatedAt: snap.updatedAt });
+});
+
+r.get('/markets/:slug', (req, res) => {
+  const slug = req.params.slug;
+  const snap = getSnapshot();
+  const m = snap.markets[slug];
+  if (!m) return res.status(404).json({ error: 'Not found' });
+  res.json({
+    slug: m.slug,
+    title: m.title,
+    volume: m.volumeUsd,
+    frozen: m.frozen,
+    yes: { prob: m.probYes_display, decimal: probToDecimal(m.probYes_display) },
+    no:  { prob: m.probNo_display,  decimal: probToDecimal(m.probNo_display)  },
+    updatedAt: snap.updatedAt,
+  });
+});
+
+export default r;
+```
+
+---
+
+# 💸 ROTAS DE ORDENS (apply spread invisível) (server/src/api/orders.routes.ts)
+
+```ts
+import { Router } from 'express';
+import { getSnapshot } from '../mirror/mirror.state';
+import { applySpreadOnExecution, probToDecimal } from '../pricing/odds';
+
+const r = Router();
+const BPS = Number(process.env.SPREAD_BPS ?? 200);
+
+r.post('/orders/preview', (req, res) => {
+  const { slug, side, amountBRL } = req.body as { slug: string, side: 'YES'|'NO', amountBRL: number };
+  const m = getSnapshot().markets[slug];
+  if (!m) return res.status(404).json({ error: 'Market not found' });
+  if (m.frozen) return res.status(409).json({ error: 'Market temporarily frozen' });
+
+  const exec = applySpreadOnExecution(m.probYes_display, BPS, side);
+  const priceYesDecimal = probToDecimal(exec.probYes_exec);
+  const priceNoDecimal  = probToDecimal(exec.probNo_exec);
+
+  // shares estimadas (simples): shares = amount * odd_decimal
+  const estShares = side === 'YES' ? amountBRL / priceYesDecimal : amountBRL / priceNoDecimal;
+
+  res.json({
+    slug,
+    side,
+    amountBRL,
+    probabilityApplied: side === 'YES' ? exec.probYes_exec : exec.probNo_exec,
+    decimalOddsApplied: side === 'YES' ? priceYesDecimal : priceNoDecimal,
+    estimatedShares: Number(estShares.toFixed(4)),
+    spreadBps: BPS,
+    note: 'Spread aplicado de forma interna; UI não exibe.'
+  });
+});
+
+// Aqui só simula a execução. Seu backend real vai gravar ordem/trade/posição.
+r.post('/orders', (req, res) => {
+  const { slug, side, amountBRL } = req.body;
+  // ... validar saldo BRL3, etc.
+  return res.json({ ok: true, slug, side, amountBRL });
+});
+
+export default r;
+```
+
+---
+
+# 🚀 SERVER (server/src/api/server.ts)
+
+```ts
+import express from 'express';
+import marketsRoutes from './markets.routes';
+import ordersRoutes from './orders.routes';
+import { startMirror } from '../mirror/mirror.worker';
+
+const app = express();
+app.use(express.json());
+
+app.use('/api', marketsRoutes);
+app.use('/api', ordersRoutes);
+
+const port = Number(process.env.PORT ?? 3000);
+app.listen(port, () => {
+  console.log(`API listening on :${port}`);
+  if (process.env.ENABLE_POLYMARKET === 'true') startMirror();
+});
+```
+
+**package.json (trecho):**
+
+```json
+{
+  "type": "module",
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2"
+  },
+  "scripts": {
+    "dev": "node --watch ./dist/api/server.js",
+    "build": "tsc"
+  }
+}
+```
+
+---
+
+# 🧪 CHECKLIST DE CORREÇÃO (odds invertidas)
+
+* [x] **Nunca** inferir YES/NO por índice do array.
+* [x] Sempre localizar outcome por **nome** `/^yes$/i` e `/^no$/i`.
+* [x] Se vier apenas preço de NO, usar `1 - noPrice` para `probYes`.
+* [x] UI **mostra** `probYes_display`/`probNo_display` (não as “raw”).
+* [x] Ordem de apresentação em cards e detalhe:
+
+  * **SIM** → `probYes_display`,
+  * **NÃO** → `probNo_display`.
+* [x] Conversão a **decimal odds** só para exibição (ex.: 1.04 vs 23.53).
+* [x] Spread **apenas** em `/orders/preview` e `/orders` (invisível na UI).
+
+---
+
+# 🎨 AJUSTES NO FRONT (resumo)
+
+1. Substituir chamadas diretas (ou mocks) por:
+
+   * `GET /api/markets` para cards da Home e “Mercados Polymarket (Beta)”
+   * `GET /api/markets/:slug` para a página de detalhe
+2. Em todos os componentes de exibição:
+
+   * **SIM**: usar `resp.yes.decimal`/`resp.yes.percent`
+   * **NÃO**: usar `resp.no.decimal`/`resp.no.percent`
+3. Ao clicar “Comprar SIM/NÃO”:
+
+   * chamar `POST /api/orders/preview` para mostrar estimativa (com spread **já aplicado** internamente)
+   * confirmar com `POST /api/orders`
+4. Exibir “Mercado temporariamente congelado” quando `frozen=true`.
+
+---
+
+# 🔒 REGRAS DE NEGÓCIO VISUAIS (o usuário não vê Polymarket)
+
+* Cards/títulos/descrições: **não** mencionar “Polymarket”.
+* “Odds espelhadas” pode ficar numa linha cinza discreta no admin, **não** no público.
+* Em `Portfolio`, as posições continuam Palpites.AI; liquidação seguirá sua regra local.
+
+---
+
+# 🧭 CRITÉRIOS DE ACEITAÇÃO
+
+* ✅ Probabilidades e odds **corretas e não invertidas** em todos os cards e páginas.
+* ✅ Atualização automática a cada **60s**.
+* ✅ Ao detectar variação **≥5%** vs **lastStable** em 1 tick, o **display congela** (ícone de snowflake opcional) mantendo a última odd estável; **descongela** após **2 leituras** consecutivas dentro do limiar **ou** **120s**.
+* ✅ **Spread 2%** aplicado **somente** na execução/preview; UI não mostra.
+* ✅ Não há qualquer texto/branding Polymarket no front público.
+* ✅ Rotas `/api/markets*` respondem com `yes/no` consistentes e `decimal` coerente.
+
+---
+
+# 🧹 DICAS FINAIS
+
+* Se algum mercado da fonte mudar de binário para multi-outcome, **ignore** (logar aviso).
+* Trate `NaN`/undefined com fallback `0.5` para não quebrar o front.
+* Se quiser **persistência** além da memória, plugar Redis (chave `mirror:snapshot`).
+* Para gráficos históricos, guarde séries a cada `pollOnce` (opcional).
+
+---
+
+Pronto. Com isso você:
+
+* corrige a **inversão** de SIM/NÃO,
+* espelha odds com **atualização de 60s**,
+* **congela** quando houver spikes,
+* aplica spread **invisível** na execução,
+* e mantém o usuário olhando **apenas** mercados Palpites.AI.
