@@ -63,7 +63,7 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
           <div className="flex items-start justify-between gap-2">
             <Badge 
               variant="outline" 
-              className={`${categoryColors[market.category]} border`}
+              className="whitespace-nowrap inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover-elevate [border-color:var(--badge-outline)] shadow-xs bg-chart-5/10 text-chart-5 border-chart-5/20 border text-center"
               data-testid={`badge-category-${market.category}`}
             >
               {categoryLabels[market.category]}
