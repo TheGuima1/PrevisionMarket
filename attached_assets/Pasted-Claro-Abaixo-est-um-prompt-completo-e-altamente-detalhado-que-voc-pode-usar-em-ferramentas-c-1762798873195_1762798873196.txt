@@ -1,0 +1,166 @@
+Claro. Abaixo está um **prompt completo e altamente detalhado**, que você pode usar em ferramentas como **Cursor, Claude, GPT-4, Replit AI ou qualquer copiloto de código** para gerar o **algoritmo, sistema ou documentação** necessário para o seu projeto.
+
+Esse prompt é ideal para alinhar **desenvolvedores, IA copilotos e parceiros técnicos**, e cobre:
+
+* Componentes
+* Etapas
+* Segurança
+* Regras do token BRL3
+* Pontos futuros de melhoria
+
+---
+
+## ✅ **PROMPT COMPLETO — SISTEMA DE PREVISÃO BASEADO EM ODDS DA POLYMARKET COM SPREAD FIXO E TOKEN BRL3**
+
+> Você é um desenvolvedor experiente ou uma IA que vai construir um sistema de mercado preditivo MVP funcional.
+> Este sistema copiará as probabilidades da Polymarket, aplicará um spread fixo e usará um token interno BRL3 lastreado em reais brasileiros.
+
+---
+
+### 📦 COMPONENTES DO ALGORITMO
+
+1. **Coletor de odds**
+
+   * Extrai a probabilidade atual de mercados abertos da Polymarket
+   * Pode usar The Graph, API pública, ou scraping
+   * Converte odds em preços para compra (ex: 68% = R$0,68)
+
+2. **Calculador de spread**
+
+   * Aplica um spread de 2% para vender mais barato que a Polymarket
+
+     * Ex: se Polymarket está vendendo a R$0,68, a plataforma brasileira venderá a R$0,66
+   * O spread é a **margem de lucro** da plataforma
+
+3. **Registro de trades**
+
+   * Cada compra de YES ou NO é registrada em BRL3
+   * Shares são armazenadas por usuário e mercado
+   * O sistema controla a exposição total por mercado
+
+4. **Controle de token BRL3**
+
+   * Cada BRL3 equivale a exatamente **1 real brasileiro**
+   * Emissão inicial: 88.000 BRL3, lastreados por R$88.000 em títulos públicos
+   * Os tokens não têm valorização: **não rendem, não flutuam**
+   * Só podem ser resgatados na plataforma (3bit/Palpites.ai), mediante processo interno
+
+5. **Resolução de mercado**
+
+   * Quando o resultado do mercado for conhecido, a plataforma liquida os shares
+   * Vencedores recebem BRL3 proporcional aos shares comprados
+   * BRL3 podem ser resgatados para reais via Pix (durante MVP, de forma manual)
+
+---
+
+### 🧾 ETAPAS DO FUNCIONAMENTO
+
+1. **Atualização de odds**
+
+   * Sistema checa os mercados abertos da Polymarket
+   * Copia as probabilidades atuais
+   * Aplica o spread e publica os mercados locais (em BRL)
+
+2. **Compra de shares**
+
+   * Usuário logado escolhe um mercado
+   * Seleciona YES ou NO
+   * Compra o ativo com BRL3
+   * O sistema registra a operação, shares e preço pago
+
+3. **Monitoramento e segurança**
+
+   * Sistema monitora a oscilação das odds
+   * Se um mercado da Polymarket muda >5% em menos de 5 minutos, o sistema:
+
+     * **Suspende temporariamente as apostas** naquele mercado
+     * **Recalcula o preço**
+     * Só libera novamente após estabilização
+
+4. **Resolução do mercado**
+
+   * Após o desfecho do evento (ex: eleição, dado oficial), o admin marca o resultado
+   * A plataforma permite que usuários vencedores resgatem seus BRL3
+
+5. **Resgate de BRL3**
+
+   * Usuários solicitam saque
+   * Durante o MVP, os saques são feitos manualmente via Pix
+   * Cada 1 BRL3 = R$1 (sem exceção)
+
+---
+
+### 🔐 SEGURANÇA RELACIONADA AO SPREAD FIXO
+
+> Como a plataforma vende shares a 2% abaixo da Polymarket, ela **assume o risco de exposição de mercado**.
+
+Para proteger a operação, implemente:
+
+1. **Bloqueio automático de mercado volátil**
+
+   * Se a odd se mover mais que X% em Y minutos, o mercado é pausado
+   * Exemplo: >5% em 5 minutos
+
+2. **Limite de exposição por mercado**
+
+   * Definir máximo de BRL3 que pode ser apostado por mercado (ex: R$2.000)
+   * Isso evita colapso se houver um movimento muito forte contra o sistema
+
+3. **Atualização frequente de odds**
+
+   * O ideal é ter atualização a cada 10 segundos
+   * Odds sempre sincronizadas com a Polymarket
+
+4. **Hedge parcial futuro (opcional)**
+
+   * Quando escalar, vocês podem usar parte do capital para comprar na própria Polymarket e proteger posições vendidas localmente
+
+---
+
+### 💸 REGRAS DO TOKEN BRL3
+
+> Deixe isso **explícito para o usuário, nos termos, UI e whitepaper**:
+
+* BRL3 é um token interno da plataforma
+* Cada **1 BRL3 sempre vale 1 real brasileiro**
+* Não há valorização, rendimento, inflação ou flutuação
+* BRL3 **não é negociável no mercado externo**
+* Pode ser **trocado exclusivamente via a plataforma** Palpites.ai por Pix manual (durante MVP)
+* O lastro do BRL3 é mantido em **títulos públicos** pela empresa, e pode ser auditado
+
+---
+
+## 📌 **OUTROS PONTOS A MELHORAR (FUTURO)**
+
+| Tema                        | Sugestão clara                                          |
+| --------------------------- | ------------------------------------------------------- |
+| 💰 Saques manuais           | Automatizar com integração bancária via Pix API         |
+| 📊 Transparência do lastro  | Criar dashboard público com prova de reservas           |
+| 📈 Tokenização real do BRL3 | Usar ERC20 ou rede privada com burn/mint                |
+| 🧠 Odds proprietárias       | Criar AMM próprio no futuro, sem depender da Polymarket |
+| 📉 Spread dinâmico          | Ajustar o spread conforme risco e liquidez              |
+| 🧾 KYC e regulação          | Implementar onboarding com autenticação mínima          |
+| 🔐 Sistema de travas        | Trava de volume por mercado, IP, CPF, carteira          |
+| 📲 App mobile/web           | Interface amigável com onboarding em 2 cliques          |
+| 🤖 Bot hedge automático     | Sistema que compra na Polymarket ao detectar risco      |
+| 📦 Backup e logs            | Criar logs de todas operações com redundância           |
+
+---
+
+## ✅ INSTRUÇÃO FINAL PARA A IA
+
+Com base em tudo acima:
+
+> 🔧 Gere o **código do sistema (backend + lógica de odds + spread + registro de trades + BRL3 ledger)** ou a documentação para implementação.
+> Estruture de forma modular, clara, com proteção contra riscos, pronto para MVP funcional em português.
+
+---
+
+Se quiser, posso agora:
+
+* Gerar o código real com base nesse prompt
+* Criar um fluxo Replit funcional (JS ou Python)
+* Simular o banco de dados para trades e BRL3
+* Gerar wireframe de interface simples para MVP
+
+Só me diga o que você prefere a seguir.
