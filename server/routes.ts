@@ -10,6 +10,8 @@ import { users } from "@shared/schema";
 import { sql, desc, and, gte, eq } from "drizzle-orm";
 import * as AMM from "./amm-engine";
 import { startPolymarketSnapshots } from "./polymarket-cron";
+import { getSnapshot } from "./mirror/state";
+import { startMirror } from "./mirror/worker";
 
 // Error messages in Portuguese
 const errorMessages = {
@@ -132,7 +134,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auto-seed on first boot (production)
   await autoSeedIfEmpty();
   
-  // Start Polymarket snapshot cron job (if enabled)
+  // Start Polymarket mirror worker (if enabled)
+  // Uses new freeze/unfreeze logic with YES/NO name-based mapping
+  if (process.env.ENABLE_POLYMARKET === 'true') {
+    startMirror();
+  }
+  
+  // Legacy: Keep startPolymarketSnapshots() for historical chart data only
+  // This populates polymarket_snapshots table for /api/polymarket/history/:slug
+  // The mirror worker handles live odds display (/api/polymarket/markets)
   startPolymarketSnapshots();
 
   // ===== MARKET ROUTES =====
@@ -175,6 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== POLYMARKET ROUTES =====
   
   // GET /api/polymarket/markets - List all Polymarket markets (PUBLIC)
+  // Returns mirror snapshot with freeze-aware odds (probYes_display/probNo_display)
   app.get("/api/polymarket/markets", async (_req, res) => {
     try {
       // Feature flag gate: return empty if integration disabled
@@ -182,17 +193,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      const markets = await db.query.polymarketMarkets.findMany({
-        orderBy: (markets, { desc }) => [desc(markets.lastUpdate)],
-      });
+      // Get mirror snapshot (includes freeze logic)
+      const snapshot = getSnapshot();
       
-      // Parse JSON outcomes back to objects
-      const parsed = markets.map(m => ({
-        ...m,
-        outcomes: JSON.parse(m.outcomes),
+      // Convert to API format with decimal odds and percentages
+      const marketsData = Object.values(snapshot.markets).map(m => ({
+        slug: m.slug,
+        title: m.title,
+        volume: m.volumeUsd,
+        frozen: m.frozen,
+        freezeReason: m.freezeReason,
+        outcomes: [
+          {
+            name: 'Yes',
+            raw: m.probYes_display,
+            percent: Number((m.probYes_display * 100).toFixed(1)),
+            decimal: m.probYes_display > 0 ? Number((1 / m.probYes_display).toFixed(2)) : Infinity,
+          },
+          {
+            name: 'No',
+            raw: m.probNo_display,
+            percent: Number((m.probNo_display * 100).toFixed(1)),
+            decimal: m.probNo_display > 0 ? Number((1 / m.probNo_display).toFixed(2)) : Infinity,
+          },
+        ],
+        lastUpdate: new Date(m.lastUpdate).toISOString(),
       }));
       
-      res.json(parsed);
+      res.json(marketsData);
     } catch (error) {
       console.error("Failed to fetch Polymarket markets:", error);
       res.status(500).send("Falha ao buscar mercados Polymarket.");
