@@ -84,6 +84,33 @@ ENABLE_POLYMARKET=false
 
 Ou simplesmente remova a variável dos Secrets.
 
+## 🔎 Como Encontrar Slugs Válidos
+
+### Método 1: Via curl (Recomendado)
+```bash
+# Listar mercados ativos
+curl "https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=10"
+
+# Testar um slug específico
+curl "https://gamma-api.polymarket.com/markets?slug=fed-rate-hike-in-2025"
+```
+
+Se o comando retornar um array `[]` vazio, o slug é inválido ou o mercado está fechado.
+
+### Método 2: Via Polymarket.com
+1. Acesse https://polymarket.com
+2. Escolha um mercado **ativo** (verde, não resolvido)
+3. Copie o slug da URL: `polymarket.com/event/SEU-SLUG-AQUI`
+4. Teste com curl antes de adicionar aos Secrets
+
+### Validação Rápida
+Sempre teste seus slugs ANTES de adicionar aos Secrets:
+```bash
+# Se retornar dados = válido ✅
+# Se retornar [] = inválido ❌
+curl "https://gamma-api.polymarket.com/markets?slug=SEU-SLUG"
+```
+
 ## 🔍 Troubleshooting
 
 **Problema**: Seção Polymarket não aparece na homepage
