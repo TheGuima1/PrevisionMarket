@@ -37,6 +37,10 @@ const errorMessages = {
   FAILED_CANCEL_ORDER: "Falha ao cancelar ordem.",
   FAILED_FETCH_ORDERBOOK: "Falha ao buscar livro de ofertas.",
   FAILED_FETCH_ORDERS: "Falha ao buscar suas ordens.",
+  FAILED_AI_REQUEST: "Falha ao processar pedido do assistente AI.",
+  FAILED_CREATE_MARKET: "Falha ao criar mercado.",
+  INVALID_OUTCOME: "Resultado inválido. Use: yes, no ou cancelled.",
+  FAILED_RESOLVE_MARKET: "Falha ao resolver mercado.",
 } as const;
 
 // Initialize OpenAI for AI assistant
@@ -424,7 +428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(order);
     } catch (error: any) {
       console.error("Sell order error:", error);
-      res.status(400).send(error.message || "Failed to sell shares");
+      res.status(400).send(error.message || errorMessages.FAILED_SELL_SHARES);
     }
   });
 
@@ -698,7 +702,7 @@ Your role:
       res.json({ response: response.choices[0]?.message?.content || "Desculpe, não consegui processar sua pergunta." });
     } catch (error) {
       console.error("AI chat error:", error);
-      res.status(500).send("Failed to process AI request");
+      res.status(500).send(errorMessages.FAILED_AI_REQUEST);
     }
   });
 
@@ -710,7 +714,7 @@ Your role:
       const markets = await storage.getMarkets();
       res.json(markets);
     } catch (error) {
-      res.status(500).send("Failed to fetch markets");
+      res.status(500).send(errorMessages.FAILED_FETCH_MARKETS);
     }
   });
 
@@ -750,7 +754,7 @@ Your role:
       if (error.name === "ZodError") {
         return res.status(400).json({ error: "Validation failed", issues: error.issues });
       }
-      res.status(400).send(error.message || "Failed to create market");
+      res.status(400).send(error.message || errorMessages.FAILED_CREATE_MARKET);
     }
   });
 
@@ -761,7 +765,7 @@ Your role:
       const marketId = req.params.id;
       
       if (!["yes", "no", "cancelled"].includes(outcome)) {
-        return res.status(400).send("Invalid outcome");
+        return res.status(400).send(errorMessages.INVALID_OUTCOME);
       }
 
       const market = await storage.getMarket(marketId);
@@ -777,7 +781,7 @@ Your role:
 
       res.json({ success: true });
     } catch (error) {
-      res.status(500).send("Failed to resolve market");
+      res.status(500).send(errorMessages.FAILED_RESOLVE_MARKET);
     }
   });
 

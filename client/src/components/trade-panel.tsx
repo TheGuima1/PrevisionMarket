@@ -58,7 +58,6 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
     }
 
     const controller = new AbortController();
-    const requestTimestamp = Date.now();
 
     const timeoutId = setTimeout(async () => {
       setIsLoadingPreview(true);
