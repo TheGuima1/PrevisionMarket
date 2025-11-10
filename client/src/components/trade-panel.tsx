@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Market } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingUp, TrendingDown, HelpCircle } from "lucide-react";
-import { probToOdds, formatOdds, formatProbability, calculatePayout, calculateProfit, getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/odds";
+import { TrendingUp, TrendingDown, HelpCircle, Loader2 } from "lucide-react";
+import { probToOdds, formatOdds, formatProbability, getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/odds";
 import { formatBRL3 } from "@shared/utils/currency";
 
 interface TradePanelProps {
@@ -18,9 +19,22 @@ interface TradePanelProps {
   userBalance?: { brl: string; usdc: string };
 }
 
+interface PreviewResult {
+  estimatedShares: number;
+  avgPrice: number;
+  totalCost: number;
+  spreadFee: number;
+  newYesOdds: number;
+  newNoOdds: number;
+  potentialPayout: number;
+  potentialProfit: number;
+}
+
 export function TradePanel({ market, userBalance }: TradePanelProps) {
   const [orderType, setOrderType] = useState<"yes" | "no">("yes");
   const [amountBRL, setAmountBRL] = useState("");
+  const [previewData, setPreviewData] = useState<PreviewResult | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const { toast } = useToast();
 
   const probability = orderType === "yes" 
@@ -30,12 +44,53 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
   
   const stakeBRL = amountBRL ? parseFloat(amountBRL) : 0;
   
-  const estimatedShares = stakeBRL > 0 && probability > 0 
-    ? stakeBRL / probability 
-    : 0;
-  
-  const estimatedPayout = stakeBRL > 0 ? calculatePayout(stakeBRL, odds) : 0;
-  const estimatedProfit = stakeBRL > 0 ? calculateProfit(stakeBRL, odds) : 0;
+  // Use preview data if available, otherwise fallback to simple calculation
+  const estimatedShares = previewData?.estimatedShares ?? 0;
+  const estimatedPayout = previewData?.potentialPayout ?? 0;
+  const estimatedProfit = previewData?.potentialProfit ?? 0;
+
+  // Debounced preview fetch with abort controller
+  useEffect(() => {
+    if (!stakeBRL || stakeBRL <= 0) {
+      setPreviewData(null);
+      setIsLoadingPreview(false); // FIX: Reset loading state when clearing input
+      return;
+    }
+
+    const controller = new AbortController();
+    const requestTimestamp = Date.now();
+
+    const timeoutId = setTimeout(async () => {
+      setIsLoadingPreview(true);
+      try {
+        const res = await apiRequest("POST", "/api/orders/preview", {
+          marketId: market.id,
+          type: orderType,
+          usdcAmount: stakeBRL,
+        });
+        const data = await res.json();
+        
+        // Only update if this is still the latest request
+        if (!controller.signal.aborted) {
+          setPreviewData(data);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("Preview failed:", error);
+          setPreviewData(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingPreview(false);
+        }
+      }
+    }, 500); // 500ms debounce
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort(); // Cancel fetch if deps change
+    };
+  }, [stakeBRL, orderType, market.id]);
 
   const buyMutation = useMutation({
     mutationFn: async () => {
@@ -150,27 +205,62 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               <span className="font-semibold tabular-nums" data-testid="text-total-cost-yes">{formatBRL3(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Retorno total (se ganhar)</span>
-              <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-payout-yes">
-                {formatBRL3(estimatedPayout)}
+              <span className="text-muted-foreground flex items-center gap-1">
+                Shares que você receberá
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Cálculo exato baseado no AMM (inclui spread de 2%)</p>
+                  </TooltipContent>
+                </Tooltip>
               </span>
+              {isLoadingPreview && stakeBRL > 0 ? (
+                <Skeleton className="h-5 w-20" />
+              ) : (
+                <span className="font-semibold tabular-nums text-primary" data-testid="text-estimated-shares-yes">
+                  {estimatedShares > 0 ? `~${estimatedShares.toFixed(2)}` : "—"}
+                </span>
+              )}
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Retorno total (se ganhar)</span>
+              {isLoadingPreview && stakeBRL > 0 ? (
+                <Skeleton className="h-5 w-24" />
+              ) : (
+                <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-payout-yes">
+                  {formatBRL3(estimatedPayout)}
+                </span>
+              )}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Lucro líquido</span>
-              <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-profit-yes">
-                {formatBRL3(estimatedProfit)}
-              </span>
+              {isLoadingPreview && stakeBRL > 0 ? (
+                <Skeleton className="h-5 w-24" />
+              ) : (
+                <span className={`font-semibold tabular-nums ${estimatedProfit >= 0 ? 'text-primary' : 'text-destructive'}`} data-testid="text-potential-profit-yes">
+                  {formatBRL3(estimatedProfit)}
+                </span>
+              )}
             </div>
           </div>
 
           <Button
             onClick={handleBuy}
-            disabled={!amountBRL || buyMutation.isPending}
+            disabled={!amountBRL || buyMutation.isPending || isLoadingPreview}
             className="w-full bg-primary hover:bg-primary/90"
             size="lg"
             data-testid="button-buy-yes-execute"
           >
-            {buyMutation.isPending ? "Executando..." : "Apostar em SIM"}
+            {buyMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processando...
+              </>
+            ) : (
+              "Apostar em SIM"
+            )}
           </Button>
         </TabsContent>
 
@@ -218,28 +308,63 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               <span className="font-semibold tabular-nums" data-testid="text-total-cost-no">{formatBRL3(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Retorno total (se ganhar)</span>
-              <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-payout-no">
-                {formatBRL3(estimatedPayout)}
+              <span className="text-muted-foreground flex items-center gap-1">
+                Shares que você receberá
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Cálculo exato baseado no AMM (inclui spread de 2%)</p>
+                  </TooltipContent>
+                </Tooltip>
               </span>
+              {isLoadingPreview && stakeBRL > 0 ? (
+                <Skeleton className="h-5 w-20" />
+              ) : (
+                <span className="font-semibold tabular-nums text-destructive" data-testid="text-estimated-shares-no">
+                  {estimatedShares > 0 ? `~${estimatedShares.toFixed(2)}` : "—"}
+                </span>
+              )}
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Retorno total (se ganhar)</span>
+              {isLoadingPreview && stakeBRL > 0 ? (
+                <Skeleton className="h-5 w-24" />
+              ) : (
+                <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-payout-no">
+                  {formatBRL3(estimatedPayout)}
+                </span>
+              )}
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Lucro líquido</span>
-              <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-profit-no">
-                {formatBRL3(estimatedProfit)}
-              </span>
+              {isLoadingPreview && stakeBRL > 0 ? (
+                <Skeleton className="h-5 w-24" />
+              ) : (
+                <span className={`font-semibold tabular-nums ${estimatedProfit >= 0 ? 'text-destructive' : 'text-destructive/70'}`} data-testid="text-potential-profit-no">
+                  {formatBRL3(estimatedProfit)}
+                </span>
+              )}
             </div>
           </div>
 
           <Button
             onClick={handleBuy}
-            disabled={!amountBRL || buyMutation.isPending}
+            disabled={!amountBRL || buyMutation.isPending || isLoadingPreview}
             className="w-full"
             variant="destructive"
             size="lg"
             data-testid="button-buy-no-execute"
           >
-            {buyMutation.isPending ? "Executando..." : "Apostar em NÃO"}
+            {buyMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processando...
+              </>
+            ) : (
+              "Apostar em NÃO"
+            )}
           </Button>
         </TabsContent>
       </Tabs>

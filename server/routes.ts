@@ -10,6 +10,35 @@ import { users } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import * as AMM from "./amm-engine";
 
+// Error messages in Portuguese
+const errorMessages = {
+  UNAUTHORIZED: "Não autorizado. Faça login para continuar.",
+  FORBIDDEN: "Acesso negado.",
+  USERNAME_REQUIRED: "Username obrigatório. Por favor, escolha seu username primeiro.",
+  MARKET_NOT_FOUND: "Mercado não encontrado.",
+  MARKET_NOT_ACTIVE: "Mercado não está ativo.",
+  INSUFFICIENT_BALANCE: "Saldo insuficiente. Deposite mais BRL3 para continuar.",
+  FAILED_FETCH_MARKETS: "Falha ao buscar mercados. Tente novamente.",
+  FAILED_FETCH_MARKET: "Falha ao buscar mercado. Tente novamente.",
+  FAILED_FETCH_TRADES: "Falha ao buscar negociações recentes.",
+  FAILED_PLACE_ORDER: "Falha ao executar aposta. Tente novamente.",
+  NO_POSITION_FOUND: "Nenhuma posição encontrada para este mercado.",
+  INSUFFICIENT_SHARES: "Shares insuficientes para vender.",
+  FAILED_SELL_SHARES: "Falha ao vender shares. Tente novamente.",
+  FAILED_FETCH_POSITIONS: "Falha ao buscar suas posições.",
+  FAILED_FETCH_COMMENTS: "Falha ao buscar comentários.",
+  FAILED_CREATE_COMMENT: "Falha ao criar comentário. Tente novamente.",
+  INVALID_INPUT: "Dados inválidos. Verifique e tente novamente.",
+  FAILED_DEPOSIT: "Falha ao processar depósito.",
+  FAILED_WITHDRAWAL: "Falha ao processar saque.",
+  FAILED_FETCH_TRANSACTIONS: "Falha ao buscar histórico de transações.",
+  USER_NOT_FOUND: "Usuário não encontrado.",
+  FAILED_CREATE_ORDER: "Falha ao criar ordem.",
+  FAILED_CANCEL_ORDER: "Falha ao cancelar ordem.",
+  FAILED_FETCH_ORDERBOOK: "Falha ao buscar livro de ofertas.",
+  FAILED_FETCH_ORDERS: "Falha ao buscar suas ordens.",
+} as const;
+
 // Initialize OpenAI for AI assistant
 // Using Replit's AI Integrations service (no API key needed)
 const openai = new OpenAI({
@@ -20,7 +49,7 @@ const openai = new OpenAI({
 // Middleware to check if user is authenticated
 function requireAuth(req: Request, res: Response, next: Function) {
   if (!req.isAuthenticated()) {
-    return res.status(401).send("Unauthorized");
+    return res.status(401).send(errorMessages.UNAUTHORIZED);
   }
   next();
 }
@@ -28,7 +57,7 @@ function requireAuth(req: Request, res: Response, next: Function) {
 // Middleware to check if user is admin
 function requireAdmin(req: Request, res: Response, next: Function) {
   if (!req.isAuthenticated() || !req.user?.isAdmin) {
-    return res.status(403).send("Forbidden");
+    return res.status(403).send(errorMessages.FORBIDDEN);
   }
   next();
 }
@@ -36,10 +65,10 @@ function requireAdmin(req: Request, res: Response, next: Function) {
 // Middleware to check if user has set their username
 function ensureUsername(req: Request, res: Response, next: Function) {
   if (!req.isAuthenticated()) {
-    return res.status(401).send("Unauthorized");
+    return res.status(401).send(errorMessages.UNAUTHORIZED);
   }
   if (!req.user?.username) {
-    return res.status(403).send("Username required - please set your username first");
+    return res.status(403).send(errorMessages.USERNAME_REQUIRED);
   }
   next();
 }
@@ -107,7 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const markets = await storage.getMarkets(category);
       res.json(markets);
     } catch (error) {
-      res.status(500).send("Failed to fetch markets");
+      res.status(500).send(errorMessages.FAILED_FETCH_MARKETS);
     }
   });
 
@@ -116,11 +145,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const market = await storage.getMarket(req.params.id);
       if (!market) {
-        return res.status(404).send("Market not found");
+        return res.status(404).send(errorMessages.MARKET_NOT_FOUND);
       }
       res.json(market);
     } catch (error) {
-      res.status(500).send("Failed to fetch market");
+      res.status(500).send(errorMessages.FAILED_FETCH_MARKET);
     }
   });
 
@@ -131,7 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recentTrades);
     } catch (error) {
       console.error("Failed to fetch recent trades:", error);
-      res.status(500).send("Failed to fetch recent trades");
+      res.status(500).send(errorMessages.FAILED_FETCH_TRADES);
     }
   });
 
@@ -155,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const market = await storage.getMarket(validated.marketId);
       if (!market || market.status !== "active") {
-        return res.status(400).send("Market is not active");
+        return res.status(400).send(errorMessages.MARKET_NOT_ACTIVE);
       }
 
       const usdcAmount = validated.usdcAmount;
@@ -163,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check user balance
       const user = await storage.getUser(userId);
       if (!user || parseFloat(user.balanceBrl) < usdcAmount) {
-        return res.status(400).send("Insufficient balance");
+        return res.status(400).send(errorMessages.INSUFFICIENT_BALANCE);
       }
 
       // Execute trade through AMM with 2% spread
@@ -234,7 +263,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ ...order, sharesBought: tradeResult.sharesBought });
     } catch (error: any) {
       console.error("Order error:", error);
-      res.status(400).send(error.message || "Failed to place order");
+      res.status(400).send(error.message || errorMessages.FAILED_PLACE_ORDER);
+    }
+  });
+
+  // POST /api/orders/preview - Preview a trade without executing (dry-run)
+  app.post("/api/orders/preview", async (req, res) => {
+    try {
+      const schema = z.object({
+        marketId: z.string(),
+        type: z.enum(["yes", "no"]),
+        usdcAmount: z.union([z.string(), z.number()]).transform(val => 
+          typeof val === "string" ? parseFloat(val) : val
+        ).pipe(z.number().positive("Amount must be greater than 0")),
+      });
+      
+      const validated = schema.parse(req.body);
+      
+      const market = await storage.getMarket(validated.marketId);
+      if (!market) {
+        return res.status(404).send({ error: "Mercado não encontrado" });
+      }
+      
+      if (market.status !== "active") {
+        return res.status(400).send({ error: "Mercado não está ativo" });
+      }
+
+      const usdcAmount = validated.usdcAmount;
+
+      // Simulate trade through AMM with 2% spread (dry-run, no DB changes)
+      const ammState: AMM.AMMState = {
+        yesReserve: parseFloat(market.yesReserve),
+        noReserve: parseFloat(market.noReserve),
+        k: parseFloat(market.k),
+      };
+
+      const tradeResult = AMM.buyShares(usdcAmount, validated.type, ammState, 200);
+
+      // Calculate new odds after this trade
+      const newYesPrice = tradeResult.newNoReserve / (tradeResult.newYesReserve + tradeResult.newNoReserve);
+      const newNoPrice = tradeResult.newYesReserve / (tradeResult.newYesReserve + tradeResult.newNoReserve);
+
+      res.json({
+        estimatedShares: parseFloat(tradeResult.sharesBought.toFixed(4)),
+        avgPrice: parseFloat(tradeResult.avgPrice.toFixed(4)),
+        totalCost: usdcAmount,
+        spreadFee: parseFloat((tradeResult.spreadFee || 0).toFixed(4)),
+        newYesOdds: parseFloat((newYesPrice * 100).toFixed(2)),
+        newNoOdds: parseFloat((newNoPrice * 100).toFixed(2)),
+        potentialPayout: parseFloat(tradeResult.sharesBought.toFixed(2)), // If wins, each share = 1 BRL3
+        potentialProfit: parseFloat((tradeResult.sharesBought - usdcAmount).toFixed(2)),
+      });
+    } catch (error: any) {
+      console.error("Preview error:", error);
+      res.status(400).json({ error: error.message || "Falha ao simular aposta" });
     }
   });
 
@@ -258,13 +340,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const market = await storage.getMarket(marketId);
       if (!market || market.status !== "active") {
-        return res.status(400).send("Market is not active");
+        return res.status(400).send(errorMessages.MARKET_NOT_ACTIVE);
       }
 
       // Check user position
       const position = await storage.getPosition(userId, marketId);
       if (!position) {
-        return res.status(400).send("No position found");
+        return res.status(400).send(errorMessages.NO_POSITION_FOUND);
       }
 
       const currentShares = type === "yes" 
@@ -272,7 +354,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : parseFloat(position.noShares);
       
       if (currentShares < shares) {
-        return res.status(400).send("Insufficient shares to sell");
+        return res.status(400).send(errorMessages.INSUFFICIENT_SHARES);
       }
 
       // Execute sell through AMM
@@ -306,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update user balance
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(500).send("User not found");
+        return res.status(500).send(errorMessages.USER_NOT_FOUND);
       }
       const newBalance = (parseFloat(user.balanceBrl) + proceeds).toFixed(2);
       await storage.updateUserBalance(userId, newBalance, user.balanceUsdc);
@@ -354,7 +436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const positions = await storage.getPositions(req.user!.id);
       res.json(positions);
     } catch (error) {
-      res.status(500).send("Failed to fetch positions");
+      res.status(500).send(errorMessages.FAILED_FETCH_POSITIONS);
     }
   });
 
@@ -366,7 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const comments = await storage.getCommentsByMarket(req.params.marketId);
       res.json(comments);
     } catch (error) {
-      res.status(500).send("Failed to fetch comments");
+      res.status(500).send(errorMessages.FAILED_FETCH_COMMENTS);
     }
   });
 
@@ -377,7 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const comment = await storage.createComment(req.user!.id, validated);
       res.json(comment);
     } catch (error: any) {
-      res.status(400).send(error.message || "Failed to create comment");
+      res.status(400).send(error.message || errorMessages.FAILED_CREATE_COMMENT);
     }
   });
 
@@ -422,9 +504,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       if (error.name === "ZodError") {
-        return res.status(400).send(error.message || "Invalid input");
+        return res.status(400).send(error.message || errorMessages.INVALID_INPUT);
       }
-      res.status(500).send("Failed to process deposit");
+      res.status(500).send(errorMessages.FAILED_DEPOSIT);
     }
   });
 
@@ -473,9 +555,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error: any) {
       if (error.name === "ZodError") {
-        return res.status(400).send(error.message || "Invalid input");
+        return res.status(400).send(error.message || errorMessages.INVALID_INPUT);
       }
-      res.status(500).send("Failed to process withdrawal");
+      res.status(500).send(errorMessages.FAILED_WITHDRAWAL);
     }
   });
 
@@ -487,7 +569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactions = await storage.getTransactions(req.user!.id);
       res.json(transactions);
     } catch (error) {
-      res.status(500).send("Failed to fetch transactions");
+      res.status(500).send(errorMessages.FAILED_FETCH_TRANSACTIONS);
     }
   });
 
@@ -537,7 +619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error.name === "ZodError") {
         return res.status(400).json({ error: "Validation failed", issues: error.issues });
       }
-      res.status(400).send(error.message || "Failed to create order");
+      res.status(400).send(error.message || errorMessages.FAILED_CREATE_ORDER);
     }
   });
 
@@ -552,7 +634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       console.error("Cancel order error:", error);
-      res.status(500).send("Failed to cancel order");
+      res.status(500).send(errorMessages.FAILED_CANCEL_ORDER);
     }
   });
 
@@ -565,7 +647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(orderbook);
     } catch (error) {
       console.error("Order book error:", error);
-      res.status(500).send("Failed to fetch order book");
+      res.status(500).send(errorMessages.FAILED_FETCH_ORDERBOOK);
     }
   });
 
@@ -578,7 +660,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(myOrders);
     } catch (error) {
       console.error("My orders error:", error);
-      res.status(500).send("Failed to fetch orders");
+      res.status(500).send(errorMessages.FAILED_FETCH_ORDERS);
     }
   });
 
