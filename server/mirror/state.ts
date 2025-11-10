@@ -31,6 +31,9 @@ export interface MirrorMarket {
   // Internal counters (not exposed via API)
   __stableCount?: number;
   __frozenAt?: number;
+  __previousRaw?: number;      // Track previous raw reading for consecutive comparison
+  __plateauAnchor?: number;     // Candidate new plateau price
+  __plateauConfirmed?: boolean; // Whether plateau anchor has been seeded
 }
 
 export interface MirrorSnapshot {
@@ -125,19 +128,60 @@ export function upsertMarket(
       prev.lastStableYes = payload.probYes_raw;
     }
   } else {
-    // Currently FROZEN: Check if we should unfreeze
-    const within = !shouldFreeze(prev.lastStableYes, payload.probYes_raw);
+    // Currently FROZEN: Dual-path stability check
+    // Path A: Reversion to anchor (back to pre-spike price)
+    // Path B: New plateau (sustained new price level)
+    const prevRaw = prev.__previousRaw ?? prev.lastStableYes;
+    const deltaFromPrevious = Math.abs(payload.probYes_raw - prevRaw);
+    const deltaFromAnchor = Math.abs(payload.probYes_raw - prev.lastStableYes);
     
-    if (within) {
+    // Seed plateau anchor on first stable reading far from anchor
+    if (!prev.__plateauConfirmed && deltaFromPrevious < SPIKE_THRESHOLD && deltaFromAnchor >= SPIKE_THRESHOLD) {
+      prev.__plateauAnchor = payload.probYes_raw;
+      prev.__plateauConfirmed = true;
+    }
+    
+    // Check stability via dual paths
+    let isStable = false;
+    
+    if (deltaFromPrevious < SPIKE_THRESHOLD) {
+      // Consecutive readings are stable, check which path qualifies
+      if (deltaFromAnchor < SPIKE_THRESHOLD) {
+        // Path A: Reverting to anchor
+        isStable = true;
+      } else if (prev.__plateauConfirmed && prev.__plateauAnchor !== undefined) {
+        const deltaFromPlateau = Math.abs(payload.probYes_raw - prev.__plateauAnchor);
+        if (deltaFromPlateau < SPIKE_THRESHOLD) {
+          // Path B: Converging on new plateau
+          isStable = true;
+        }
+      }
+    }
+    
+    if (isStable) {
       prev.__stableCount = (prev.__stableCount || 0) + 1;
     } else {
-      prev.__stableCount = 0; // Reset counter if still volatile
+      prev.__stableCount = 0; // Reset counter
+      // Reset plateau if:
+      // 1. Consecutive delta violated (oscillation), OR
+      // 2. Drift beyond plateau threshold (gradual drift requires reseeding)
+      const shouldResetPlateau = deltaFromPrevious >= SPIKE_THRESHOLD || 
+        (prev.__plateauConfirmed && prev.__plateauAnchor !== undefined && 
+         Math.abs(payload.probYes_raw - prev.__plateauAnchor) >= SPIKE_THRESHOLD);
+      
+      if (shouldResetPlateau) {
+        prev.__plateauConfirmed = false;
+        prev.__plateauAnchor = undefined;
+      }
     }
+    
+    // Update previous raw for next comparison
+    prev.__previousRaw = payload.probYes_raw;
     
     const elapsed = (now - (prev.__frozenAt || now)) / 1000;
     
     // UNFREEZE CONDITIONS:
-    // 1. N consecutive stable readings, OR
+    // 1. N consecutive stable readings (via either path), OR
     // 2. Fail-safe timeout
     if ((prev.__stableCount || 0) >= STABILIZE_NEED || elapsed >= FAILSAFE_SEC) {
       const reason = elapsed >= FAILSAFE_SEC ? 'TIMEOUT' : 'STABILIZED';
@@ -148,6 +192,9 @@ export function upsertMarket(
       prev.lastStableYes = payload.probYes_raw;
       delete prev.__stableCount;
       delete prev.__frozenAt;
+      delete prev.__previousRaw;
+      delete prev.__plateauAnchor;
+      delete prev.__plateauConfirmed;
       
       console.log(`[Mirror State] 🔥 UNFREEZE ${slug}: ${reason} at ${(payload.probYes_raw * 100).toFixed(1)}% YES`);
     } else {
