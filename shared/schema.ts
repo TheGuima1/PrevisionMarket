@@ -140,6 +140,24 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Polymarket Markets table (mirrored from Polymarket API)
+export const polymarketMarkets = pgTable("polymarket_markets", {
+  slug: text("slug").primaryKey(), // Polymarket slug (e.g., "presidential-election-2024")
+  title: text("title").notNull(),
+  outcomes: text("outcomes").notNull(), // JSON string: [{name, percent, raw}]
+  volume: decimal("volume", { precision: 18, scale: 2 }),
+  endsAt: timestamp("ends_at"),
+  lastUpdate: timestamp("last_update").notNull().defaultNow(),
+});
+
+// Polymarket Snapshots table (historical data for charts)
+export const polymarketSnapshots = pgTable("polymarket_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().references(() => polymarketMarkets.slug),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  outcomes: text("outcomes").notNull(), // JSON string: [{name, percent, raw}]
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   positions: many(positions),
@@ -309,3 +327,7 @@ export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 
 export type Position = typeof positions.$inferSelect;
+
+// Polymarket types
+export type PolymarketMarket = typeof polymarketMarkets.$inferSelect;
+export type PolymarketSnapshot = typeof polymarketSnapshots.$inferSelect;

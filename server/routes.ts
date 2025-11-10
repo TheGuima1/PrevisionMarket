@@ -2,13 +2,14 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, orders, markets } from "@shared/schema";
+import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, orders, markets, polymarketMarkets, polymarketSnapshots } from "@shared/schema";
 import OpenAI from "openai";
 import { z } from "zod";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { sql } from "drizzle-orm";
+import { sql, desc, and, gte, eq } from "drizzle-orm";
 import * as AMM from "./amm-engine";
+import { startPolymarketSnapshots } from "./polymarket-cron";
 
 // Error messages in Portuguese
 const errorMessages = {
@@ -130,6 +131,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auto-seed on first boot (production)
   await autoSeedIfEmpty();
+  
+  // Start Polymarket snapshot cron job (if enabled)
+  startPolymarketSnapshots();
 
   // ===== MARKET ROUTES =====
   
@@ -165,6 +169,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to fetch recent trades:", error);
       res.status(500).send(errorMessages.FAILED_FETCH_TRADES);
+    }
+  });
+
+  // ===== POLYMARKET ROUTES =====
+  
+  // GET /api/polymarket/markets - List all Polymarket markets (PUBLIC)
+  app.get("/api/polymarket/markets", async (_req, res) => {
+    try {
+      // Feature flag gate: return empty if integration disabled
+      if (process.env.ENABLE_POLYMARKET !== 'true') {
+        return res.json([]);
+      }
+
+      const markets = await db.query.polymarketMarkets.findMany({
+        orderBy: (markets, { desc }) => [desc(markets.lastUpdate)],
+      });
+      
+      // Parse JSON outcomes back to objects
+      const parsed = markets.map(m => ({
+        ...m,
+        outcomes: JSON.parse(m.outcomes),
+      }));
+      
+      res.json(parsed);
+    } catch (error) {
+      console.error("Failed to fetch Polymarket markets:", error);
+      res.status(500).send("Falha ao buscar mercados Polymarket.");
+    }
+  });
+  
+  // GET /api/polymarket/history/:slug - Get historical snapshots for a Polymarket market (PUBLIC)
+  app.get("/api/polymarket/history/:slug", async (req, res) => {
+    try {
+      // Feature flag gate: return empty if integration disabled
+      if (process.env.ENABLE_POLYMARKET !== 'true') {
+        return res.json([]);
+      }
+
+      const { slug } = req.params;
+      const range = (req.query.range as string) || '1M';
+      
+      // Calculate time range
+      const intervals: Record<string, number> = {
+        '1D': 1,
+        '1W': 7,
+        '1M': 30,
+        'ALL': 365,
+      };
+      const days = intervals[range] || 30;
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      
+      const snapshots = await db.query.polymarketSnapshots.findMany({
+        where: and(
+          eq(polymarketSnapshots.slug, slug),
+          gte(polymarketSnapshots.timestamp, since)
+        ),
+        orderBy: (snapshots, { asc }) => [asc(snapshots.timestamp)],
+      });
+      
+      // Parse JSON outcomes
+      const parsed = snapshots.map(s => ({
+        timestamp: s.timestamp,
+        outcomes: JSON.parse(s.outcomes),
+      }));
+      
+      res.json(parsed);
+    } catch (error) {
+      console.error("Failed to fetch Polymarket history:", error);
+      res.status(500).send("Falha ao buscar histórico Polymarket.");
     }
   });
 

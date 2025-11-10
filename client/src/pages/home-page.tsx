@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PublicNavbar } from "@/components/public-navbar";
 import { MarketCard } from "@/components/market-card";
+import { PolymarketMarketCard } from "@/components/polymarket-market-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Market } from "@shared/schema";
 import { TrendingUp, Vote, Bitcoin, Cpu, Trophy } from "lucide-react";
@@ -23,6 +25,13 @@ export default function HomePage() {
     gcTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
+  });
+  
+  // Fetch Polymarket markets (feature flag checked via presence of data)
+  const { data: polymarketMarkets, isLoading: polymarketsLoading } = useQuery<any[]>({
+    queryKey: ["/api/polymarket/markets"],
+    staleTime: 30000, // 30s cache
+    retry: false, // Don't retry if disabled
   });
 
   // Filter markets by tab
@@ -92,31 +101,62 @@ export default function HomePage() {
         </div>
 
         {/* Markets Section - Centered Layout */}
-        <div className="max-w-7xl mx-auto">
-          <Tabs defaultValue="trending" className="w-full">
-            <TabsList className="w-full grid grid-cols-5 mb-6">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <TabsTrigger 
-                    key={tab.value} 
-                    value={tab.value}
-                    className="flex items-center gap-2"
-                    data-testid={`tab-${tab.value}`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{tab.label}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+        <div className="max-w-7xl mx-auto space-y-12">
+          {/* Palpites.AI Markets (AMM) */}
+          <section>
+            <h2 className="text-3xl font-bold mb-6">Mercados Palpites.AI</h2>
+            <Tabs defaultValue="trending" className="w-full">
+              <TabsList className="w-full grid grid-cols-5 mb-6">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger 
+                      key={tab.value} 
+                      value={tab.value}
+                      className="flex items-center gap-2"
+                      data-testid={`tab-${tab.value}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
 
-            {tabs.map((tab) => (
-              <TabsContent key={tab.value} value={tab.value}>
-                {renderMarketsGrid(getMarketsByTab(tab.value), tab.value)}
-              </TabsContent>
-            ))}
-          </Tabs>
+              {tabs.map((tab) => (
+                <TabsContent key={tab.value} value={tab.value}>
+                  {renderMarketsGrid(getMarketsByTab(tab.value), tab.value)}
+                </TabsContent>
+              ))}
+            </Tabs>
+          </section>
+          
+          {/* Polymarket Markets (Beta) */}
+          {polymarketMarkets && polymarketMarkets.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3 mb-6">
+                <h2 className="text-3xl font-bold">Mercados Polymarket</h2>
+                <Badge variant="secondary" className="text-sm">Beta</Badge>
+              </div>
+              <p className="text-muted-foreground mb-6 text-sm">
+                Odds espelhadas da Polymarket com spread de 2%. Apenas visualização no piloto MVP.
+              </p>
+              
+              {polymarketsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-64 rounded-lg" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="grid-polymarket-markets">
+                  {polymarketMarkets.map((market: any) => (
+                    <PolymarketMarketCard key={market.slug} market={market} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
         </div>
       </main>
     </div>
