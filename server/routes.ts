@@ -243,6 +243,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== ORDER ROUTES =====
   
+  // GET /api/orders - Get user's order history (requires auth)
+  app.get("/api/orders", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      const userOrders = await db.query.orders.findMany({
+        where: eq(orders.userId, userId),
+        orderBy: (orders, { desc }) => [desc(orders.createdAt)],
+        limit: 100, // Last 100 orders
+      });
+      
+      res.json(userOrders);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+      res.status(500).send("Erro ao buscar ordens.");
+    }
+  });
+  
   // POST /api/orders - Place a buy market order using AMM with 2% spread (requires username)
   app.post("/api/orders", ensureUsername, async (req, res) => {
     try {
