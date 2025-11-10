@@ -14,7 +14,7 @@ Na sidebar do Replit, clique em **"Secrets"** (ou **"Environment Variables"**) e
 ENABLE_POLYMARKET=true
 POLYMARKET_GAMMA_URL=https://gamma-api.polymarket.com
 POLYMARKET_CLOB_URL=https://clob.polymarket.com
-POLYMARKET_SLUGS=presidential-election-2024,bitcoin-100k-2025,trump-election-winner-2024
+POLYMARKET_SLUGS=fed-rate-hike-in-2025,us-recession-in-2025,fed-emergency-rate-cut-in-2025
 POLYMARKET_SPREAD=0.02
 POLYMARKET_SNAPSHOT_INTERVAL=60
 ```
@@ -28,14 +28,17 @@ Escolha **3-5 slugs** da Polymarket (máximo 10) e adicione separados por vírgu
 - Escolha um mercado
 - O slug aparece na URL: `polymarket.com/event/SEU-SLUG-AQUI`
 
-**Exemplos de slugs (ativos em nov/2025):**
-- `fed-rate-hike-in-2025`
-- `us-recession-in-2025`
-- `trump-time-person-of-the-year-2025`
-- `bitcoin-200000-by-2026`
-- `will-biden-resign-in-2025`
+**Exemplos de slugs válidos (testados e ativos):**
+- `fed-rate-hike-in-2025` - Taxa de juros Fed em 2025
+- `us-recession-in-2025` - Recessão nos EUA em 2025
+- `fed-emergency-rate-cut-in-2025` - Corte emergencial Fed 2025
+- `tether-insolvent-in-2025` - Insolvência Tether 2025
+- `will-any-presidential-candidate-win-outright-in-the-first-round-of-the-brazil-election` - Eleição Brasil 2026
 
-**⚠️ IMPORTANTE**: Use apenas slugs de mercados **ativos e não fechados**. Consulte https://polymarket.com para ver mercados atuais.
+**⚠️ IMPORTANTE**: 
+- Use apenas slugs de mercados **ativos e não fechados** (active=true, closed=false)
+- Consulte https://polymarket.com para ver mercados atuais
+- Para verificar se um slug é válido: `curl "https://gamma-api.polymarket.com/markets?slug=SEU-SLUG"`
 
 ### 3. Restart Workflow
 
@@ -45,7 +48,9 @@ Após adicionar as variáveis:
 3. Verifique os logs para confirmar:
    ```
    [Polymarket Snapshot] Starting cron job (interval: 60000ms)
-   [Polymarket Snapshot] Monitoring 3 markets: presidential-election-2024, bitcoin-100k-2025, trump-election-winner-2024
+   [Polymarket Snapshot] Monitoring 3 markets: fed-rate-hike-in-2025, us-recession-in-2025, fed-emergency-rate-cut-in-2025
+   [Polymarket Snapshot] ✓ fed-rate-hike-in-2025 - Will the Fed hike rates in 2025?
+   [Polymarket Snapshot] ✓ us-recession-in-2025 - Will the US enter recession in 2025?
    ```
 
 ### 4. Verificar Funcionamento
