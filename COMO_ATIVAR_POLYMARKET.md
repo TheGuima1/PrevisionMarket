@@ -106,14 +106,54 @@ Polymarket API → adapter.ts (normaliza YES/NO por nome)
 - `polymarket_markets`: Markets espelhados
 - `polymarket_snapshots`: Snapshots históricos (60s)
 
-## 🎯 Feature Flag
+## 🎯 Feature Flags
 
-Para **desativar** a integração:
+### ENABLE_POLYMARKET (Obrigatório)
+Para **ativar** a integração Polymarket:
+```
+ENABLE_POLYMARKET=true
+```
+
+Para **desativar**:
 ```
 ENABLE_POLYMARKET=false
 ```
 
 Ou simplesmente remova a variável dos Secrets.
+
+### ENABLE_POLYMARKET_CRON (Opcional - Default: false)
+Sistema legado para snapshots históricos. **Não recomendado** - use apenas se necessário.
+
+Para **ativar** sistema legacy (snapshots duplicados):
+```
+ENABLE_POLYMARKET_CRON=true
+```
+
+Por padrão está **desativado**. O mirror worker já fornece:
+- ✅ Odds em tempo real com freeze logic
+- ✅ YES/NO identificação por nome (nunca por posição)
+- ✅ Validação de slugs no boot
+
+## 🔧 Validação Automática de Slugs
+
+O sistema agora **valida slugs no boot**:
+- ✅ Slugs válidos: Entram no polling normal
+- ❌ Slugs inválidos (404/410): Auto-excluídos com aviso consolidado
+- ⚠️ Erros temporários (rede, rate limit): Mantidos para retry
+
+**Exemplo de log após boot**:
+```
+[Mirror Worker] 🔍 Validating 5 slugs...
+[Mirror Worker] ⚠️  Invalid slugs (excluded): brazil-presidential-election
+[Mirror Worker] 💡 Update POLYMARKET_SLUGS secret to remove: brazil-presidential-election
+[Mirror Worker] ✅ Validated 4 slugs: fed-rate-hike-in-2025, us-recession-in-2025, ...
+[Server] Legacy Polymarket cron disabled (set ENABLE_POLYMARKET_CRON=true to enable)
+```
+
+**Benefícios**:
+- 🚫 Não polui logs com erros repetidos a cada 60s
+- 🔍 Identifica slugs inválidos imediatamente no boot
+- 🛡️ Robustez: Mantém slugs com erros temporários para retry
 
 ## 🔎 Como Encontrar Slugs Válidos
 

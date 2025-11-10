@@ -137,13 +137,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start Polymarket mirror worker (if enabled)
   // Uses new freeze/unfreeze logic with YES/NO name-based mapping
   if (process.env.ENABLE_POLYMARKET === 'true') {
-    startMirror();
+    await startMirror(); // Now async - validates slugs at boot
   }
   
-  // Legacy: Keep startPolymarketSnapshots() for historical chart data only
-  // This populates polymarket_snapshots table for /api/polymarket/history/:slug
+  // Legacy system (disabled by default)
+  // Enable with ENABLE_POLYMARKET_CRON=true if historical snapshots are needed
   // The mirror worker handles live odds display (/api/polymarket/markets)
-  startPolymarketSnapshots();
+  if (process.env.ENABLE_POLYMARKET_CRON === 'true') {
+    console.log('[Server] Starting legacy Polymarket cron (ENABLE_POLYMARKET_CRON=true)');
+    startPolymarketSnapshots();
+  } else {
+    console.log('[Server] Legacy Polymarket cron disabled (set ENABLE_POLYMARKET_CRON=true to enable)');
+  }
 
   // ===== MARKET ROUTES =====
   

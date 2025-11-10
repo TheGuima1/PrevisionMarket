@@ -6,20 +6,62 @@
 import { fetchPolyBySlug } from './adapter';
 import { upsertMarket } from './state';
 
-const POLY_SLUGS = (process.env.POLYMARKET_SLUGS || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
 const POLL_INTERVAL = Number(process.env.MIRROR_POLL_MS || 60000); // 60s default
 
 let intervalId: NodeJS.Timeout | null = null;
+let validatedSlugs: string[] = []; // Only contains slugs that passed validation
 
 /**
- * Poll all configured slugs once
+ * Validate slugs at boot - ping each slug once and auto-exclude only definitively invalid ones
+ * Only excludes on 404/410 responses (slug not found)
+ * For other errors (network, rate limit, 5xx), logs warning but keeps slug for retry
+ */
+async function validateSlugs(slugs: string[]): Promise<string[]> {
+  const valid: string[] = [];
+  const excluded: string[] = [];
+  const uncertain: string[] = [];
+  
+  console.log(`[Mirror Worker] 🔍 Validating ${slugs.length} slugs...`);
+  
+  for (const slug of slugs) {
+    try {
+      await fetchPolyBySlug(slug);
+      valid.push(slug);
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      
+      // Only exclude on definitive 404/410 (market not found)
+      if (errMsg.includes('not found') || errMsg.includes('404') || errMsg.includes('410')) {
+        excluded.push(slug);
+      } else {
+        // Network/rate limit/5xx: keep slug, log warning, worker will retry
+        uncertain.push(slug);
+        valid.push(slug); // Include in polling list for retry
+      }
+    }
+  }
+  
+  if (excluded.length > 0) {
+    console.warn(`[Mirror Worker] ⚠️  Invalid slugs (excluded): ${excluded.join(', ')}`);
+    console.warn(`[Mirror Worker] 💡 Update POLYMARKET_SLUGS secret to remove: ${excluded.join(',')}`);
+  }
+  
+  if (uncertain.length > 0) {
+    console.warn(`[Mirror Worker] ⚠️  Slugs with validation errors (will retry): ${uncertain.join(', ')}`);
+  }
+  
+  if (valid.length > 0) {
+    console.log(`[Mirror Worker] ✅ Validated ${valid.length} slugs: ${valid.join(', ')}`);
+  }
+  
+  return valid;
+}
+
+/**
+ * Poll all validated slugs once
  */
 export async function pollOnce(): Promise<void> {
-  for (const slug of POLY_SLUGS) {
+  for (const slug of validatedSlugs) {
     try {
       const { probYes, title, volumeUsd } = await fetchPolyBySlug(slug);
       upsertMarket(slug, { title, probYes_raw: probYes, volumeUsd });
@@ -30,16 +72,28 @@ export async function pollOnce(): Promise<void> {
 }
 
 /**
- * Start mirror worker (poll immediately, then every POLL_INTERVAL ms)
+ * Start mirror worker (validate slugs, then poll immediately, then every POLL_INTERVAL ms)
  */
-export function startMirror(): void {
-  if (POLY_SLUGS.length === 0) {
+export async function startMirror(): Promise<void> {
+  const configuredSlugs = (process.env.POLYMARKET_SLUGS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  
+  if (configuredSlugs.length === 0) {
     console.log('[Mirror Worker] No slugs configured (POLYMARKET_SLUGS is empty)');
     return;
   }
   
   console.log(`[Mirror Worker] 🚀 Starting worker (interval: ${POLL_INTERVAL}ms)`);
-  console.log(`[Mirror Worker] Monitoring ${POLY_SLUGS.length} markets: ${POLY_SLUGS.join(', ')}`);
+  
+  // Validate slugs at boot (auto-exclude invalid ones)
+  validatedSlugs = await validateSlugs(configuredSlugs);
+  
+  if (validatedSlugs.length === 0) {
+    console.error('[Mirror Worker] ❌ No valid slugs found. Worker will not start.');
+    return;
+  }
   
   // Poll immediately on startup
   pollOnce().catch(err => {
