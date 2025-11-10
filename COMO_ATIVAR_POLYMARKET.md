@@ -14,12 +14,30 @@ Na sidebar do Replit, clique em **"Secrets"** (ou **"Environment Variables"**) e
 ENABLE_POLYMARKET=true
 POLYMARKET_GAMMA_URL=https://gamma-api.polymarket.com
 POLYMARKET_CLOB_URL=https://clob.polymarket.com
-POLYMARKET_SLUGS=fed-rate-hike-in-2025,us-recession-in-2025,fed-emergency-rate-cut-in-2025
-POLYMARKET_SPREAD=0.02
+POLYMARKET_SLUGS=fed-rate-hike-in-2025,us-recession-in-2025,fed-emergency-rate-cut-in-2025,tether-insolvent-in-2025
+SPREAD_BPS=200
 POLYMARKET_SNAPSHOT_INTERVAL=60
+MIRROR_POLL_MS=60000
+MIRROR_SPIKE_THRESHOLD=0.05
+MIRROR_STABILIZE_NEED=2
+MIRROR_FAILSAFE_SEC=120
 ```
 
-### 2. Configurar Slugs
+### 2. Entender Variáveis de Freeze/Unfreeze
+
+O sistema possui lógica de **congelamento automático** para proteger usuários de variações bruscas:
+
+- **`MIRROR_SPIKE_THRESHOLD=0.05`** (5%): Se odds mudarem ≥5% em 1 minuto, o display **congela** no valor estável anterior
+- **`MIRROR_STABILIZE_NEED=2`**: Requer 2 leituras consecutivas dentro do limiar (<5%) para descongelar
+- **`MIRROR_FAILSAFE_SEC=120`**: Timeout de segurança - descongela após 120s mesmo sem estabilização
+- **`SPREAD_BPS=200`**: Spread de 2% (200 basis points) aplicado **invisível ao usuário** na execução de apostas
+
+**Como funciona o freeze**:
+1. Odds normais: 14% YES → usuário vê 14% YES
+2. Spike detectado: 14% → 25% (Δ11% > 5%) → display **congela em 14%** (último estável)
+3. Descongelamento: Após 2 leituras dentro de 5% OU 120s → display atualiza para valor real
+
+### 3. Configurar Slugs
 
 Escolha **3-5 slugs** da Polymarket (máximo 10) e adicione separados por vírgula em `POLYMARKET_SLUGS`.
 
@@ -40,7 +58,7 @@ Escolha **3-5 slugs** da Polymarket (máximo 10) e adicione separados por vírgu
 - Consulte https://polymarket.com para ver mercados atuais
 - Para verificar se um slug é válido: `curl "https://gamma-api.polymarket.com/markets?slug=SEU-SLUG"`
 
-### 3. Restart Workflow
+### 4. Restart Workflow
 
 Após adicionar as variáveis:
 1. Clique no botão **"Stop"** no workflow `Start application`
@@ -53,7 +71,7 @@ Após adicionar as variáveis:
    [Polymarket Snapshot] ✓ us-recession-in-2025 - Will the US enter recession in 2025?
    ```
 
-### 4. Verificar Funcionamento
+### 5. Verificar Funcionamento
 
 Após ~1 minuto, acesse:
 - Homepage: Deve exibir seção "Mercados Polymarket" com 3-5 cards
@@ -61,10 +79,23 @@ Após ~1 minuto, acesse:
 
 ## 📊 Estrutura
 
-### Backend
-- `server/polymarket-client.ts`: Cliente API Polymarket
-- `server/polymarket-cron.ts`: Snapshot job (60s)
+### Backend (Nova Arquitetura Mirror)
+- **`server/mirror/adapter.ts`**: Cliente Polymarket com garantia YES/NO por nome (não posição)
+- **`server/mirror/state.ts`**: Lógica de freeze/unfreeze (spike threshold + descongelamento)
+- **`server/mirror/worker.ts`**: Worker que faz polling a cada 60s
+- `server/polymarket-cron.ts`: Snapshot histórico (legado, mantido para gráficos)
 - `server/routes.ts`: Rotas `/api/polymarket/*`
+
+**Fluxo de Dados**:
+```
+Polymarket API → adapter.ts (normaliza YES/NO por nome)
+                    ↓
+                state.ts (freeze logic: spike ≥5% → congela)
+                    ↓
+                worker.ts (polling 60s)
+                    ↓
+                GET /api/polymarket/markets (retorna probYes_display/probNo_display)
+```
 
 ### Frontend
 - `client/src/components/polymarket-market-card.tsx`: Card visual
@@ -125,9 +156,10 @@ curl "https://gamma-api.polymarket.com/markets?slug=SEU-SLUG"
 - **Solução**: Verifique que os slugs estão corretos (sem espaços, separados por vírgula)
 - **Solução**: Slugs devem existir na Polymarket
 
-## 📝 Notas
+## 📝 Notas Técnicas
 
-- **Spread**: 2% aplicado sobre preço Polymarket (configurável via `POLYMARKET_SPREAD`)
-- **Snapshots**: Frequência configurável via `POLYMARKET_SNAPSHOT_INTERVAL` (segundos)
-- **Cache local**: Sistema de fallback se API cair (usa último snapshot do DB)
-- **MVP**: Apenas visualização - apostas não disponíveis no piloto Beta
+- **Spread invisível**: 2% aplicado **apenas na execução** de apostas via `AMM.buyShares(..., 200 bps)`. Usuário vê odds **puras** na UI
+- **Odds por nome**: Sistema garante YES/NO identificados por **nome** (case-insensitive), nunca por posição no array
+- **Freeze automático**: Protege contra spikes (≥5%) com descongelamento inteligente (2 leituras estáveis ou 120s timeout)
+- **Dual sync**: Mirror worker (UI odds) + legacy cron (historical charts)
+- **Cache local**: Estado em memória (planejado migração para Redis em produção multi-instance)

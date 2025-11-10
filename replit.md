@@ -4,8 +4,9 @@
 Palpites.AI is a prediction market platform, inspired by Polymarket, designed for the Brazilian market. Users deposit via PIX, receive BRL3 tokens on-chain, and use them to trade on future events. The project aims to provide a robust, user-friendly, and localized platform for prediction markets, with ambitions for real-time features, advanced trading tools, and decentralized integration in future phases. The MVP is complete, featuring AMM-based pricing (CPMM with 2% spread), decimal odds, trade preview system, full PT-BR localization, and a production-ready deployment.
 
 ## Recent Changes (November 2025)
+- **Mirror System with Freeze/Unfreeze (Nov 10)**: Implemented new mirror architecture for Polymarket integration. Guarantees YES/NO identification by **name** (case-insensitive), never by array position. Freeze logic: when odds spike ≥5% in 1 minute, display freezes at last stable value until 2 consecutive stable readings (<5% delta) OR 120s timeout. New files: `server/mirror/adapter.ts`, `server/mirror/state.ts`, `server/mirror/worker.ts`. Spread (2%) now invisible to users - applied only at execution time via `AMM.buyShares(..., 200 bps)`. System displays pure Polymarket odds in UI.
 - **Polymarket Multi-Outcome Support (Nov 10)**: Fixed critical bugs in Polymarket integration to support markets with 2+ outcomes (not just binary YES/NO). Rewrote `polymarket-client.ts` to use correct endpoint `/markets?slug={slug}` and parse `outcomes`/`outcomePrices` as JSON strings with escapes. Removed spread compression that broke probability normalization. System now correctly handles markets like Brazil election (14% Yes, 86% No) and multi-candidate races. Documentation updated with valid slugs and user guide for finding active markets.
-- **Polymarket Integration (Hybrid Architecture)**: Added beta pilot integration with Polymarket API. Platform now displays 6 AMM markets + 3-5 Polymarket markets (configurable). New tables: `polymarket_markets`, `polymarket_snapshots`. Cron job snapshots every 60s. Feature flag: `ENABLE_POLYMARKET`. Read `COMO_ATIVAR_POLYMARKET.md` for setup.
+- **Polymarket Integration (Hybrid Architecture)**: Added beta pilot integration with Polymarket API. Platform now displays 6 AMM markets + 3-5 Polymarket markets (configurable). New tables: `polymarket_markets`, `polymarket_snapshots`. Dual sync: mirror worker for UI odds + legacy cron for historical charts. Feature flag: `ENABLE_POLYMARKET`. Read `COMO_ATIVAR_POLYMARKET.md` for setup.
 - **Trade Preview System**: Implemented `/api/orders/preview` endpoint for accurate share estimation before placing bets. Frontend shows real-time preview with debounce (500ms) and AbortController to prevent race conditions.
 - **Loading States**: Added skeleton loader during preview fetch and spinner on "Palpitar" button. Fixed critical bug where loading state would hang when input was cleared.
 - **PT-BR Error Messages**: Complete translation of all backend error messages to Portuguese via centralized `errorMessages` object (23 constants).
@@ -30,7 +31,13 @@ The platform utilizes a vibrant Brazilian color scheme with a "verde-turquesa" p
 - **Authentication**: Passport.js with sessions
 - **Hybrid Market Architecture**:
     - **Primary**: 6 AMM markets (CPMM + 2% spread) - full trading functionality
-    - **Pilot**: 3-5 Polymarket markets (Beta) - visualization only, no trading in MVP
+    - **Pilot**: 4 Polymarket markets (Beta) - mirror system with freeze/unfreeze logic
+- **Polymarket Mirror System**:
+    - **Freeze Protection**: Odds freeze when spike ≥5% in 1 min, display shows last stable value
+    - **Automatic Unfreeze**: After 2 consecutive stable readings (<5% delta) OR 120s fail-safe timeout
+    - **YES/NO by Name**: Outcomes identified by name (case-insensitive), never by position
+    - **Invisible Spread**: Users see pure Polymarket odds; 2% spread applied only at execution
+    - **Dual Sync**: Mirror worker (60s polling for UI) + legacy cron (historical snapshots for charts)
 - **Prediction Market Core (AMM-based MVP)**:
     - **Dynamic AMM Pricing (CPMM)**: Constant Product Market Maker formula with 2% spread. Prices adjust dynamically based on trades, ensuring market equilibrium.
     - **Trade Preview System**: Public `/api/orders/preview` endpoint performs dry-run AMM calculations, showing users exact share estimates before placing bets. Frontend integration with 500ms debounce and AbortController prevents race conditions.
