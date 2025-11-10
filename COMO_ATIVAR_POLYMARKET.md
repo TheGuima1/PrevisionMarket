@@ -28,12 +28,14 @@ Escolha **3-5 slugs** da Polymarket (máximo 10) e adicione separados por vírgu
 - Escolha um mercado
 - O slug aparece na URL: `polymarket.com/event/SEU-SLUG-AQUI`
 
-**Exemplos de slugs:**
-- `presidential-election-2024`
-- `bitcoin-100k-2025`
-- `trump-election-winner-2024`
-- `eth-5000-2025`
-- `ai-discovers-cure`
+**Exemplos de slugs (ativos em nov/2025):**
+- `fed-rate-hike-in-2025`
+- `us-recession-in-2025`
+- `trump-time-person-of-the-year-2025`
+- `bitcoin-200000-by-2026`
+- `will-biden-resign-in-2025`
+
+**⚠️ IMPORTANTE**: Use apenas slugs de mercados **ativos e não fechados**. Consulte https://polymarket.com para ver mercados atuais.
 
 ### 3. Restart Workflow
 

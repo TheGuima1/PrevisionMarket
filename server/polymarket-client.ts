@@ -1,6 +1,6 @@
 /**
  * Polymarket API Client
- * Fetches market data from Polymarket's public Gamma API and CLOB
+ * Fetches market data from Polymarket's public Gamma API
  */
 
 export interface PolymarketOutcome {
@@ -18,16 +18,15 @@ export interface PolymarketMarket {
 }
 
 const GAMMA_API = process.env.POLYMARKET_GAMMA_URL || 'https://gamma-api.polymarket.com';
-const CLOB_API = process.env.POLYMARKET_CLOB_URL || 'https://clob.polymarket.com';
-const SPREAD = Number(process.env.POLYMARKET_SPREAD || 0.02);
 
 /**
  * Fetch market data by slug from Polymarket Gamma API
- * @param slug - Polymarket market slug (e.g., "presidential-election-2024")
+ * @param slug - Polymarket market slug (e.g., "fed-rate-hike-in-2025")
  * @returns Market data with normalized outcomes
  */
 export async function fetchMarketBySlug(slug: string): Promise<PolymarketMarket> {
-  const url = `${GAMMA_API}/markets/slug/${encodeURIComponent(slug)}`;
+  // Query by slug (returns array, take first match)
+  const url = `${GAMMA_API}/markets?slug=${encodeURIComponent(slug)}`;
   
   try {
     const response = await fetch(url);
@@ -36,56 +35,52 @@ export async function fetchMarketBySlug(slug: string): Promise<PolymarketMarket>
       throw new Error(`Polymarket API error: ${response.status} ${response.statusText}`);
     }
     
-    const data = await response.json();
+    const markets = await response.json();
     
-    // Extract outcomes from response
-    const rawOutcomes = data.outcomes || [];
-    const outcomes: Array<{ name: string; raw: number }> = [];
+    // API returns array, get first match
+    const market = markets[0];
     
-    for (const outcome of rawOutcomes) {
-      const name = outcome.name || outcome.ticker || outcome.id || 'Unknown';
-      let prob = outcome.probability ?? outcome.price ?? null;
-      
-      // If probability not available, try fetching from book
-      if (prob == null && outcome.token_id) {
-        try {
-          const bookResponse = await fetch(`${CLOB_API}/book?token_id=${outcome.token_id}`);
-          if (bookResponse.ok) {
-            const book = await bookResponse.json();
-            const bestBid = Number(book.best_bid ?? 0) / 100;
-            const bestAsk = Number(book.best_ask ?? 0) / 100;
-            
-            if (bestBid > 0 && bestAsk > 0) {
-              const spread = bestAsk - bestBid;
-              // Use mid-price if spread <= $0.10, otherwise use last trade
-              prob = (spread <= 0.10) ? (bestBid + bestAsk) / 2 : (outcome.last_price ?? null);
-            }
-          }
-        } catch (error) {
-          console.error(`Failed to fetch book for token ${outcome.token_id}:`, error);
-        }
-      }
-      
-      outcomes.push({
-        name,
-        raw: Number(prob ?? 0),
-      });
+    if (!market) {
+      throw new Error(`Market with slug "${slug}" not found`);
     }
     
-    // Normalize outcomes to sum to 1 (100%)
+    // Parse outcomes and outcomePrices (JSON strings: "[\"Yes\", \"No\"]" and "[\"0.56\", \"0.44\"]")
+    let outcomeNames: string[] = [];
+    let outcomePricesStr: string[] = [];
+    
+    try {
+      outcomeNames = market.outcomes ? JSON.parse(market.outcomes) : [];
+      outcomePricesStr = market.outcomePrices ? JSON.parse(market.outcomePrices) : [];
+    } catch (e) {
+      // Fallback to CSV parsing if JSON parsing fails
+      outcomeNames = market.outcomes ? market.outcomes.split(',').map((s: string) => s.trim()) : [];
+      outcomePricesStr = market.outcomePrices ? market.outcomePrices.split(',').map((s: string) => s.trim()) : [];
+    }
+    
+    // Build outcomes array
+    const outcomes: PolymarketOutcome[] = outcomeNames.map((name: string, index: number) => {
+      const rawPrice = Number(outcomePricesStr[index] || 0);
+      return {
+        name: name.trim() || `Outcome ${index + 1}`,
+        raw: rawPrice,
+        percent: Number((rawPrice * 100).toFixed(1)),
+      };
+    });
+    
+    // Normalize outcomes to sum to 100% (in case of rounding errors)
     const sum = outcomes.reduce((acc, o) => acc + o.raw, 0) || 1;
     const normalized = outcomes.map(o => ({
       name: o.name,
-      percent: Number(((o.raw / sum) * 100).toFixed(1)),
       raw: o.raw / sum,
+      percent: Number(((o.raw / sum) * 100).toFixed(1)),
     }));
     
     return {
-      slug,
-      title: data.question || data.title || slug,
+      slug: market.slug || slug,
+      title: market.question || market.title || slug,
       outcomes: normalized,
-      volume: data.volume,
-      endsAt: data.end_date_iso || data.endDate,
+      volume: market.volume ? Number(market.volume) : market.volumeNum,
+      endsAt: market.endDateIso || market.endDate,
     };
   } catch (error) {
     console.error(`Failed to fetch market ${slug}:`, error);
@@ -94,15 +89,16 @@ export async function fetchMarketBySlug(slug: string): Promise<PolymarketMarket>
 }
 
 /**
- * Apply spread to Polymarket price
+ * Apply spread to Polymarket price (legacy, kept for backward compat)
  * @param price - Base price (0-1)
  * @param side - 'BUY' or 'SELL'
  * @returns Price with spread applied
  */
 export function applySpread(price: number, side: 'BUY' | 'SELL'): number {
+  const SPREAD = Number(process.env.POLYMARKET_SPREAD || 0.02);
   const adjusted = side === 'BUY' 
-    ? price * (1 - SPREAD)  // Buy cheaper
-    : price * (1 + SPREAD);  // Sell more expensive
+    ? price * (1 - SPREAD)
+    : price * (1 + SPREAD);
   
   return Math.min(0.99, Math.max(0.01, adjusted));
 }
