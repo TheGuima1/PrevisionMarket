@@ -1,0 +1,672 @@
+showtime. aqui vai um **pacote completo** para você só plugar o PSP do PIX, configurar até **10 slugs** da Polymarket e já sair rodando no Replit (ou Docker). também trago o **plano de ação** para integrar a Palpites.AI com a sua plataforma emissora do **BRL3 na Polygon**, deixando o BRL3 invisível para o cliente (ele enxerga apenas “R$ via PIX”).
+
+---
+
+# 0) Estrutura do repositório
+
+```
+palpites/
+  server/
+    app.js
+    config.js
+    db.js
+    markets.js
+    quotes.js
+    cron.js
+    hedger.js           # stub opcional
+    pix.js              # webhooks e simulação PSP
+    routes/
+      markets.js
+      trading.js
+      admin.js
+    sql/
+      001_schema.sql
+  client/
+    index.html
+    src/
+      main.jsx
+      App.jsx
+      pages/
+        Home.jsx
+        Market.jsx
+      components/
+        Layout.jsx
+        MarketCard.jsx
+        MarketChart.jsx
+        QuoteTicket.jsx
+    package.json
+    tailwind.config.js
+    postcss.config.js
+  .env.example
+  docker-compose.yml
+  README.md
+```
+
+---
+
+# 1) Variáveis de ambiente (.env)
+
+Copie `.env.example` para `.env` e preencha:
+
+```
+# DB
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/palpites
+
+# APIs Polymarket
+POLY_GAMMA=https://gamma-api.polymarket.com
+POLY_CLOB=https://clob.polymarket.com
+
+# Lista de slugs (separados por vírgula, até 10)
+SLUG_WHITELIST=brazil-presidential-election-2026,who-wins-xyz,...
+
+# Spread UI
+UI_SPREAD=0.02
+
+# Snapshot de histórico (segundos)
+SNAPSHOT_SEC=60
+
+# PIX / PSP
+PSP_WEBHOOK_SECRET=troque-isto
+PSP_PROVIDER_NAME=psp-mock
+
+# (opcional) Builder/hedge futuramente
+BUILDER_KEY=
+BUILDER_ADDR=
+```
+
+---
+
+# 2) Banco de dados (Postgres)
+
+`server/sql/001_schema.sql`
+
+```sql
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE,
+  name TEXT,
+  kyc_level TEXT DEFAULT 'basic',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS balances (
+  user_id UUID PRIMARY KEY REFERENCES users(id),
+  fiat_cents BIGINT NOT NULL DEFAULT 0,
+  brl3_units BIGINT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS pix_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  type TEXT CHECK(type IN ('DEPOSIT','WITHDRAW')),
+  amount_cents BIGINT NOT NULL,
+  status TEXT CHECK(status IN ('PENDING','CONFIRMED','FAILED')) DEFAULT 'PENDING',
+  psp_ref TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS markets (
+  slug TEXT PRIMARY KEY,
+  title TEXT,
+  outcomes JSONB,
+  volume NUMERIC,
+  ends_at TIMESTAMPTZ,
+  last_update TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS market_history (
+  id BIGSERIAL PRIMARY KEY,
+  slug TEXT REFERENCES markets(slug),
+  ts TIMESTAMPTZ NOT NULL,
+  outcomes JSONB
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id),
+  slug TEXT REFERENCES markets(slug),
+  side TEXT CHECK(side IN ('BUY','SELL')),
+  outcome TEXT,
+  price_bp INTEGER,
+  size_cents BIGINT,
+  status TEXT CHECK(status IN ('NEW','FILLED','CANCELLED','REJECTED')) DEFAULT 'NEW',
+  hedge_status TEXT CHECK(hedge_status IN ('NONE','PENDING','HEDGED','FAILED')) DEFAULT 'NONE',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+---
+
+# 3) Docker (opcional, roda local também no Replit)
+
+`docker-compose.yml`
+
+```yaml
+version: "3.8"
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: palpites
+    ports: ["5432:5432"]
+    volumes: [db_data:/var/lib/postgresql/data]
+  server:
+    build: ./server
+    env_file: .env
+    depends_on: [db]
+    ports: ["3001:3001"]
+  client:
+    build: ./client
+    depends_on: [server]
+    ports: ["5173:5173"]
+volumes:
+  db_data:
+```
+
+No Replit, você pode subir **sem Docker**: crie o DB com a extensão “Postgres” ou use Render/Supabase e setar `DATABASE_URL`.
+
+---
+
+# 4) Backend (Node/Express)
+
+## `server/config.js`
+
+```js
+import 'dotenv/config';
+
+export const POLY_GAMMA = process.env.POLY_GAMMA || 'https://gamma-api.polymarket.com';
+export const POLY_CLOB  = process.env.POLY_CLOB  || 'https://clob.polymarket.com';
+export const SLUG_WHITELIST = (process.env.SLUG_WHITELIST || '')
+  .split(',').map(s => s.trim()).filter(Boolean).slice(0, 10);
+
+export const UI_SPREAD = Number(process.env.UI_SPREAD || 0.02);
+export const SNAPSHOT_SEC = Number(process.env.SNAPSHOT_SEC || 60);
+
+export const PSP_WEBHOOK_SECRET = process.env.PSP_WEBHOOK_SECRET || 'dev';
+export const DATABASE_URL = process.env.DATABASE_URL;
+export const PORT = process.env.PORT || 3001;
+```
+
+## `server/db.js`
+
+```js
+import pg from 'pg';
+import { DATABASE_URL } from './config.js';
+const pool = new pg.Pool({ connectionString: DATABASE_URL });
+
+export default {
+  query: (text, params) => pool.query(text, params),
+
+  async migrate(){
+    const fs = await import('fs');
+    const sql = fs.readFileSync(new URL('./sql/001_schema.sql', import.meta.url), 'utf8');
+    await pool.query(sql);
+  },
+
+  async upsertMarket(m){
+    await this.query(`
+      INSERT INTO markets(slug,title,outcomes,volume,ends_at,last_update)
+      VALUES($1,$2,$3,$4,$5,now())
+      ON CONFLICT(slug) DO UPDATE
+      SET title=$2, outcomes=$3, volume=$4, ends_at=$5, last_update=now()
+    `, [m.slug, m.title, JSON.stringify(m.outcomes), m.volume ?? null, m.endsAt ? new Date(m.endsAt) : null]);
+  },
+
+  async insertHistory(slug, ts, outcomes){
+    await this.query(`INSERT INTO market_history(slug,ts,outcomes) VALUES ($1,$2,$3)`,
+      [slug, ts, JSON.stringify(outcomes)]);
+  },
+
+  async listMarkets(){
+    const {rows} = await this.query(`SELECT slug,title,outcomes,volume,ends_at,last_update FROM markets ORDER BY last_update DESC`);
+    return rows;
+  },
+
+  async listHistory(slug, range){
+    let window = '30 days';
+    if (range==='1D') window='1 day';
+    if (range==='1W') window='7 days';
+    if (range==='1M') window='30 days';
+    if (range==='ALL') window='100 years';
+    const {rows} = await this.query(`
+      SELECT ts, outcomes FROM market_history
+      WHERE slug=$1 AND ts >= now() - interval '${window}'
+      ORDER BY ts ASC
+    `,[slug]);
+    return rows;
+  }
+};
+```
+
+## `server/markets.js`
+
+```js
+import fetch from 'node-fetch';
+import { POLY_GAMMA, POLY_CLOB } from './config.js';
+
+export async function fetchMarketBySlug(slug){
+  const r = await fetch(`${POLY_GAMMA}/markets/slug/${encodeURIComponent(slug)}`);
+  if (!r.ok) throw new Error(`Gamma slug ${slug} fail ${r.status}`);
+  const m = await r.json();
+
+  // montar array outcomes
+  const outcomes = [];
+  for (const o of m.outcomes ?? []) {
+    const name = o.name || o.ticker || o.id;
+    let prob = o.probability ?? o.price ?? null;
+
+    // tentar midprice via book se necessário
+    if (prob == null) {
+      const token = o.token_id || o.tokenId || o.asset_id;
+      if (token) {
+        const br = await fetch(`${POLY_CLOB}/book?token_id=${token}`);
+        if (br.ok) {
+          const b = await br.json();
+          const bestBid = Number(b.best_bid ?? 0)/100;
+          const bestAsk = Number(b.best_ask ?? 0)/100;
+          if (bestBid>0 && bestAsk>0) {
+            const spread = bestAsk - bestBid;
+            prob = (spread <= 0.10) ? (bestBid + bestAsk)/2 : (o.last_price ?? null);
+          }
+        }
+      }
+    }
+
+    outcomes.push({ name, raw: Number(prob ?? 0) });
+  }
+
+  // normalizar para % somando todos os outcomes
+  const sum = outcomes.reduce((a,b)=>a + (b.raw||0), 0) || 1;
+  const normalized = outcomes.map(o => ({
+    name: o.name,
+    percent: +(((o.raw||0)/sum)*100).toFixed(1),
+    raw: o.raw || 0
+  }));
+
+  return {
+    slug,
+    title: m.question || m.title || slug,
+    outcomes: normalized,
+    volume: m.volume,
+    endsAt: m.end_date_iso || m.endDate,
+    raw: m
+  };
+}
+```
+
+## `server/quotes.js`
+
+```js
+import { UI_SPREAD } from './config.js';
+
+export function applySpread(polyPrice, side){
+  if (side === 'BUY')  return Math.min(0.99, Math.max(0.01, polyPrice * (1 - UI_SPREAD)));
+  if (side === 'SELL') return Math.min(0.99, Math.max(0.01, polyPrice * (1 + UI_SPREAD)));
+  return Math.min(0.99, Math.max(0.01, polyPrice));
+}
+```
+
+## `server/cron.js`
+
+```js
+import cron from 'node-cron';
+import db from './db.js';
+import { fetchMarketBySlug } from './markets.js';
+import { SLUG_WHITELIST } from './config.js';
+
+export function startSnapshots(){
+  cron.schedule('*/1 * * * *', async ()=>{
+    const ts = new Date();
+    for (const slug of SLUG_WHITELIST) {
+      try {
+        const m = await fetchMarketBySlug(slug);
+        await db.upsertMarket(m);
+        await db.insertHistory(m.slug, ts, m.outcomes);
+      } catch(e){
+        console.error('snapshot fail', slug, e.message);
+      }
+    }
+  });
+}
+```
+
+## `server/pix.js` (mock PSP + webhook)
+
+```js
+import express from 'express';
+import db from './db.js';
+import crypto from 'crypto';
+import { PSP_WEBHOOK_SECRET } from './config.js';
+
+const router = express.Router();
+
+function verifySig(req){
+  const sig = req.headers['x-psp-signature'] || '';
+  const payload = JSON.stringify(req.body||{});
+  const hmac = crypto.createHmac('sha256', PSP_WEBHOOK_SECRET);
+  hmac.update(payload);
+  const calc = 'sha256=' + hmac.digest('hex');
+  return sig === calc;
+}
+
+// deposit webhook (PSP chama após PIX liquidado)
+router.post('/pix/webhook', async (req,res)=>{
+  if (!verifySig(req)) return res.status(401).json({error:'bad signature'});
+
+  const { user_id, amount_cents, psp_ref } = req.body;
+  await db.query('BEGIN');
+  try {
+    await db.query(`
+      INSERT INTO pix_transactions(id,user_id,type,amount_cents,status,psp_ref)
+      VALUES (gen_random_uuid(),$1,'DEPOSIT',$2,'CONFIRMED',$3)
+    `,[user_id, amount_cents, psp_ref]);
+
+    await db.query(`
+      INSERT INTO balances(user_id,fiat_cents,brl3_units)
+      VALUES($1,$2,$2)
+      ON CONFLICT(user_id) DO UPDATE
+      SET fiat_cents = balances.fiat_cents + $2,
+          brl3_units = balances.brl3_units + $2,
+          updated_at = now()
+    `,[user_id, amount_cents]);
+
+    await db.query('COMMIT');
+    res.json({ok:true});
+  } catch(e){
+    await db.query('ROLLBACK');
+    res.status(500).json({error:e.message});
+  }
+});
+
+// saque (requisição do cliente; no MVP você simula o PSP)
+router.post('/pix/withdraw', async (req,res)=>{
+  const { user_id, amount_cents } = req.body;
+  await db.query('BEGIN');
+  try {
+    const bal = await db.query('SELECT fiat_cents, brl3_units FROM balances WHERE user_id=$1 FOR UPDATE',[user_id]);
+    const b = bal.rows[0] || {fiat_cents:0, brl3_units:0};
+    if (b.fiat_cents < amount_cents) throw new Error('Saldo insuficiente');
+
+    await db.query(`
+      UPDATE balances SET fiat_cents=fiat_cents-$2, brl3_units=brl3_units-$2, updated_at=now()
+      WHERE user_id=$1
+    `,[user_id, amount_cents]);
+
+    await db.query(`
+      INSERT INTO pix_transactions(id,user_id,type,amount_cents,status,psp_ref)
+      VALUES (gen_random_uuid(),$1,'WITHDRAW',$2,'CONFIRMED',concat('SIMUL-',now()::text))
+    `,[user_id, amount_cents]);
+
+    await db.query('COMMIT');
+    res.json({ok:true});
+  } catch(e){
+    await db.query('ROLLBACK');
+    res.status(400).json({error:e.message});
+  }
+});
+
+export default router;
+```
+
+## `server/routes/markets.js`
+
+```js
+import express from 'express';
+import db from '../db.js';
+const router = express.Router();
+
+router.get('/markets', async (_req,res)=>{
+  const rows = await db.listMarkets();
+  res.json(rows);
+});
+
+router.get('/market-history', async (req,res)=>{
+  const { slug, range='1M' } = req.query;
+  const rows = await db.listHistory(slug, range);
+  res.json(rows.map(r=>({ ts:r.ts, outcomes:r.outcomes })));
+});
+
+export default router;
+```
+
+## `server/routes/trading.js`
+
+```js
+import express from 'express';
+import { fetchMarketBySlug } from '../markets.js';
+import { applySpread } from '../quotes.js';
+import db from '../db.js';
+
+const router = express.Router();
+
+router.post('/quote', async (req,res)=>{
+  const { slug, outcome, side, sizeCents=0 } = req.body;
+  const m = await fetchMarketBySlug(slug);
+  const o = m.outcomes.find(x=>x.name===outcome);
+  if (!o) return res.status(400).json({error:'Outcome inválido'});
+
+  const price = applySpread(o.raw, side); // 0..1
+  res.json({ slug, outcome, side, price, price_display: +(price*100).toFixed(2), size_cents: sizeCents });
+});
+
+router.post('/order', async (req,res)=>{
+  const { user_id, slug, outcome, side, sizeCents, price } = req.body;
+  // validações mínimas
+  if (sizeCents<=0 || price<=0 || price>=1) return res.status(400).json({error:'Parâmetros inválidos'});
+
+  await db.query('BEGIN');
+  try {
+    // debita saldo (compra) ou credita (venda) — MVP: apenas BUY bloqueia saldo
+    if (side==='BUY') {
+      const bal = await db.query('SELECT fiat_cents FROM balances WHERE user_id=$1 FOR UPDATE',[user_id]);
+      const b = bal.rows[0] || {fiat_cents:0};
+      if (b.fiat_cents < sizeCents) throw new Error('Saldo insuficiente');
+      await db.query('UPDATE balances SET fiat_cents=fiat_cents-$2, updated_at=now() WHERE user_id=$1',[user_id,sizeCents]);
+    }
+
+    const {rows} = await db.query(`
+      INSERT INTO orders(id,user_id,slug,side,outcome,price_bp,size_cents,status)
+      VALUES (gen_random_uuid(),$1,$2,$3,$4,$5,$6,'FILLED')
+      RETURNING id
+    `,[user_id,slug,side,outcome,Math.round(price*10000),sizeCents]);
+
+    await db.query('COMMIT');
+    res.json({ok:true, order_id: rows[0].id});
+  } catch(e){
+    await db.query('ROLLBACK');
+    res.status(400).json({error:e.message});
+  }
+});
+
+export default router;
+```
+
+## `server/app.js`
+
+```js
+import express from 'express';
+import cors from 'cors';
+import db from './db.js';
+import { PORT, SLUG_WHITELIST } from './config.js';
+import marketsRoute from './routes/markets.js';
+import tradingRoute from './routes/trading.js';
+import pixRoute from './pix.js';
+import { startSnapshots } from './cron.js';
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.use('/api', marketsRoute);
+app.use('/api', tradingRoute);
+app.use('/api', pixRoute);
+
+app.get('/health', (_req,res)=>res.json({ok:true, slugs:SLUG_WHITELIST}));
+
+// start
+const boot = async () => {
+  await db.migrate();
+  startSnapshots();
+  app.listen(PORT, ()=>console.log(`server on :${PORT}`));
+};
+boot();
+```
+
+---
+
+# 5) Frontend (React + Tailwind + Chart.js)
+
+## `client/package.json`
+
+```json
+{
+  "name": "palpites-client",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.1",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.3",
+    "vite": "^5.0.8"
+  }
+}
+```
+
+## `client/tailwind.config.js`
+
+```js
+export default {
+  content: ["./index.html","./src/**/*.{js,jsx}"],
+  theme: {
+    extend: {
+      colors: {
+        brand: { 100:'#efe9ff',300:'#a789ff',500:'#6f3df4',700:'#352b50',900:'#1a102a' }
+      },
+      borderRadius: { '2xl':'1.25rem' }
+    }
+  },
+  plugins: []
+}
+```
+
+## `client/src/components/MarketCard.jsx`
+
+```jsx
+export default function MarketCard({ market, onOpen }){
+  return (
+    <div className="rounded-2xl bg-brand-900/60 border border-brand-700 p-4 hover:shadow-lg">
+      <h3 className="text-white text-lg mb-3">{market.title}</h3>
+      <div className="grid grid-cols-2 gap-2">
+        {market.outcomes.map(o=>(
+          <div key={o.name} className="rounded-xl bg-brand-700/60 p-3">
+            <div className="text-brand-100 text-sm">{o.name}</div>
+            <div className="text-white text-xl">{o.percent}%</div>
+          </div>
+        ))}
+      </div>
+      <button onClick={()=>onOpen(market.slug)}
+        className="mt-4 w-full py-2 rounded-xl text-white"
+        style={{background:'linear-gradient(135deg,#6f3df4,#a789ff)'}}>
+        Ver mercado
+      </button>
+    </div>
+  );
+}
+```
+
+## `client/src/components/MarketChart.jsx`
+
+```jsx
+import { Line } from 'react-chartjs-2';
+import { useEffect, useState } from 'react';
+import { Chart, LineElement, PointElement, LinearScale, CategoryScale, Legend, Tooltip } from 'chart.js';
+Chart.register(LineElement, PointElement, LinearScale, CategoryScale, Legend, Tooltip);
+
+export default function MarketChart({ slug, range='1M' }){
+  const [series,setSeries] = useState([]);
+  useEffect(()=>{
+    fetch(`/api/market-history?slug=${slug}&range=${range}`).then(r=>r.json()).then(setSeries);
+  },[slug,range]);
+
+  const labels = series.map(p=>new Date(p.ts).toLocaleString());
+  const names = series[0]?.outcomes.map(o=>o.name) ?? [];
+  const datasets = names.map((n,i)=>({
+    label:n,
+    data: series.map(p=>p.outcomes[i]?.percent ?? null),
+    tension:.25, pointRadius:0
+  }));
+
+  return (
+    <Line data={{labels,datasets}} options={{
+      responsive:true,
+      plugins:{legend:{position:'bottom'}},
+      scales:{ y:{ min:0, max:100, title:{display:true,text:'% chance'} } }
+    }}/>
+  );
+}
+```
+
+## `client/src/components/QuoteTicket.jsx`
+
+```jsx
+import { useEffect, useState } from 'react';
+
+export default function QuoteTicket({ slug, outcome }){
+  const [side,setSide] = useState('BUY');
+  const [amt,setAmt] = useState(100);
+  const [quote,setQuote] = useState(null);
+
+  useEffect(()=>{
+    fetch('/api/quote', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ slug, outcome, side, sizeCents: Math.round(amt*100) })
+    }).then(r=>r.json()).then(setQuote);
+  },[slug,outcome,side,amt]);
+
+  return (
+    <div className="rounded-2xl bg-brand-900/60 border border-brand-700 p-4">
+      <div className="flex gap-2 mb-2">
+        <button onClick={()=>setSide('BUY')}
+          className={`flex-1 py-2 rounded-xl ${side==='BUY'?'bg-brand-500 text-white':'bg-brand-700 text-brand-100'}`}>Comprar</button>
+        <button onClick={()=>setSide('SELL')}
+          className={`flex-1 py-2 rounded-xl ${side==='SELL'?'bg-brand-500 text-white':'bg-brand-700 text-brand-100'}`}>Vender</button>
+      </div>
+      <label className="text-brand-100 text-sm">Valor (R$)</label>
+      <input className="w-full rounded-lg bg-brand-700/60 text-white p-2 mb-3"
+        type="number" value={amt} onChange={e=>setAmt(+e.target.value)}/>
+      <div className="text-brand-100 text-sm">Preço com spread (2%)</div>
+      <div className="text-white text-2xl mb-3">{quote ? `${quote.price_display}%` : '...'}</div>
+      <button className="w-full py-2 rounded-xl text-white"
+        style={{background:'linear-gradient(135deg,#6f3df4,#a789ff)'}}>
+        Confirmar
+      </button>
+    </div>
+  );
+}
+```
+
+## `client/src/pages/Home.jsx`
+
+```jsx
+import { useEffect, useState } from 'react';
+import MarketCard from '../components/MarketCard.jsx';
+
+export default function Home({ navigate }){
+  const [markets,setMarkets] = useState([]);
+  useEffect(()=>{ fetch('/api/markets').then(r
+```

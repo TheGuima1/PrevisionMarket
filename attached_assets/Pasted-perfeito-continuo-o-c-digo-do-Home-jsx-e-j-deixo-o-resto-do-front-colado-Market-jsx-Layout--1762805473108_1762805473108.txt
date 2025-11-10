@@ -1,0 +1,385 @@
+perfeito — continuo o código do **Home.jsx** e já deixo o resto do front colado (Market.jsx, Layout.jsx, App.jsx, main/index, Tailwind). No fim, segue o **plano de integração BRL3 na Polygon** com passos operacionais (mint/burn/tesouraria) para deixar o token invisível ao cliente final.
+
+---
+
+## `client/src/pages/Home.jsx` (continuação)
+
+```jsx
+import { useEffect, useState } from 'react';
+import MarketCard from '../components/MarketCard.jsx';
+
+export default function Home({ navigate }){
+  const [markets,setMarkets] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [err,setErr] = useState(null);
+
+  useEffect(()=>{
+    const load = async ()=>{
+      try{
+        const r = await fetch('/api/markets');
+        const j = await r.json();
+        setMarkets(j);
+      }catch(e){
+        setErr('Falha ao carregar mercados');
+      }finally{
+        setLoading(false);
+      }
+    };
+    load();
+  },[]);
+
+  if (loading) return <div className="text-brand-100">Carregando...</div>;
+  if (err) return <div className="text-red-300">{err}</div>;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {markets.map(m => (
+        <MarketCard key={m.slug} market={m} onOpen={(slug)=>navigate(`/market/${slug}`)} />
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## `client/src/pages/Market.jsx`
+
+```jsx
+import { useEffect, useState } from 'react';
+import MarketChart from '../components/MarketChart.jsx';
+import QuoteTicket from '../components/QuoteTicket.jsx';
+
+export default function Market({ params }){
+  const slug = params.slug;
+  const [market,setMarket] = useState(null);
+  const [range,setRange] = useState('1M');
+  const [activeOutcome,setActiveOutcome] = useState(null);
+
+  useEffect(()=>{
+    // carrega market atual da lista para pegar outcomes e título
+    fetch('/api/markets')
+      .then(r=>r.json())
+      .then(list=>{
+        const m = list.find(x=>x.slug===slug);
+        setMarket(m || null);
+        setActiveOutcome(m?.outcomes?.[0]?.name || null);
+      });
+  },[slug]);
+
+  if (!market) return <div className="text-brand-100">Carregando mercado...</div>;
+
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="xl:col-span-2">
+        <h1 className="text-2xl text-white mb-2">{market.title}</h1>
+
+        <div className="flex gap-2 mb-3">
+          {['1D','1W','1M','ALL'].map(r => (
+            <button key={r} onClick={()=>setRange(r)}
+              className={`px-3 py-1 rounded-xl ${range===r?'bg-brand-500 text-white':'bg-brand-700 text-brand-100'}`}>
+              {r}
+            </button>
+          ))}
+        </div>
+
+        <div className="rounded-2xl bg-brand-900/60 border border-brand-700 p-3">
+          <MarketChart slug={slug} range={range}/>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+          {market.outcomes.map(o=>(
+            <button
+              key={o.name}
+              onClick={()=>setActiveOutcome(o.name)}
+              className={`rounded-xl p-3 text-left ${activeOutcome===o.name?'bg-brand-500 text-white':'bg-brand-700 text-brand-100'}`}>
+              <div className="text-sm">{o.name}</div>
+              <div className="text-xl">{o.percent}%</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="xl:col-span-1">
+        {activeOutcome && (
+          <QuoteTicket slug={slug} outcome={activeOutcome}/>
+        )}
+        <div className="mt-4 text-brand-100 text-sm">
+          Probabilidades espelhadas da Polymarket com <b>spread de 2%</b>.
+          Operações são liquidadas em R$ (PIX). BRL3 é apenas infraestrutura.
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## `client/src/components/Layout.jsx`
+
+```jsx
+export default function Layout({ children, navigate }){
+  return (
+    <div className="min-h-screen bg-brand-900 text-white">
+      <header className="px-6 py-4 flex items-center justify-between border-b border-brand-700">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl" style={{background:'linear-gradient(135deg,#6f3df4,#a789ff)'}}/>
+          <div className="font-semibold">Palpites.AI</div>
+        </div>
+        <nav className="flex gap-3">
+          <button onClick={()=>navigate('/')} className="text-brand-100 hover:text-white">Mercados</button>
+          <button className="text-brand-100 cursor-not-allowed opacity-50">Minha Conta</button>
+        </nav>
+      </header>
+      <main className="p-6 max-w-6xl mx-auto">
+        {children}
+      </main>
+    </div>
+  );
+}
+```
+
+---
+
+## `client/src/App.jsx`
+
+```jsx
+import { useState } from 'react';
+import Home from './pages/Home.jsx';
+import Market from './pages/Market.jsx';
+import Layout from './components/Layout.jsx';
+
+export default function App(){
+  const [route,setRoute] = useState(window.location.pathname);
+
+  const navigate = (to)=>{
+    window.history.pushState({}, '', to);
+    setRoute(to);
+  };
+
+  window.onpopstate = ()=>setRoute(window.location.pathname);
+
+  const match = route.match(/^\/market\/(.+)$/);
+  const page = match
+    ? <Market params={{slug: decodeURIComponent(match[1])}} />
+    : <Home navigate={navigate} />;
+
+  return <Layout navigate={navigate}>{page}</Layout>;
+}
+```
+
+---
+
+## `client/src/main.jsx`
+
+```jsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App/>
+  </React.StrictMode>
+);
+```
+
+---
+
+## `client/index.html`
+
+```html
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Palpites.AI</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+```
+
+---
+
+## `client/postcss.config.js`
+
+```js
+export default { plugins: { tailwindcss: {}, autoprefixer: {} } };
+```
+
+## `client/src/index.css`
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* fontes sugeridas via HTML/Head se quiser usar Google Fonts: Inter/Sora */
+```
+
+---
+
+# Plano de ação — Integração BRL3 (Polygon) sem impacto para o cliente
+
+Objetivo: **cliente só vê R$**. **BRL3** é a camada de **registro/lastro**. O usuário não precisa de carteira. O saque/depósito é sempre **PIX**.
+
+## A. Papéis e carteiras
+
+1. **Carteira Tesouraria BRL3 (Polygon)**
+
+   * Guarda o supply circulante (ex.: 88.000 BRL3 = R$ 88.000).
+   * Controlada pela empresa; multi-sig recomendado (Fireblocks ou Gnosis Safe).
+
+2. **Contrato BRL3 (ERC-20)**
+
+   * Baseado em OpenZeppelin **ERC20 + AccessControl + Pausable + Mint/Burn**.
+   * **Funções principais**:
+
+     * `mint(address to, uint256 amount)` — emitir ao receber equivalente em R$ (reserva).
+     * `burnFrom(address from, uint256 amount)` — queimar quando reduzir passivo (resgates).
+     * `pause()/unpause()` — emergência.
+   * **AccessControl**:
+
+     * `DEFAULT_ADMIN_ROLE` → multi-sig.
+     * `MINTER_ROLE`, `BURNER_ROLE` → tesouraria.
+
+3. **Ledger interno (Postgres)**
+
+   * `balances.fiat_cents` e `balances.brl3_units` (1 unit = 1 centavo).
+   * Sempre: **soma dos BRL3 dos usuários (ledger)** ≤ **saldo BRL3 em Tesouraria (on-chain)**.
+
+## B. Fluxos operacionais
+
+### 1) Depósito PIX → Crédito
+
+* PSP confirma depósito `X` reais.
+* Backend:
+
+  * Cria `pix_transactions (CONFIRMED)`.
+  * `balances.fiat_cents += X*100; balances.brl3_units += X*100`.
+* (Opcional) Se a tesouraria on-chain está menor que o passivo, **mint** `X` BRL3 para a carteira tesouraria.
+
+> **Cliente não vê BRL3** — só saldo em reais.
+
+### 2) Aposta/Negociação
+
+* O cliente “gasta” saldo em R$; internamente você marca posições.
+* Para hedge externo, você usa **USDC** ou **MATIC** para taxas e executa na Polymarket.
+* BRL3 **não precisa** ser transferido on-chain durante a aposta; continua como **colateral contábil**.
+
+### 3) Saque PIX
+
+* Cliente solicita saque `Y` reais.
+* Backend: debita `fiat_cents` e `brl3_units`.
+* PSP envia PIX ao cliente.
+* (Opcional) Se desejar reduzir o supply, **burn** `Y` BRL3 na tesouraria.
+
+### 4) Reconciliação diária (crítico)
+
+* Checar:
+
+  * `Σ brl3_units (ledger usuários) + brl3_unidade_em_ordens_bloqueadas` **≤** `saldo BRL3 da tesouraria (on-chain)`.
+  * Reserva em títulos públicos **≥** supply BRL3.
+* Gerar relatório e assinar (auditoria interna).
+
+## C. Contrato BRL3 (exemplo Solidity)
+
+> **Observação:** este é um esqueleto seguro. Ajuste nomes/decimais (use `decimals=2` para 1 unidade = 1 centavo, ou `18` com conversão no backend).
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+
+contract BRL3 is ERC20, AccessControl, Pausable {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+
+    constructor() ERC20("BRL3 Stablecoin", "BRL3") {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) { _pause(); }
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) { _unpause(); }
+
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
+        _mint(to, amount);
+    }
+
+    function burnFrom(address from, uint256 amount) external onlyRole(BURNER_ROLE) {
+        _burn(from, amount);
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount)
+        internal override {
+        require(!paused(), "BRL3 paused");
+        super._beforeTokenTransfer(from, to, amount);
+    }
+}
+```
+
+### Decimais e conversão
+
+* Se mantiver `18` decimais (padrão ERC20), no backend converta:
+
+  * **1 real** = `1 * 10**18` BRL3.
+* Se quiser simplicidade contábil, crie override de `decimals()` para `2`.
+
+```solidity
+function decimals() public pure override returns (uint8) { return 2; }
+```
+
+> Atenção: algumas DEXs e carteiras assumem 18; usar 2 é ok, mas menos comum. Como BRL3 ficará **restrito à tesouraria** (MVP), `2` decimais facilita reconciliação.
+
+## D. “Por que o cliente não é impactado?”
+
+* **Onboarding:** ele **não cria carteira**.
+* **Depósito/Saque:** **PIX** como sempre.
+* **Preço/exibição:** tudo em **R$**.
+* **BRL3** existe para garantir **lastro 1:1**, auditoria e trilha on-chain da tesouraria.
+* No futuro, **usuários avançados** podem “conectar carteira” para **sacar/receber BRL3** on-chain (opcional).
+
+## E. Integração Palpites.AI ↔ Emissor BRL3 (passo-a-passo)
+
+1. **Deploy do BRL3** na Polygon (contrato acima).
+2. Criar **Gnosis Safe / Fireblocks** como **Tesouraria**; conceder `MINTER_ROLE` e `BURNER_ROLE` a essa tesouraria.
+3. Backend Palpites.AI (este repo):
+
+   * `.env` com `DATABASE_URL`, `SLUG_WHITELIST`, `UI_SPREAD`, endpoints da Polymarket.
+   * Integração **PSP**: trocar `pix.js` (mock) pelo SDK/webhook do seu PSP.
+4. **Reconciliação job** (script simples no server) que:
+
+   * lê `balances` (ledger), soma `brl3_units`;
+   * consulta **saldo BRL3** on-chain da tesouraria (via Alchemy/Infura/Polygon RPC);
+   * se `passivo > on-chain`, dispara **mint** (assinatura pelo multi-sig).
+   * se `on-chain > passivo` significativamente (após saques), **burn**.
+5. **Políticas e limites:**
+
+   * limite por usuário/mercado;
+   * **circuit breaker** quando spread do book da Polymarket > $0,10 ou liquidez < threshold;
+   * logs/auditoria diária assinada.
+
+---
+
+## O que você ainda precisa plugar
+
+* **PSP de PIX**: substituir o mock em `server/pix.js` pelos webhooks/SDK reais (endpoints e assinatura HMAC do PSP).
+* **RPC Polygon** (opcional no MVP): endpoint do provedor (Alchemy/Infura) para consultar saldo BRL3 da tesouraria nos jobs de reconciliação.
+* **Lista de slugs**: editar `.env` `SLUG_WHITELIST=` com até 10 mercados.
+
+Pronto. Com isso você sobe o backend, o front, configura os slugs, e já tem:
+
+* Odds espelhadas (com normalização)
+* Spread de 2% aplicado nas cotações
+* Gráficos históricos (snapshot a cada 60s)
+* Fluxo de saldo R$ via PIX (custodial)
+* Plano fechado para usar **o mesmo emissor BRL3** na Polygon sem fricção para o cliente.
