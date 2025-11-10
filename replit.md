@@ -1,7 +1,13 @@
 # Palpites.AI - Plataforma de Prediction Markets com BRL3
 
 ## Overview
-Palpites.AI is a prediction market platform, inspired by Polymarket, designed for the Brazilian market. Users deposit via PIX, receive BRL3 tokens on-chain, and use them to trade on future events. The project aims to provide a robust, user-friendly, and localized platform for prediction markets, with ambitions for real-time features, advanced trading tools, and decentralized integration in future phases. The MVP is complete, featuring decimal odds, full PT-BR localization, and a production-ready deployment.
+Palpites.AI is a prediction market platform, inspired by Polymarket, designed for the Brazilian market. Users deposit via PIX, receive BRL3 tokens on-chain, and use them to trade on future events. The project aims to provide a robust, user-friendly, and localized platform for prediction markets, with ambitions for real-time features, advanced trading tools, and decentralized integration in future phases. The MVP is complete, featuring AMM-based pricing (CPMM with 2% spread), decimal odds, trade preview system, full PT-BR localization, and a production-ready deployment.
+
+## Recent Changes (November 2025)
+- **Trade Preview System**: Implemented `/api/orders/preview` endpoint for accurate share estimation before placing bets. Frontend shows real-time preview with debounce (500ms) and AbortController to prevent race conditions.
+- **Loading States**: Added skeleton loader during preview fetch and spinner on "Palpitar" button. Fixed critical bug where loading state would hang when input was cleared.
+- **PT-BR Error Messages**: Complete translation of all backend error messages to Portuguese via centralized `errorMessages` object (23 constants).
+- **Toast Testability**: Added `data-testid` attributes to Toast component for automated testing detection.
 
 ## User Preferences
 - **Communication Style**: I prefer clear and concise language. Avoid overly technical jargon unless necessary, and provide explanations when complex concepts are introduced.
@@ -20,19 +26,20 @@ The platform utilizes a vibrant Brazilian color scheme with a "verde-turquesa" p
 - **Backend**: Node.js, Express
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
 - **Authentication**: Passport.js with sessions
-- **Prediction Market Core (Simplified MVP)**:
-    - **Static Prices (No AMM)**: Prices are fixed at seed time and never change after trades. No dynamic price calculation or AMM. Trades execute at current static price (yesPrice/noPrice).
+- **Prediction Market Core (AMM-based MVP)**:
+    - **Dynamic AMM Pricing (CPMM)**: Constant Product Market Maker formula with 2% spread. Prices adjust dynamically based on trades, ensuring market equilibrium.
+    - **Trade Preview System**: Public `/api/orders/preview` endpoint performs dry-run AMM calculations, showing users exact share estimates before placing bets. Frontend integration with 500ms debounce and AbortController prevents race conditions.
     - **6 Fixed Markets**: Platform seeds exactly 6 markets mirroring Polymarket: Lula 2026 (45%), Shutdown (32%), Trump 2025 (99%), Bitcoin $100k (68%), IA Jobs (15%), Copa 2030 (8%).
-    - **Instant-Fill Market Orders**: All orders instantly filled at static price, marked as status="filled", and appear in recent trades feed.
+    - **Instant-Fill Market Orders**: All orders instantly filled via AMM, marked as status="filled", and appear in recent trades feed.
     - **5-Tab Navigation**: Trending tab shows top 4 markets by volume. Category tabs: Política (3 markets), Crypto (1), Tech (1), Sports (1).
-    - **Localization**: Full PT-BR localization for all UI elements and messages.
+    - **Localization**: Full PT-BR localization for all UI elements and backend error messages (23 errorMessages constants).
     - **Recent Activity Feed**: Real-time display of recent filled orders with auto-refresh (5s polling).
 
 ### Feature Specifications
 - **Authentication**: Email/password login/registration, unique username setup post-login, protected routes, and admin-specific routes.
 - **Public Landing Page**: Polymarket-style homepage with public access, 5-tab navigation (Trending + 4 categories), and real-time market odds display. Trending shows top 4 markets by volume.
 - **Market Detail Page**: Comprehensive market information, multiple odds formats, Reddit-style discussion system, and integration with the trading panel.
-- **Trading Panel**: Visual YES/NO toggle, quantity input, automatic calculation of cost, potential gain, and profit.
+- **Trading Panel**: Visual YES/NO toggle, quantity input, real-time preview of share estimates (debounced 500ms), skeleton loading states, automatic calculation of cost, potential gain, and profit using AMM dry-run.
 - **Portfolio**: Overview of total value, invested amount, P&L, active positions with per-position P&L, mock wallet (Pix and USDC), and transaction history.
 - **AI Assistant (Cachorro)**: Floating chat with GPT-5 (via Replit AI Integrations) offering context-aware responses, quick actions (explain odds, how it works, sentiment analysis, market recommendations).
 - **Admin Panel**: Functionality to create new markets and resolve closed markets (YES/NO/CANCELLED).
