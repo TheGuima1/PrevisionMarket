@@ -79,6 +79,9 @@ export const markets = pgTable("markets", {
   k: decimal("k", { precision: 24, scale: 4 }).notNull().default("0.0000"), // Constant product (x * y = k)
   seedLiquidity: decimal("seed_liquidity", { precision: 12, scale: 2 }).notNull().default("0.00"), // Admin-provided initial liquidity
   totalVolume: decimal("total_volume", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  // Origin: "local" (native AMM) or "polymarket" (mirrored from Polymarket)
+  origin: text("origin").notNull().default("local"),
+  polymarketSlug: text("polymarket_slug"), // If origin="polymarket", this is the Polymarket slug
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

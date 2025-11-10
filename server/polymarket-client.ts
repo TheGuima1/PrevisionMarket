@@ -57,17 +57,24 @@ export async function fetchMarketBySlug(slug: string): Promise<PolymarketMarket>
       outcomePricesStr = market.outcomePrices ? market.outcomePrices.split(',').map((s: string) => s.trim()) : [];
     }
     
-    // Build outcomes array
+    // Build outcomes array with 2% spread applied (sell to users 2% higher than Polymarket)
+    const SPREAD = Number(process.env.POLYMARKET_SPREAD || 0.02);
+    
     const outcomes: PolymarketOutcome[] = outcomeNames.map((name: string, index: number) => {
-      const rawPrice = Number(outcomePricesStr[index] || 0);
+      const rawPolymarketPrice = Number(outcomePricesStr[index] || 0);
+      
+      // Apply 2% spread: user pays MORE than Polymarket price
+      // Example: Polymarket Yes=14% → We sell at 14.28% (14 * 1.02)
+      const rawWithSpread = rawPolymarketPrice * (1 + SPREAD);
+      
       return {
         name: name.trim() || `Outcome ${index + 1}`,
-        raw: rawPrice,
-        percent: Number((rawPrice * 100).toFixed(1)),
+        raw: rawWithSpread,
+        percent: Number((rawWithSpread * 100).toFixed(1)),
       };
     });
     
-    // Normalize outcomes to sum to 100% (in case of rounding errors)
+    // Normalize outcomes to sum to 100% (in case of rounding errors from spread)
     const sum = outcomes.reduce((acc, o) => acc + o.raw, 0) || 1;
     const normalized = outcomes.map(o => ({
       name: o.name,

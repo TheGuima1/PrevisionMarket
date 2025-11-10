@@ -6,6 +6,7 @@
 import { db } from "./db";
 import { polymarketMarkets, polymarketSnapshots } from "@shared/schema";
 import { fetchMarketBySlug, getSlugs, isEnabled } from "./polymarket-client";
+import { syncPolymarketMarket } from "./polymarket-sync";
 import { eq } from "drizzle-orm";
 
 const SNAPSHOT_INTERVAL = Number(process.env.POLYMARKET_SNAPSHOT_INTERVAL || 60) * 1000; // Convert to ms
@@ -58,6 +59,9 @@ async function takeSnapshot() {
         timestamp,
         outcomes: outcomesJson,
       });
+      
+      // Sync to local markets table for AMM trading
+      await syncPolymarketMarket(market);
       
       console.log(`[Polymarket Snapshot] ✓ ${slug} - ${market.title}`);
     } catch (error) {
