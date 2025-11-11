@@ -110,11 +110,13 @@ export function seedMarket(seedAmount: number): AMMState {
 }
 
 /**
- * Execute trade using Constant Product Market Maker formula
- * Formula: (x + deposit) * (y - shares) = k
+ * Execute trade using Polymarket-style share issuance + CPMM price updates
  * 
- * When buying YES: deposit USDC to YES pool, withdraw YES shares
- * When buying NO: deposit USDC to NO pool, withdraw NO shares
+ * CRITICAL: Decoupled from traditional CPMM!
+ * 1. Calculate shares = stake / currentPrice (Polymarket style)
+ * 2. THEN update reserves using CPMM for dynamic pricing
+ * 
+ * This matches Polymarket: $1 at 4¢ = 25 shares (not CPMM's 0.04 shares)
  */
 function executeTradeWithCPMM(
   usdcIn: number,
@@ -123,33 +125,27 @@ function executeTradeWithCPMM(
   noReserve: number,
   k: number
 ): TradeResult {
-  // Use direct CPMM formula instead of incremental simulation
-  // Formula: (reserve_outcome + deposit) * (reserve_opposite - shares) = k
+  // Step 1: Calculate current price from reserves
+  const currentPrice = outcome === 'yes'
+    ? yesReserve / (yesReserve + noReserve) // YES price = yesReserve / total
+    : noReserve / (yesReserve + noReserve); // NO price = noReserve / total
   
+  // Step 2: Calculate shares using Polymarket formula (stake / price)
+  const sharesBought = usdcIn / currentPrice;
+  
+  // Step 3: Update reserves using CPMM to adjust future prices
+  // This maintains dynamic pricing while using Polymarket-style share issuance
   let newYesReserve: number;
   let newNoReserve: number;
-  let sharesBought: number;
   
   if (outcome === 'yes') {
-    // Buy YES: deposit to YES reserve, withdraw YES shares
-    // (yesReserve + usdcIn) * (yesReserve - sharesBought) = k
-    // But we need to maintain the invariant differently for binary markets
-    // Actually: buyer deposits USDC, pool returns YES shares
-    // New formula: (yesReserve - shares) * noReserve = k (NO side unchanged)
-    
-    // Solve for shares: noReserve * (yesReserve - shares) = k
-    // yesReserve - shares = k / noReserve
-    // shares = yesReserve - (k / noReserve)
-    
-    newNoReserve = noReserve + usdcIn; // USDC goes to NO side
-    newYesReserve = k / newNoReserve; // Maintain invariant
-    sharesBought = yesReserve - newYesReserve; // Shares removed from YES pool
-    
+    // Buy YES: deposit to opposite (NO) pool, adjust YES reserve
+    newNoReserve = noReserve + usdcIn;
+    newYesReserve = k / newNoReserve;
   } else {
-    // Buy NO: deposit to NO reserve, withdraw NO shares  
-    newYesReserve = yesReserve + usdcIn; // USDC goes to YES side
-    newNoReserve = k / newYesReserve; // Maintain invariant
-    sharesBought = noReserve - newNoReserve; // Shares removed from NO pool
+    // Buy NO: deposit to opposite (YES) pool, adjust NO reserve
+    newYesReserve = yesReserve + usdcIn;
+    newNoReserve = k / newYesReserve;
   }
   
   const avgPrice = usdcIn / sharesBought;
