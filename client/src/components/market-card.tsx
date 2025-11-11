@@ -82,33 +82,21 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <div className="text-xs font-medium text-primary">SIM</div>
-            <div className="space-y-0.5">
-              <div className="text-2xl font-bold tabular-nums text-primary" data-testid={`text-yes-probability-${market.id}`}>
-                {formatProbability(yesPrice)}
-              </div>
-              <div className="text-sm text-muted-foreground tabular-nums" data-testid={`text-yes-odds-${market.id}`}>
-                ({formatOdds(yesOdds)}×)
-              </div>
+        <div className="grid grid-cols-2 gap-3 text-center">
+          <div>
+            <div className="text-3xl font-bold tabular-nums text-primary" data-testid={`text-yes-probability-${market.id}`}>
+              {formatProbability(yesPrice)}
             </div>
           </div>
           
-          <div className="space-y-1">
-            <div className="text-xs font-medium text-destructive">NÃO</div>
-            <div className="space-y-0.5">
-              <div className="text-2xl font-bold tabular-nums text-destructive" data-testid={`text-no-probability-${market.id}`}>
-                {formatProbability(noPrice)}
-              </div>
-              <div className="text-sm text-muted-foreground tabular-nums" data-testid={`text-no-odds-${market.id}`}>
-                ({formatOdds(noOdds)}×)
-              </div>
+          <div>
+            <div className="text-3xl font-bold tabular-nums text-destructive" data-testid={`text-no-probability-${market.id}`}>
+              {formatProbability(noPrice)}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1" data-testid={`text-volume-${market.id}`}>
             <DollarSign className="h-3 w-3" />
             <span>{formatBRLCompact(volume)}</span>
@@ -119,14 +107,17 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2">
+        <div className="grid grid-cols-2 gap-2">
           <Link href={`/market/${market.id}?action=buy&type=yes`}>
             <Button 
               size="sm" 
               className="w-full bg-primary hover:bg-primary/90" 
               data-testid={`button-buy-yes-${market.id}`}
             >
-              Comprar SIM
+              <span className="flex items-center justify-center gap-1">
+                <span>SIM</span>
+                <span className="text-xs opacity-90" data-testid={`text-yes-odds-${market.id}`}>- {formatOdds(yesOdds)}</span>
+              </span>
             </Button>
           </Link>
           <Link href={`/market/${market.id}?action=buy&type=no`}>
@@ -136,7 +127,10 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
               className="w-full" 
               data-testid={`button-buy-no-${market.id}`}
             >
-              Comprar NÃO
+              <span className="flex items-center justify-center gap-1">
+                <span>NÃO</span>
+                <span className="text-xs opacity-90" data-testid={`text-no-odds-${market.id}`}>- {formatOdds(noOdds)}</span>
+              </span>
             </Button>
           </Link>
         </div>
