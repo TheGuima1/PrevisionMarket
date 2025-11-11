@@ -134,10 +134,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auto-seed on first boot (production)
   await autoSeedIfEmpty();
   
-  // Start Polymarket mirror worker (if enabled)
+  // Start Polymarket mirror worker if slugs are configured
   // Uses new freeze/unfreeze logic with YES/NO name-based mapping
-  if (process.env.ENABLE_POLYMARKET === 'true') {
-    await startMirror(); // Now async - validates slugs at boot
+  // Also triggers AMM sync to keep local markets in sync with Polymarket odds
+  try {
+    const slugs = (process.env.POLYMARKET_SLUGS || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    
+    if (slugs.length > 0) {
+      console.log(`[Server] Starting Polymarket mirror worker with ${slugs.length} slugs`);
+      await startMirror(); // Validates slugs, polls immediately, then every 60s
+    } else {
+      console.log('[Server] Polymarket mirror worker disabled (POLYMARKET_SLUGS not configured)');
+    }
+  } catch (err) {
+    console.error('[Server] Failed to start Polymarket mirror worker:', err);
   }
   
   // Legacy system (disabled by default)

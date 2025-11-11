@@ -121,23 +121,57 @@ export async function seed() {
 
   const createdMarkets = [];
   for (const market of demoMarkets) {
-    // Seed each market with R$ 100 symmetric liquidity
-    const ammState = AMM.seedMarket(SEED_LIQUIDITY);
+    let yesReserve: number, noReserve: number, k: number, seedLiquidity: number;
+    
+    // If market has Polymarket slug, fetch real odds and bootstrap reserves
+    if (market.polymarketSlug) {
+      try {
+        const { fetchPolyBySlug } = await import("./mirror/adapter");
+        const polyData = await fetchPolyBySlug(market.polymarketSlug);
+        
+        // Bootstrap AMM reserves from Polymarket probability
+        const safeProb = Math.max(0.01, Math.min(0.99, polyData.probYes));
+        const probNo = 1 - safeProb;
+        const LIQUIDITY_SCALE = 10000;
+        
+        yesReserve = Number((safeProb * LIQUIDITY_SCALE).toFixed(2));
+        noReserve = Number((probNo * LIQUIDITY_SCALE).toFixed(2));
+        k = Number((yesReserve * noReserve).toFixed(4));
+        seedLiquidity = Number((yesReserve + noReserve).toFixed(2));
+        
+        console.log(`✓ Seeding ${market.title} with Polymarket odds: ${(polyData.probYes * 100).toFixed(1)}% YES`);
+      } catch (err) {
+        console.error(`⚠ Failed to fetch Polymarket odds for ${market.title}:`, err instanceof Error ? err.message : err);
+        console.log(`  Falling back to 50/50 seed`);
+        const ammState = AMM.seedMarket(SEED_LIQUIDITY);
+        yesReserve = ammState.yesReserve;
+        noReserve = ammState.noReserve;
+        k = ammState.k;
+        seedLiquidity = SEED_LIQUIDITY;
+      }
+    } else {
+      // No Polymarket slug: use symmetric 50/50 liquidity
+      const ammState = AMM.seedMarket(SEED_LIQUIDITY);
+      yesReserve = ammState.yesReserve;
+      noReserve = ammState.noReserve;
+      k = ammState.k;
+      seedLiquidity = SEED_LIQUIDITY;
+      console.log(`Seeding ${market.title} with 50/50 reserves`);
+    }
     
     const [created] = await db.insert(markets).values({
       ...market,
-      yesReserve: ammState.yesReserve.toFixed(2),
-      noReserve: ammState.noReserve.toFixed(2),
-      k: ammState.k.toFixed(4),
-      seedLiquidity: SEED_LIQUIDITY.toFixed(2),
+      yesReserve: yesReserve.toFixed(2),
+      noReserve: noReserve.toFixed(2),
+      k: k.toFixed(4),
+      seedLiquidity: seedLiquidity.toFixed(2),
     }).returning();
     
     createdMarkets.push(created);
-    console.log(`Created market with R$ ${SEED_LIQUIDITY} seed:`, created.title);
   }
 
-  console.log("\nAll markets seeded with admin liquidity (50/50 reserves)");
-  console.log("Traders can now execute trades immediately with 2% spread");
+  console.log("\n✓ All markets seeded with correct odds from Polymarket");
+  console.log("  Traders can now execute trades immediately with 2% spread");
 
   console.log("\nSeed completed successfully!");
   console.log("\nLogin credentials:");
