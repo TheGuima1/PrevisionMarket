@@ -167,6 +167,17 @@ export const polymarketSnapshots = pgTable("polymarket_snapshots", {
   outcomes: text("outcomes").notNull(), // JSON string: [{name, percent, raw}]
 });
 
+// AMM Snapshots table (historical data for AMM market charts)
+export const ammSnapshots = pgTable("amm_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  marketId: varchar("market_id").notNull().references(() => markets.id),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  yesReserve: decimal("yes_reserve", { precision: 12, scale: 2 }).notNull(),
+  noReserve: decimal("no_reserve", { precision: 12, scale: 2 }).notNull(),
+  probYes: decimal("prob_yes", { precision: 5, scale: 4 }).notNull(), // Probability 0.0000-1.0000
+  probNo: decimal("prob_no", { precision: 5, scale: 4 }).notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   positions: many(positions),
@@ -179,6 +190,14 @@ export const marketsRelations = relations(markets, ({ many }) => ({
   positions: many(positions),
   orders: many(orders),
   comments: many(comments),
+  ammSnapshots: many(ammSnapshots),
+}));
+
+export const ammSnapshotsRelations = relations(ammSnapshots, ({ one }) => ({
+  market: one(markets, {
+    fields: [ammSnapshots.marketId],
+    references: [markets.id],
+  }),
 }));
 
 export const positionsRelations = relations(positions, ({ one }) => ({

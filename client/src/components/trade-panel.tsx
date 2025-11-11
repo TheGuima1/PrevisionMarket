@@ -20,12 +20,13 @@ interface TradePanelProps {
 }
 
 interface PreviewResult {
-  estimatedShares: number;
-  avgPrice: number;
+  displayProbYes: number;      // Polymarket probability % (e.g., 13.5)
+  displayProbNo: number;
+  displayOddsYes: number;       // Decimal odds (e.g., 7.41)
+  displayOddsNo: number;
+  estimatedShares: number;      // Net shares after 2% platform fee
   totalCost: number;
-  spreadFee: number;
-  newYesOdds: number;
-  newNoOdds: number;
+  platformFee: number;          // Silent 2% fee (not shown to user)
   potentialPayout: number;
   potentialProfit: number;
 }
@@ -204,16 +205,8 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               <span className="font-semibold tabular-nums" data-testid="text-total-cost-yes">{formatBRL3(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground flex items-center gap-1">
+              <span className="text-muted-foreground">
                 Shares que você receberá
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">Cálculo exato baseado no AMM (inclui spread de 2%)</p>
-                  </TooltipContent>
-                </Tooltip>
               </span>
               {isLoadingPreview && stakeBRL > 0 ? (
                 <Skeleton className="h-5 w-20" />
@@ -307,16 +300,8 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               <span className="font-semibold tabular-nums" data-testid="text-total-cost-no">{formatBRL3(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground flex items-center gap-1">
+              <span className="text-muted-foreground">
                 Shares que você receberá
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">Cálculo exato baseado no AMM (inclui spread de 2%)</p>
-                  </TooltipContent>
-                </Tooltip>
               </span>
               {isLoadingPreview && stakeBRL > 0 ? (
                 <Skeleton className="h-5 w-20" />

@@ -4,9 +4,10 @@
  */
 
 import { db } from "./db";
-import { markets } from "@shared/schema";
+import { markets, ammSnapshots } from "@shared/schema";
 import { eq, and, isNotNull } from "drizzle-orm";
 import { fetchPolyBySlug } from "./mirror/adapter";
+import { createAMMSnapshot } from "./amm-pricing";
 
 /**
  * Bootstrap AMM reserves from Polymarket odds
@@ -95,6 +96,16 @@ export async function syncAMMMarketsWithPolymarket(
             seedLiquidity: amm.seedLiquidity.toString(),
           })
           .where(eq(markets.id, market.id));
+        
+        // Capture snapshot for historical chart
+        const snapshot = createAMMSnapshot(market.id, amm.yesReserve, amm.noReserve);
+        await db.insert(ammSnapshots).values({
+          marketId: snapshot.marketId,
+          yesReserve: snapshot.yesReserve.toString(),
+          noReserve: snapshot.noReserve.toString(),
+          probYes: snapshot.probYes.toString(),
+          probNo: snapshot.probNo.toString(),
+        });
         
         successCount++;
         console.log(`[AMM Sync] ✓ ${market.title} (${market.polymarketSlug}): ${(polyData.probYes * 100).toFixed(1)}% YES`);

@@ -176,6 +176,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/markets/:id/history - Get AMM market historical odds (PUBLIC)
+  app.get("/api/markets/:id/history", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const range = (req.query.range as string) || '1M';
+      
+      // Calculate time range
+      const intervals: Record<string, number> = {
+        '1D': 1,
+        '1W': 7,
+        '1M': 30,
+        'ALL': 365,
+      };
+      const days = intervals[range] || 30;
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      
+      const { ammSnapshots: ammSnapshotsTable } = await import("@shared/schema");
+      const snapshots = await db.query.ammSnapshots.findMany({
+        where: and(
+          eq(ammSnapshotsTable.marketId, id),
+          gte(ammSnapshotsTable.timestamp, since)
+        ),
+        orderBy: (snapshots, { asc }) => [asc(snapshots.timestamp)],
+      });
+      
+      // Transform to match Polymarket history format for frontend compatibility
+      const parsed = snapshots.map(s => ({
+        timestamp: s.timestamp,
+        outcomes: [
+          {
+            name: 'SIM',
+            percent: parseFloat((parseFloat(s.probYes) * 100).toFixed(2)),
+            raw: parseFloat(s.probYes),
+          },
+          {
+            name: 'NÃO',
+            percent: parseFloat((parseFloat(s.probNo) * 100).toFixed(2)),
+            raw: parseFloat(s.probNo),
+          },
+        ],
+      }));
+      
+      res.json(parsed);
+    } catch (error) {
+      console.error("Failed to fetch AMM history:", error);
+      res.status(500).send("Falha ao buscar histórico do mercado.");
+    }
+  });
+
   // GET /api/recent-trades - Get recent trades across all markets (PUBLIC)
   app.get("/api/recent-trades", async (_req, res) => {
     try {
@@ -410,37 +459,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const market = await storage.getMarket(validated.marketId);
       if (!market) {
-        return res.status(404).send({ error: "Mercado não encontrado" });
+        return res.status(404).json({ error: "Mercado não encontrado" });
       }
       
       if (market.status !== "active") {
-        return res.status(400).send({ error: "Mercado não está ativo" });
+        return res.status(400).json({ error: "Mercado não está ativo" });
       }
 
-      const usdcAmount = validated.usdcAmount;
+      const stake = validated.usdcAmount;
 
-      // Simulate trade through AMM with 2% spread (dry-run, no DB changes)
-      const ammState: AMM.AMMState = {
+      // Use unified AMM pricing service (shows Polymarket odds, charges 2% silently)
+      const { calculateAMMPricing } = await import("./amm-pricing");
+      
+      const pricing = calculateAMMPricing({
         yesReserve: parseFloat(market.yesReserve),
         noReserve: parseFloat(market.noReserve),
-        k: parseFloat(market.k),
-      };
-
-      const tradeResult = AMM.buyShares(usdcAmount, validated.type, ammState, 200);
-
-      // Calculate new odds after this trade
-      const newYesPrice = tradeResult.newNoReserve / (tradeResult.newYesReserve + tradeResult.newNoReserve);
-      const newNoPrice = tradeResult.newYesReserve / (tradeResult.newYesReserve + tradeResult.newNoReserve);
+        stake,
+        outcome: validated.type,
+        platformFeeBps: 200, // 2% platform fee
+      });
 
       res.json({
-        estimatedShares: parseFloat(tradeResult.sharesBought.toFixed(4)),
-        avgPrice: parseFloat(tradeResult.avgPrice.toFixed(4)),
-        totalCost: usdcAmount,
-        spreadFee: parseFloat((tradeResult.spreadFee || 0).toFixed(4)),
-        newYesOdds: parseFloat((newYesPrice * 100).toFixed(2)),
-        newNoOdds: parseFloat((newNoPrice * 100).toFixed(2)),
-        potentialPayout: parseFloat(tradeResult.sharesBought.toFixed(2)), // If wins, each share = 1 BRL3
-        potentialProfit: parseFloat((tradeResult.sharesBought - usdcAmount).toFixed(2)),
+        // What user sees (Polymarket odds without spread)
+        displayProbYes: parseFloat((pricing.displayProbYes * 100).toFixed(2)),
+        displayProbNo: parseFloat((pricing.displayProbNo * 100).toFixed(2)),
+        displayOddsYes: parseFloat(pricing.displayOddsYes.toFixed(2)),
+        displayOddsNo: parseFloat(pricing.displayOddsNo.toFixed(2)),
+        
+        // Trade execution details
+        estimatedShares: parseFloat(pricing.netShares.toFixed(4)),
+        totalCost: stake,
+        platformFee: parseFloat(pricing.platformFee.toFixed(4)), // Silent 2% fee
+        potentialPayout: parseFloat(pricing.potentialPayout.toFixed(2)),
+        potentialProfit: parseFloat(pricing.potentialProfit.toFixed(2)),
       });
     } catch (error: any) {
       console.error("Preview error:", error);
