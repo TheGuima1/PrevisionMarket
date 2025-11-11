@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, orders, markets, polymarketMarkets, polymarketSnapshots } from "@shared/schema";
+import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots } from "@shared/schema";
 import OpenAI from "openai";
 import { z } from "zod";
 import { db } from "./db";
@@ -80,7 +80,7 @@ function ensureUsername(req: Request, res: Response, next: Function) {
   next();
 }
 
-// Auto-seed database if empty (production safety)
+// Auto-seed database if empty OR reconcile market set to match configured slugs
 async function autoSeedIfEmpty() {
   try {
     const userCountResult = await db.select({ count: sql<number>`count(*)` }).from(users);
@@ -89,18 +89,42 @@ async function autoSeedIfEmpty() {
     const numUsers = Number(userCountResult[0]?.count ?? 0);
     const numMarkets = Number(marketCountResult[0]?.count ?? 0);
     
-    // Import metadata to know expected market count
-    const { PALPITES_MARKETS } = await import("./polymarket-metadata");
-    const expectedMarkets = PALPITES_MARKETS.length;
+    // Import metadata to know expected market set
+    const { getConfiguredSlugs } = await import("./polymarket-metadata");
+    const expectedSlugs = getConfiguredSlugs();
     
-    // Run seed if DB is completely empty OR if market count doesn't match expected
-    if (numUsers === 0 || numMarkets === 0) {
+    // Check if we need to reconcile markets
+    let needsReconciliation = false;
+    if (numMarkets !== expectedSlugs.length) {
+      needsReconciliation = true;
+    } else {
+      // Verify slugs match
+      const existingMarkets = await db.select().from(markets);
+      const existingSlugs = existingMarkets.map(m => m.polymarketSlug).filter(Boolean);
+      const slugsMatch = expectedSlugs.every(s => existingSlugs.includes(s)) && 
+                         existingSlugs.length === expectedSlugs.length;
+      if (!slugsMatch) {
+        needsReconciliation = true;
+      }
+    }
+    
+    // Run seed if DB is empty OR market set needs reconciliation
+    if (numUsers === 0 || numMarkets === 0 || needsReconciliation) {
+      if (needsReconciliation && numMarkets > 0) {
+        console.log(`🔄 Market reconciliation needed (${numMarkets} markets, expected ${expectedSlugs.length}). Cleaning legacy markets...`);
+        // Delete all markets and related data
+        await db.delete(ammSnapshots);
+        await db.delete(positions);
+        await db.delete(orders);
+        await db.delete(markets);
+      }
+      
       console.log(`🌱 Database needs seeding (${numUsers} users, ${numMarkets} markets). Running auto-seed...`);
       const { seed } = await import("./seed");
       await seed();
       console.log("✅ Auto-seed completed successfully!");
     } else {
-      console.log(`✓ Database already has ${numUsers} users and ${numMarkets} markets (expected: ${expectedMarkets}), skipping seed`);
+      console.log(`✓ Database already has ${numUsers} users and ${numMarkets} markets matching configured slugs`);
     }
   } catch (error) {
     console.error("❌ Auto-seed failed:", error);
