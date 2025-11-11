@@ -1,7 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Users, DollarSign } from "lucide-react";
 import { Link } from "wouter";
 import type { Market } from "@shared/schema";
@@ -83,34 +82,30 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="space-y-1 cursor-help">
-                <div className="text-xs text-muted-foreground">SIM</div>
-                <div className="text-2xl font-bold tabular-nums text-primary" data-testid={`text-yes-odds-${market.id}`}>
-                  {formatOdds(yesOdds)}
-                </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-primary">SIM</div>
+            <div className="space-y-0.5">
+              <div className="text-2xl font-bold tabular-nums text-primary" data-testid={`text-yes-probability-${market.id}`}>
+                {formatProbability(yesPrice)}
               </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Probabilidade impl\u00edcita: {formatProbability(yesPrice)}</p>
-            </TooltipContent>
-          </Tooltip>
+              <div className="text-sm text-muted-foreground tabular-nums" data-testid={`text-yes-odds-${market.id}`}>
+                ({formatOdds(yesOdds)}×)
+              </div>
+            </div>
+          </div>
           
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="space-y-1 cursor-help">
-                <div className="text-xs text-muted-foreground">NÃO</div>
-                <div className="text-2xl font-bold tabular-nums text-destructive" data-testid={`text-no-odds-${market.id}`}>
-                  {formatOdds(noOdds)}
-                </div>
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-destructive">NÃO</div>
+            <div className="space-y-0.5">
+              <div className="text-2xl font-bold tabular-nums text-destructive" data-testid={`text-no-probability-${market.id}`}>
+                {formatProbability(noPrice)}
               </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Probabilidade impl\u00edcita: {formatProbability(noPrice)}</p>
-            </TooltipContent>
-          </Tooltip>
+              <div className="text-sm text-muted-foreground tabular-nums" data-testid={`text-no-odds-${market.id}`}>
+                ({formatOdds(noOdds)}×)
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
