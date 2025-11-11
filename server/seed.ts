@@ -58,120 +58,58 @@ export async function seed() {
     console.log("Demo user already exists");
   }
 
-  // 6 fixed markets - AMM system with admin-seeded liquidity
-  // Each market gets R$ 100 initial seed (50 YES + 50 NO reserves)
-  const SEED_LIQUIDITY = 100; // R$ 100 per market
+  // PALPITES.AI MARKETS: Exatamente 4 mercados espelhando Polymarket
+  // Número de mercados = número de slugs (sempre 1:1)
+  // Metadados definidos em polymarket-metadata.ts (single source of truth)
+  const { PALPITES_MARKETS } = await import("./polymarket-metadata");
   
-  const demoMarkets = [
-    {
-      title: "Lula será reeleito presidente em 2026?",
-      description: "Mercado será resolvido como SIM se Luiz Inácio Lula da Silva vencer as eleições presidenciais de 2026 no Brasil. NÃO se outro candidato vencer.",
-      category: "politics" as const,
-      tags: ["Lula", "Brasil", "Eleições"],
-      resolutionSource: "TSE - Tribunal Superior Eleitoral",
-      endDate: new Date("2026-10-30T23:59:59Z"),
-      polymarketSlug: "will-any-presidential-candidate-win-outright-in-the-first-round-of-the-brazil-election", // Espelha odds do Polymarket
-    },
-    {
-      title: "Recessão nos EUA em 2025?",
-      description: "Mercado será resolvido como SIM se os EUA entrarem em recessão técnica (2 trimestres consecutivos de crescimento negativo do PIB) em 2025. NÃO caso contrário.",
-      category: "politics" as const,
-      tags: ["USA", "Recession", "Economy"],
-      resolutionSource: "US Bureau of Economic Analysis",
-      endDate: new Date("2025-12-31T23:59:59Z"),
-      polymarketSlug: "us-recession-in-2025", // Espelha odds do Polymarket
-    },
-    {
-      title: "Fed aumentará juros em 2025?",
-      description: "Mercado será resolvido como SIM se o Federal Reserve aumentar a taxa de juros em qualquer momento durante 2025. NÃO caso contrário.",
-      category: "politics" as const,
-      tags: ["Fed", "USA", "Juros"],
-      resolutionSource: "Federal Reserve Official Announcements",
-      endDate: new Date("2025-12-31T23:59:59Z"),
-      polymarketSlug: "fed-rate-hike-in-2025", // Espelha odds do Polymarket
-    },
-    {
-      title: "Fed fará corte emergencial em 2025?",
-      description: "Mercado será resolvido como SIM se o Federal Reserve realizar um corte de emergência na taxa de juros fora das reuniões programadas em 2025. NÃO caso contrário.",
-      category: "crypto" as const,
-      tags: ["Fed", "Emergency", "Rate Cut"],
-      resolutionSource: "Federal Reserve",
-      endDate: new Date("2025-12-31T23:59:59Z"),
-      polymarketSlug: "fed-emergency-rate-cut-in-2025", // Espelha odds do Polymarket
-    },
-    {
-      title: "IA substituirá 50% dos empregos até 2030?",
-      description: "Mercado será resolvido como SIM se estudos demonstrarem que IA substituiu pelo menos 50% dos empregos globais até 2030. NÃO caso contrário.",
-      category: "tech" as const,
-      tags: ["AI", "Jobs", "Technology"],
-      resolutionSource: "World Economic Forum / ILO reports",
-      endDate: new Date("2030-12-31T23:59:59Z"),
-      // Sem polymarketSlug: mantém odds seeded 50/50
-    },
-    {
-      title: "Brasil sediará Copa do Mundo 2030?",
-      description: "Mercado será resolvido como SIM se Brasil for anunciado como país-sede (ou co-sede) da Copa do Mundo FIFA 2030. NÃO caso contrário.",
-      category: "sports" as const,
-      tags: ["Copa", "Brasil", "FIFA"],
-      resolutionSource: "FIFA Official Announcement",
-      endDate: new Date("2025-06-30T23:59:59Z"),
-      // Sem polymarketSlug: mantém odds seeded 50/50
-    },
-  ];
+  console.log(`\n🎯 Palpites.AI: Seeding ${PALPITES_MARKETS.length} markets from Polymarket\n`);
 
   const createdMarkets = [];
-  for (const market of demoMarkets) {
-    let yesReserve: number, noReserve: number, k: number, seedLiquidity: number;
-    
-    // If market has Polymarket slug, fetch real odds and bootstrap reserves
-    if (market.polymarketSlug) {
-      try {
-        const { fetchPolyBySlug } = await import("./mirror/adapter");
-        const polyData = await fetchPolyBySlug(market.polymarketSlug);
-        
-        // Bootstrap AMM reserves from Polymarket probability
-        const safeProb = Math.max(0.01, Math.min(0.99, polyData.probYes));
-        const probNo = 1 - safeProb;
-        const LIQUIDITY_SCALE = 10000;
-        
-        yesReserve = Number((safeProb * LIQUIDITY_SCALE).toFixed(2));
-        noReserve = Number((probNo * LIQUIDITY_SCALE).toFixed(2));
-        k = Number((yesReserve * noReserve).toFixed(4));
-        seedLiquidity = Number((yesReserve + noReserve).toFixed(2));
-        
-        console.log(`✓ Seeding ${market.title} with Polymarket odds: ${(polyData.probYes * 100).toFixed(1)}% YES`);
-      } catch (err) {
-        console.error(`⚠ Failed to fetch Polymarket odds for ${market.title}:`, err instanceof Error ? err.message : err);
-        console.log(`  Falling back to 50/50 seed`);
-        const ammState = AMM.seedMarket(SEED_LIQUIDITY);
-        yesReserve = ammState.yesReserve;
-        noReserve = ammState.noReserve;
-        k = ammState.k;
-        seedLiquidity = SEED_LIQUIDITY;
-      }
-    } else {
-      // No Polymarket slug: use symmetric 50/50 liquidity
-      const ammState = AMM.seedMarket(SEED_LIQUIDITY);
-      yesReserve = ammState.yesReserve;
-      noReserve = ammState.noReserve;
-      k = ammState.k;
-      seedLiquidity = SEED_LIQUIDITY;
-      console.log(`Seeding ${market.title} with 50/50 reserves`);
+  const { fetchPolyBySlug } = await import("./mirror/adapter");
+  
+  for (const marketMeta of PALPITES_MARKETS) {
+    try {
+      // Fetch real Polymarket odds for this market
+      const polyData = await fetchPolyBySlug(marketMeta.polymarketSlug);
+      
+      // Bootstrap AMM reserves from Polymarket probability
+      const safeProb = Math.max(0.01, Math.min(0.99, polyData.probYes));
+      const probNo = 1 - safeProb;
+      const LIQUIDITY_SCALE = 10000;
+      
+      const yesReserve = Number((safeProb * LIQUIDITY_SCALE).toFixed(2));
+      const noReserve = Number((probNo * LIQUIDITY_SCALE).toFixed(2));
+      const k = Number((yesReserve * noReserve).toFixed(4));
+      const seedLiquidity = Number((yesReserve + noReserve).toFixed(2));
+      
+      const [created] = await db.insert(markets).values({
+        title: marketMeta.title,
+        description: marketMeta.description,
+        category: marketMeta.category,
+        tags: marketMeta.tags,
+        resolutionSource: marketMeta.resolutionSource,
+        endDate: marketMeta.endDate,
+        polymarketSlug: marketMeta.polymarketSlug,
+        yesReserve: yesReserve.toFixed(2),
+        noReserve: noReserve.toFixed(2),
+        k: k.toFixed(4),
+        seedLiquidity: seedLiquidity.toFixed(2),
+      }).returning();
+      
+      createdMarkets.push(created);
+      console.log(`✅ ${marketMeta.title}`);
+      console.log(`   Polymarket odds: ${(polyData.probYes * 100).toFixed(1)}% SIM / ${(probNo * 100).toFixed(1)}% NÃO\n`);
+    } catch (err) {
+      console.error(`❌ Failed to seed ${marketMeta.title}:`, err instanceof Error ? err.message : err);
+      console.error(`   Slug: ${marketMeta.polymarketSlug}\n`);
+      throw err; // Stop seeding if any market fails
     }
-    
-    const [created] = await db.insert(markets).values({
-      ...market,
-      yesReserve: yesReserve.toFixed(2),
-      noReserve: noReserve.toFixed(2),
-      k: k.toFixed(4),
-      seedLiquidity: seedLiquidity.toFixed(2),
-    }).returning();
-    
-    createdMarkets.push(created);
   }
 
-  console.log("\n✓ All markets seeded with correct odds from Polymarket");
-  console.log("  Traders can now execute trades immediately with 2% spread");
+  console.log(`\n✅ All ${PALPITES_MARKETS.length} Palpites.AI markets seeded with live Polymarket odds`);
+  console.log("   Mirror worker will keep odds synced every 60 seconds");
+  console.log("   Users see pure Polymarket odds (2% spread applied on execution only)");
 
   console.log("\nSeed completed successfully!");
   console.log("\nLogin credentials:");

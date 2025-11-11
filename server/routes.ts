@@ -134,23 +134,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auto-seed on first boot (production)
   await autoSeedIfEmpty();
   
-  // Start Polymarket mirror worker if slugs are configured
-  // Uses new freeze/unfreeze logic with YES/NO name-based mapping
-  // Also triggers AMM sync to keep local markets in sync with Polymarket odds
+  // Start Polymarket mirror worker to sync odds for Palpites.AI markets
   try {
-    const slugs = (process.env.POLYMARKET_SLUGS || '')
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
+    const { getConfiguredSlugs } = await import("./polymarket-metadata");
+    const slugs = getConfiguredSlugs();
     
     if (slugs.length > 0) {
-      console.log(`[Server] Starting Polymarket mirror worker with ${slugs.length} slugs`);
-      await startMirror(); // Validates slugs, polls immediately, then every 60s
+      console.log(`[Server] Starting mirror worker for ${slugs.length} Palpites.AI markets`);
+      await startMirror(); // Validates slugs and starts 60s sync loop
     } else {
-      console.log('[Server] Polymarket mirror worker disabled (POLYMARKET_SLUGS not configured)');
+      console.log('[Server] No Palpites.AI markets configured');
     }
   } catch (err) {
-    console.error('[Server] Failed to start Polymarket mirror worker:', err);
+    console.error('[Server] Failed to start mirror worker:', err);
   }
   
   // Legacy system (disabled by default)
