@@ -4,6 +4,7 @@
 Palpites.AI is a prediction market platform, inspired by Polymarket, designed for the Brazilian market. Users deposit via PIX, receive BRL3 tokens on-chain, and use them to trade on future events. The project aims to provide a robust, user-friendly, and localized platform for prediction markets, with ambitions for real-time features, advanced trading tools, and decentralized integration in future phases. The MVP is complete, featuring AMM-based pricing (CPMM with 2% spread), decimal odds, trade preview system, full PT-BR localization, and a production-ready deployment.
 
 ## Recent Changes (November 2025)
+- **Unified 4-Market Architecture with Auto-Reconciliation (Nov 11)**: Completed major refactor from dual-system (6 AMM + 4 Polymarket) to unified model showing exactly 4 Palpites.AI markets mirroring Polymarket odds. Created `server/polymarket-metadata.ts` as single source of truth mapping slugs to PT-BR metadata (titles, categories, descriptions). Implemented auto-reconciliation in `autoSeedIfEmpty()`: validates market count and slugs on boot, wipes legacy markets if mismatch detected, and reseeds with correct 4 markets. Simplified HomePage to show only "Mercados Disponíveis" section with 4 market cards—zero Polymarket branding visible to users. System guarantees N markets = N configured slugs (currently 4). E2E tests confirm: exactly 4 markets displayed with correct Polymarket odds (Lula 14%, Recessão 4.3%, Fed juros 0.9%, Fed emergencial 3.3%). Production-ready with architect approval. Migration-safe: existing deployments auto-clean on next boot.
 - **Fixed AMM Seed with Real Polymarket Odds (Nov 11)**: Fixed critical production bug where AMM markets displayed 50/50 odds instead of Polymarket odds. Modified `server/seed.ts` to fetch real Polymarket odds via `fetchPolyBySlug()` during database seeding. Markets with `polymarketSlug` now bootstrap with correct reserves (e.g., Lula at 14% YES instead of 50/50). Updated `server/routes.ts` to start mirror worker automatically when `POLYMARKET_SLUGS` is configured (independent of `ENABLE_POLYMARKET` flag). System uses 10,000 liquidity scale for smooth AMM operations. Robust error handling: falls back to 50/50 if Polymarket fetch fails. E2E tests confirm: Lula 14%, Recessão 4.3%, Fed juros 0.9%, Fed emergencial 3.3%. Production-ready with architect approval.
 - **Unified AMM Pricing & Historical Charts (Nov 11)**: Completed MVP AMM pricing system that displays EXACT Polymarket odds to users while silently charging 2% platform fee. Created `amm-pricing.ts` service with `calculateAMMPricing()` that returns displayProbability (pure Polymarket), netShares (after 2% fee), and payout values. Fixed preview endpoint bug: 100 BRL3 now returns ~725 shares (was 0). Implemented `amm_snapshots` table with timestamp indexing for probability history. Added `/api/markets/:id/history` endpoint and Recharts probability chart on AMM market detail pages. Removed all spread disclaimers from UI per user requirement. E2E tests confirm: preview shows non-zero shares/payout, chart renders with SIM/NÃO lines, odds match Polymarket exactly (14% → 7.14 decimal). Production-ready with architect approval.
 - **AMM Real-Time Sync with Polymarket (Nov 11)**: Fixed production bug where all AMM markets showed 50/50 odds. Implemented automatic sync system (`server/amm-sync.ts`) that updates local AMM market reserves with live Polymarket odds every 60 seconds. Added `polymarket_slug` mappings to 4 markets: Fed rate hike (1.1%), Lula election (14%), US recession (4.0%), Fed emergency cut (2.8%). System uses fetch caching to avoid duplicate API calls and isolated error handling to prevent blocking mirror updates. Production-ready with architect approval.
@@ -34,9 +35,10 @@ The platform utilizes a vibrant Brazilian color scheme with a "verde-turquesa" p
 - **Backend**: Node.js, Express
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
 - **Authentication**: Passport.js with sessions
-- **Hybrid Market Architecture**:
-    - **Primary**: 6 AMM markets (CPMM + 2% spread) - full trading functionality
-    - **Pilot**: 4 Polymarket markets (Beta) - mirror system with freeze/unfreeze logic
+- **Unified Market Architecture**:
+    - **Single System**: Exactly 4 Palpites.AI markets (AMM-based with CPMM + 2% spread)
+    - **Auto-Reconciliation**: System validates market count/slugs on boot, auto-cleans legacy markets
+    - **Polymarket Mirror**: All 4 markets mirror Polymarket odds in real-time (60s polling)
 - **Polymarket Mirror System**:
     - **Freeze Protection**: Odds freeze when spike ≥5% in 1 min, display shows last stable value
     - **Automatic Unfreeze**: After 2 consecutive stable readings (<5% delta) OR 120s fail-safe timeout
@@ -46,15 +48,15 @@ The platform utilizes a vibrant Brazilian color scheme with a "verde-turquesa" p
 - **Prediction Market Core (AMM-based MVP)**:
     - **Dynamic AMM Pricing (CPMM)**: Constant Product Market Maker formula with 2% spread. Prices adjust dynamically based on trades, ensuring market equilibrium.
     - **Trade Preview System**: Public `/api/orders/preview` endpoint performs dry-run AMM calculations, showing users exact share estimates before placing bets. Frontend integration with 500ms debounce and AbortController prevents race conditions.
-    - **6 Fixed Markets**: Platform seeds exactly 6 markets mirroring Polymarket: Lula 2026 (45%), Shutdown (32%), Trump 2025 (99%), Bitcoin $100k (68%), IA Jobs (15%), Copa 2030 (8%).
+    - **4 Fixed Markets**: Platform seeds exactly 4 markets mirroring Polymarket: Lula 2026 (14%), Fed rate hike 2025 (0.9%), US Recession 2025 (4.3%), Fed emergency cut (3.3%). Metadata centralized in `server/polymarket-metadata.ts`.
     - **Instant-Fill Market Orders**: All orders instantly filled via AMM, marked as status="filled", and appear in recent trades feed.
-    - **5-Tab Navigation**: Trending tab shows top 4 markets by volume. Category tabs: Política (3 markets), Crypto (1), Tech (1), Sports (1).
+    - **Simplified UI**: Homepage shows single "Mercados Disponíveis" section with 4 market cards. No tabs, no Polymarket branding.
     - **Localization**: Full PT-BR localization for all UI elements and backend error messages (23 errorMessages constants).
     - **Recent Activity Feed**: Real-time display of recent filled orders with auto-refresh (5s polling).
 
 ### Feature Specifications
 - **Authentication**: Email/password login/registration, unique username setup post-login, protected routes, and admin-specific routes.
-- **Public Landing Page**: Polymarket-style homepage with public access, 5-tab navigation (Trending + 4 categories), and real-time market odds display. Trending shows top 4 markets by volume.
+- **Public Landing Page**: Clean homepage with public access showing 4 available markets with real-time Polymarket odds. No tabs, simplified single-section layout.
 - **Market Detail Page**: Comprehensive market information, multiple odds formats, Reddit-style discussion system, and integration with the trading panel.
 - **Trading Panel**: Visual YES/NO toggle, quantity input, real-time preview of share estimates (debounced 500ms), skeleton loading states, automatic calculation of cost, potential gain, and profit using AMM dry-run.
 - **Portfolio**: Overview of total value, invested amount, P&L, active positions with per-position P&L, mock wallet (Pix and USDC), and transaction history.
