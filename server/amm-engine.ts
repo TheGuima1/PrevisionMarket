@@ -110,13 +110,22 @@ export function seedMarket(seedAmount: number): AMMState {
 }
 
 /**
- * Execute trade using Polymarket-style share issuance + CPMM price updates
+ * Execute trade using Hybrid AMM+Escrow model (Polymarket-style)
  * 
- * CRITICAL: Decoupled from traditional CPMM!
- * 1. Calculate shares = stake / currentPrice (Polymarket style)
- * 2. THEN update reserves using CPMM for dynamic pricing
+ * ARCHITECTURE:
+ * 1. Use CPMM to calculate shares (maintains price discovery + slippage)
+ * 2. Update AMM reserves normally (prices adjust with each trade)
+ * 3. Lock collateral in escrow = shares bought (1:1 backing)
  * 
- * This matches Polymarket: $1 at 4¢ = 25 shares (not CPMM's 0.04 shares)
+ * SOLVENCY GUARANTEE:
+ * - CPMM shares bought = small amount (e.g., 4.31 shares for 100 BRL3 at 4.3%)
+ * - Escrow locks exact shares amount (4.31 BRL3)
+ * - Collateral always sufficient: escrowLocked = totalShares
+ * - Payout at resolution: 1 share = 1 BRL3 (backed by escrow)
+ * 
+ * This DIFFERS from Polymarket (CLOB) but maintains solvency!
+ * Polymarket: 100 BRL3 at 4% = 2,500 shares (needs order book + counterparty)
+ * Our AMM: 100 BRL3 at 4% = ~4-10 shares (CPMM slippage, fully backed by escrow)
  */
 function executeTradeWithCPMM(
   usdcIn: number,
@@ -125,31 +134,32 @@ function executeTradeWithCPMM(
   noReserve: number,
   k: number
 ): TradeResult {
-  // Step 1: Calculate current price from reserves
-  const currentPrice = outcome === 'yes'
-    ? yesReserve / (yesReserve + noReserve) // YES price = yesReserve / total
-    : noReserve / (yesReserve + noReserve); // NO price = noReserve / total
+  // Use traditional CPMM formula to calculate shares
+  // Formula: (reserve_opposite + deposit) * (reserve_outcome - shares) = k
   
-  // Step 2: Calculate shares using Polymarket formula (stake / price)
-  const sharesBought = usdcIn / currentPrice;
-  
-  // Step 3: Update reserves using CPMM to adjust future prices
-  // This maintains dynamic pricing while using Polymarket-style share issuance
   let newYesReserve: number;
   let newNoReserve: number;
+  let sharesBought: number;
   
   if (outcome === 'yes') {
-    // Buy YES: deposit to opposite (NO) pool, adjust YES reserve
+    // Buy YES: deposit USDC to opposite (NO) pool, withdraw YES shares
     newNoReserve = noReserve + usdcIn;
     newYesReserve = k / newNoReserve;
+    sharesBought = yesReserve - newYesReserve;
   } else {
-    // Buy NO: deposit to opposite (YES) pool, adjust NO reserve
+    // Buy NO: deposit USDC to opposite (YES) pool, withdraw NO shares
     newYesReserve = yesReserve + usdcIn;
     newNoReserve = k / newYesReserve;
+    sharesBought = noReserve - newNoReserve;
   }
   
   const avgPrice = usdcIn / sharesBought;
   const newK = newYesReserve * newNoReserve;
+  
+  // Escrow locking handled in routes:
+  // - Lock sharesBought BRL3 in escrowLockedYes/No
+  // - Increment totalSharesYes/No by sharesBought
+  // - At resolution: pay 1 BRL3 per share from escrow
   
   return {
     sharesBought,
