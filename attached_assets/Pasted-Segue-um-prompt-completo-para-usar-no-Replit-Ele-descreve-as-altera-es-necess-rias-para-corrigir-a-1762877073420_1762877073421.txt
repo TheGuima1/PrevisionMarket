@@ -1,0 +1,145 @@
+Segue um prompt completo para usar no Replit. Ele descreve as alterações necessárias para corrigir a discrepância entre o preview e o site publicado, garantir que os mercados Palpites.AI usem as mesmas odds da Polymarket (com spread de 2% aplicado no momento da aposta) e ajustar a interface para exibir probabilidade e payout de forma clara.
+
+---
+
+**Prompt para o Replit (com instruções e trechos de código)**
+
+> **Correção de odds e spread para Palpites.AI**
+>
+> 1. **Habilitar integração Polymarket**: certifique-se de que a variável de ambiente `ENABLE_POLYMARKET` esteja definida como `true` e que `POLYMARKET_SLUGS` contenha os slugs dos mercados que você deseja espelhar (por exemplo:
+>
+> ```
+> POLYMARKET_SLUGS=will-any-presidential-candidate-win-outright-in-the-first-round-of-the-brazil-election,us-recession-in-2025,fed-rate-hike-in-2025,fed-emergency-rate-cut-in-2025
+> ```
+>
+> ). Isso ativa o espelhamento automático de odds e a aplicação do spread de 2% no momento da compra.
+>
+> 2. **Ajustar o seed das reservas AMM**: no arquivo `server/seed.ts`, altere o processo de seeding para que, ao criar mercados que possuem `polymarketSlug`, as reservas iniciais (`yesReserve`/`noReserve`) sejam calculadas com base nas probabilidades reais obtidas do Polymarket. Isso evita que os mercados Palpites.AI comecem em 50/50. Um exemplo de modificação:
+>
+> ```diff
+> @@ for (const market of demoMarkets) {
+> -    // Seed each market with R$ 100 symmetric liquidity
+> -    const ammState = AMM.seedMarket(SEED_LIQUIDITY);
+> -    
+> -    const [created] = await db.insert(markets).values({
+> -      ...market,
+> -      yesReserve: ammState.yesReserve.toFixed(2),
+> -      noReserve: ammState.noReserve.toFixed(2),
+> -      k: ammState.k.toFixed(4),
+> -      seedLiquidity: SEED_LIQUIDITY.toFixed(2),
+> -    }).returning();
+> +    let yesReserve: number, noReserve: number, k: number, seedLiquidity: number;
+> +    if (market.polymarketSlug) {
+> +      try {
+> +        const { probYes } = await import("./mirror/adapter")
+> +          .then(m => m.fetchPolyBySlug(market.polymarketSlug));
+> +        // Converta a probabilidade em reservas (mesma lógica do amm-sync.ts)
+> +        const safeProb = Math.max(0.01, Math.min(0.99, probYes));
+> +        const probNo = 1 - safeProb;
+> +        const LIQUIDITY_SCALE = 10000;
+> +        yesReserve = Number((safeProb * LIQUIDITY_SCALE).toFixed(2));
+> +        noReserve = Number((probNo * LIQUIDITY_SCALE).toFixed(2));
+> +        k = Number((yesReserve * noReserve).toFixed(4));
+> +        seedLiquidity = Number((yesReserve + noReserve).toFixed(2));
+> +      } catch (err) {
+> +        console.error(`Failed to fetch Polymarket odds for ${market.title}:`, err);
+> +        // fallback para seed simétrico
+> +        const ammState = AMM.seedMarket(SEED_LIQUIDITY);
+> +        yesReserve = ammState.yesReserve;
+> +        noReserve = ammState.noReserve;
+> +        k = ammState.k;
+> +        seedLiquidity = SEED_LIQUIDITY;
+> +      }
+> +    } else {
+> +      const ammState = AMM.seedMarket(SEED_LIQUIDITY);
+> +      yesReserve = ammState.yesReserve;
+> +      noReserve = ammState.noReserve;
+> +      k = ammState.k;
+> +      seedLiquidity = SEED_LIQUIDITY;
+> +    }
+> +    const [created] = await db.insert(markets).values({
+> +      ...market,
+> +      yesReserve: yesReserve.toFixed(2),
+> +      noReserve: noReserve.toFixed(2),
+> +      k: k.toFixed(4),
+> +      seedLiquidity: seedLiquidity.toFixed(2),
+> +    }).returning();
+> ```
+>
+> Essa alteração consulta a API Gamma da Polymarket no momento do seeding, calcula as reservas proporcionais à probabilidade real e elimina o problema de mercados começarem a 50/50 quando deveriam refletir o Polymarket.
+>
+> 3. **Iniciar o Mirror Worker sempre que houver slugs configurados**: no `server/routes.ts`, modifique a inicialização do worker para que ele rode automaticamente se houver slugs definidos, independentemente da variável `ENABLE_POLYMARKET`. Isso mantém as odds atualizadas no banco de dados.
+>
+> ```diff
+> @@ export async function registerRoutes(app: Express): Promise<Server> {
+> -  if (process.env.ENABLE_POLYMARKET === 'true') {
+> -    await startMirror(); // Now async - validates slugs at boot
+> -  }
+> +  // Inicie o worker de espelhamento se houver slugs configurados
+> +  try {
+> +    const slugs = (process.env.POLYMARKET_SLUGS || '').split(',')
+> +      .map(s => s.trim()).filter(Boolean);
+> +    if (slugs.length > 0) {
+> +      await startMirror();
+> +    }
+> +  } catch (err) {
+> +    console.error('Failed to start Polymarket mirror worker:', err);
+> +  }
+> ```
+>
+> 4. **Atualizar a interface para mostrar probabilidade e payout**: no arquivo `client/src/components/market-card.tsx`, reorganize a UI para exibir a probabilidade e as odds juntas (e não apenas odds). Substitua o bloco de odds atual pelo seguinte:
+>
+> ```diff
+> @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
+> -        <div className="grid grid-cols-2 gap-2">
+> -          <Tooltip>
+> -            <TooltipTrigger asChild>
+> -              <div className="space-y-1 cursor-help">
+> -                <div className="text-xs text-muted-foreground">SIM</div>
+> -                <div className="text-2xl font-bold tabular-nums text-primary">
+> -                  {formatOdds(yesOdds)}
+> -                </div>
+> -              </div>
+> -            </TooltipTrigger>
+> -            <TooltipContent>
+> -              <p className="text-xs">Probabilidade impl\u00edcita: {formatProbability(yesPrice)}</p>
+> -            </TooltipContent>
+> -          </Tooltip>
+> -          …
+> -        </div>
+> +        <div className="grid grid-cols-2 gap-2">
+> +          {/* Coluna SIM: probabilidade e payout */}
+> +          <div className="space-y-1">
+> +            <div className="text-xs text-muted-foreground">SIM</div>
+> +            <div className="flex items-baseline gap-1">
+> +              <span className="text-xl font-bold tabular-nums text-primary">
+> +                {formatProbability(yesPrice)}
+> +              </span>
+> +              <span className="text-sm font-medium text-primary/80">
+> +                ({formatOdds(yesOdds)}×)
+> +              </span>
+> +            </div>
+> +          </div>
+> +          
+> +          {/* Coluna NÃO: probabilidade e payout */}
+> +          <div className="space-y-1">
+> +            <div className="text-xs text-muted-foreground">NÃO</div>
+> +            <div className="flex items-baseline gap-1">
+> +              <span className="text-xl font-bold tabular-nums text-destructive">
+> +                {formatProbability(noPrice)}
+> +              </span>
+> +              <span className="text-sm font-medium text-destructive/80">
+> +                ({formatOdds(noOdds)}×)
+> +              </span>
+> +            </div>
+> +          </div>
+> +        </div>
+> ```
+>
+> Isso remove o uso dos tooltips e coloca a probabilidade (%) junto com o payout (odds ×) diretamente no card, tornando a informação visível sem precisar passar o mouse.
+>
+> 5. **Rebuild e deploy**: após aplicar as alterações acima, execute `npm run build` e publique a versão atualizada. Certifique-se de que a aplicação em produção está usando as mesmas variáveis de ambiente configuradas no Replit. Os mercados Palpites.AI devem exibir odds iguais às da Polymarket (sem spread na exibição) e atualizar dinamicamente graças ao Mirror Worker, enquanto a taxa de 2% (spread) continua aplicada apenas no momento da compra.
+
+---
+
+Com estas alterações, o preview e o site publicado usarão as mesmas odds da Polymarket, mas com 2% de margem embutida na execução. Além disso, a interface da home page passa a mostrar explicitamente tanto a probabilidade quanto o payout para SIM e NÃO, melhorando a transparência para o usuário.
