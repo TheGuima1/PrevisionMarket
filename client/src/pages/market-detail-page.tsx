@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar, Clock, FileText, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { Market, Comment as CommentType } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation } from "@tanstack/react-query";
@@ -46,6 +47,22 @@ export default function MarketDetailPage() {
     queryKey: ["/api/comments", marketId],
     enabled: !!marketId,
   });
+
+  // Query AMM history for probability chart
+  const { data: history, isLoading: historyLoading } = useQuery<any[]>({
+    queryKey: ["/api/markets", marketId, "history"],
+    enabled: !!marketId,
+  });
+
+  // Transform history data for Recharts
+  const chartData = (history || []).map((snapshot: any) => ({
+    timestamp: new Date(snapshot.timestamp).toLocaleDateString('pt-BR', { 
+      day: '2-digit', 
+      month: 'short' 
+    }),
+    SIM: snapshot.outcomes[0]?.percent || 0,
+    NÃO: snapshot.outcomes[1]?.percent || 0,
+  }));
 
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -164,6 +181,59 @@ export default function MarketDetailPage() {
                 <OddsDisplay probability={getYesPriceFromReserves(market.yesReserve, market.noReserve)} />
                 <OddsDisplay probability={getNoPriceFromReserves(market.yesReserve, market.noReserve)} />
               </div>
+            </Card>
+
+            {/* Probability History Chart */}
+            <Card className="p-6">
+              <h2 className="font-accent text-2xl font-semibold mb-4">Histórico de Probabilidades</h2>
+              
+              {historyLoading ? (
+                <Skeleton className="h-96 w-full" />
+              ) : chartData.length === 0 ? (
+                <div className="h-96 flex items-center justify-center text-muted-foreground">
+                  Nenhum dado histórico disponível ainda
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="timestamp" 
+                      stroke="hsl(var(--foreground))"
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
+                    />
+                    <YAxis 
+                      domain={[0, 100]}
+                      stroke="hsl(var(--foreground))"
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      label={{ value: 'Probabilidade (%)', angle: -90, position: 'insideLeft', fill: "hsl(var(--muted-foreground))" }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        borderColor: "hsl(var(--border))",
+                        borderRadius: "0.5rem",
+                        color: "hsl(var(--card-foreground))",
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="SIM"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="NÃO"
+                      stroke="hsl(var(--destructive))"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </Card>
 
             <Card className="p-6 space-y-6">
