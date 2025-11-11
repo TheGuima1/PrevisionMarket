@@ -96,7 +96,7 @@ export function upsertMarket(
       lastUpdate: now,
     };
     state.updatedAt = now;
-    console.log(`[Mirror State] ✓ Initialized ${slug} at ${(payload.probYes_raw * 100).toFixed(1)}% YES`);
+    console.log(`[Mirror State] ✓ Initialized ${slug} at ${(payload.probYes_raw * 100).toFixed(2)}% YES`);
     return;
   }
   
@@ -120,7 +120,7 @@ export function upsertMarket(
       prev.__frozenAt = now;
       
       const delta = Math.abs(payload.probYes_raw - prev.lastStableYes);
-      console.log(`[Mirror State] ❄️ FREEZE ${slug}: ${(prev.lastStableYes * 100).toFixed(1)}% → ${(payload.probYes_raw * 100).toFixed(1)}% (Δ${(delta * 100).toFixed(1)}%)`);
+      console.log(`[Mirror State] ❄️ FREEZE ${slug}: ${(prev.lastStableYes * 100).toFixed(2)}% → ${(payload.probYes_raw * 100).toFixed(2)}% (Δ${(delta * 100).toFixed(2)}%)`);
     } else {
       // No spike: Update display and lastStable
       prev.probYes_display = payload.probYes_raw;
@@ -196,7 +196,7 @@ export function upsertMarket(
       delete prev.__plateauAnchor;
       delete prev.__plateauConfirmed;
       
-      console.log(`[Mirror State] 🔥 UNFREEZE ${slug}: ${reason} at ${(payload.probYes_raw * 100).toFixed(1)}% YES`);
+      console.log(`[Mirror State] 🔥 UNFREEZE ${slug}: ${reason} at ${(payload.probYes_raw * 100).toFixed(2)}% YES`);
     } else {
       // Still frozen: Display stays at lastStable
       prev.probYes_display = prev.lastStableYes;

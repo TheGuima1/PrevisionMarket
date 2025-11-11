@@ -108,7 +108,7 @@ export async function syncAMMMarketsWithPolymarket(
         });
         
         successCount++;
-        console.log(`[AMM Sync] ✓ ${market.title} (${market.polymarketSlug}): ${(polyData.probYes * 100).toFixed(1)}% YES`);
+        console.log(`[AMM Sync] ✓ ${market.title} (${market.polymarketSlug}): ${(polyData.probYes * 100).toFixed(2)}% YES`);
       } catch (error) {
         errorCount++;
         const errMsg = error instanceof Error ? error.message : String(error);

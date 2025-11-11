@@ -172,7 +172,7 @@ export default function PolymarketDetailPage() {
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{outcome.name}</span>
                     <span className="text-2xl font-bold tabular-nums text-primary">
-                      {outcome.percent.toFixed(1)}%
+                      {outcome.percent.toFixed(2)}%
                     </span>
                   </div>
                   

@@ -99,7 +99,7 @@ export async function seed() {
       
       createdMarkets.push(created);
       console.log(`✅ ${marketMeta.title}`);
-      console.log(`   Polymarket odds: ${(polyData.probYes * 100).toFixed(1)}% SIM / ${(probNo * 100).toFixed(1)}% NÃO\n`);
+      console.log(`   Polymarket odds: ${(polyData.probYes * 100).toFixed(2)}% SIM / ${(probNo * 100).toFixed(2)}% NÃO\n`);
     } catch (err) {
       console.error(`❌ Failed to seed ${marketMeta.title}:`, err instanceof Error ? err.message : err);
       console.error(`   Slug: ${marketMeta.polymarketSlug}\n`);

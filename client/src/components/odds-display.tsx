@@ -26,7 +26,7 @@ export function OddsDisplay({ probability, className = "" }: OddsDisplayProps) {
   };
 
   const getPercentage = () => {
-    return `${(probability * 100).toFixed(1)}%`;
+    return `${(probability * 100).toFixed(2)}%`;
   };
 
   const displayValue = {

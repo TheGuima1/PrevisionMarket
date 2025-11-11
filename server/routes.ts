@@ -298,13 +298,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {
             name: 'Yes',
             raw: m.probYes_display,
-            percent: Number((m.probYes_display * 100).toFixed(1)),
+            percent: Number((m.probYes_display * 100).toFixed(2)),
             decimal: m.probYes_display > 0 ? Number((1 / m.probYes_display).toFixed(2)) : Infinity,
           },
           {
             name: 'No',
             raw: m.probNo_display,
-            percent: Number((m.probNo_display * 100).toFixed(1)),
+            percent: Number((m.probNo_display * 100).toFixed(2)),
             decimal: m.probNo_display > 0 ? Number((1 / m.probNo_display).toFixed(2)) : Infinity,
           },
         ],

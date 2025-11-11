@@ -65,7 +65,7 @@ export async function fetchMarketBySlug(slug: string): Promise<PolymarketMarket>
       return {
         name: name.trim() || `Outcome ${index + 1}`,
         raw: rawPolymarketPrice,
-        percent: Number((rawPolymarketPrice * 100).toFixed(1)),
+        percent: Number((rawPolymarketPrice * 100).toFixed(2)),
       };
     });
     

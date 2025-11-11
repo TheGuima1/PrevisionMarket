@@ -71,7 +71,7 @@ export function PolymarketMarketCard({ market }: PolymarketMarketCardProps) {
               >
                 <span className="text-muted-foreground truncate pr-2">{outcome.name}</span>
                 <span className="font-mono font-semibold text-primary shrink-0">
-                  {outcome.percent.toFixed(1)}%
+                  {outcome.percent.toFixed(2)}%
                 </span>
               </div>
             ))}
