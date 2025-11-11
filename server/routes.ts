@@ -163,13 +163,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await autoSeedIfEmpty();
   
   // Start Polymarket mirror worker to sync odds for Palpites.AI markets
+  // Run asynchronously to avoid blocking server startup and health checks
   try {
     const { getConfiguredSlugs } = await import("./polymarket-metadata");
     const slugs = getConfiguredSlugs();
     
     if (slugs.length > 0) {
       console.log(`[Server] Starting mirror worker for ${slugs.length} Palpites.AI markets`);
-      await startMirror(); // Validates slugs and starts 60s sync loop
+      // Don't await - let it initialize in background to avoid deployment health check timeout
+      startMirror().catch(err => {
+        console.error('[Server] Mirror worker initialization failed:', err);
+      });
     } else {
       console.log('[Server] No Palpites.AI markets configured');
     }
