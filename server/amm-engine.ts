@@ -73,13 +73,14 @@ export function buyShares(
     throw new Error("Market not initialized. Admin must seed liquidity first.");
   }
   
-  // Apply 2% spread: reduce effective buying power
-  const spreadMultiplier = 1 - (spreadBps / 10000);
-  const effectiveUsdcIn = usdcIn * spreadMultiplier; // Only 98% goes to AMM
-  const spreadFee = usdcIn - effectiveUsdcIn; // 2% captured as fee
+  // Calculate 2% spread fee separately (NOT deducted from pricing)
+  // User pays full usdcIn, gets shares based on FULL amount (Polymarket parity)
+  // Fee is charged separately for transparency
+  const spreadFee = (usdcIn * spreadBps) / 10000;
   
-  // Execute trade with spread-adjusted amount
-  const result = executeTradeWithCPMM(effectiveUsdcIn, outcome, yesReserve, noReserve, k);
+  // Execute trade with FULL amount (no spread discount)
+  // This ensures odds/payout match Polymarket exactly
+  const result = executeTradeWithCPMM(usdcIn, outcome, yesReserve, noReserve, k);
   
   return {
     ...result,
