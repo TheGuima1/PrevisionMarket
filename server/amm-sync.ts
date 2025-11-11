@@ -48,13 +48,13 @@ export async function syncAMMMarketsWithPolymarket(
   fetchCache?: Map<string, { probYes: number; title: string; volumeUsd?: number }>
 ): Promise<void> {
   try {
-    // Get all AMM markets with Polymarket slugs
+    // Get all local AMM markets with Polymarket slugs
     const ammMarkets = await db
       .select()
       .from(markets)
       .where(
         and(
-          eq(markets.origin, 'amm'),
+          eq(markets.origin, 'local'),
           isNotNull(markets.polymarketSlug)
         )
       );
