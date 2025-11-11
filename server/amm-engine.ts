@@ -43,9 +43,9 @@ export function getPrice(outcome: 'yes' | 'no', state: AMMState): number | null 
   if (total === 0) return null;
   
   if (outcome === 'yes') {
-    return noReserve / total;
-  } else {
     return yesReserve / total;
+  } else {
+    return noReserve / total;
   }
 }
 
