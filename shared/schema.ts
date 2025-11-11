@@ -47,6 +47,7 @@ export const transactionTypeEnum = pgEnum("transaction_type", [
   "trade_buy",
   "trade_sell",
   "market_resolution",
+  "platform_fee",
 ]);
 
 // Users table

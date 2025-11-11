@@ -474,6 +474,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Bought ${tradeResult.sharesBought.toFixed(2)} ${validated.type.toUpperCase()} shares in "${market.title}"`,
       });
 
+      // Register platform fee (2%) as separate transaction
+      if (spreadFee > 0) {
+        await storage.createTransaction(userId, {
+          type: "platform_fee",
+          amount: spreadFee.toFixed(6),
+          currency: "BRL",
+          description: `Taxa Palpites.AI (${(200 / 100).toFixed(2)}%)`,
+        });
+      }
+
       res.json({ ...order, sharesBought: tradeResult.sharesBought });
     } catch (error: any) {
       console.error("Order error:", error);
