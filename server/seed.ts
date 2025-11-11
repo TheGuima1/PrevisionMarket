@@ -70,30 +70,34 @@ export async function seed() {
       tags: ["Lula", "Brasil", "Eleições"],
       resolutionSource: "TSE - Tribunal Superior Eleitoral",
       endDate: new Date("2026-10-30T23:59:59Z"),
+      polymarketSlug: "will-any-presidential-candidate-win-outright-in-the-first-round-of-the-brazil-election", // Espelha odds do Polymarket
     },
     {
-      title: "US Government Shutdown durará até fevereiro?",
-      description: "Mercado será resolvido como SIM se o governo dos EUA permanecer em shutdown até 1º de fevereiro de 2025. NÃO se reabrir antes.",
+      title: "Recessão nos EUA em 2025?",
+      description: "Mercado será resolvido como SIM se os EUA entrarem em recessão técnica (2 trimestres consecutivos de crescimento negativo do PIB) em 2025. NÃO caso contrário.",
       category: "politics" as const,
-      tags: ["USA", "Shutdown", "Government"],
-      resolutionSource: "Official US Government sources",
-      endDate: new Date("2025-02-01T23:59:59Z"),
-    },
-    {
-      title: "Trump será presidente dos EUA em 2025?",
-      description: "Mercado será resolvido como SIM se Donald Trump assumir como presidente dos EUA em 2025. NÃO caso contrário.",
-      category: "politics" as const,
-      tags: ["Trump", "USA", "Elections"],
-      resolutionSource: "Official US Presidential Inauguration",
-      endDate: new Date("2025-01-31T23:59:59Z"),
-    },
-    {
-      title: "Bitcoin atingirá $100.000 em 2025?",
-      description: "Mercado será resolvido como SIM se Bitcoin (BTC/USD) atingir $100.000 ou mais em qualquer momento durante 2025. NÃO caso contrário.",
-      category: "crypto" as const,
-      tags: ["Bitcoin", "BTC", "Crypto"],
-      resolutionSource: "CoinMarketCap - BTC/USD price",
+      tags: ["USA", "Recession", "Economy"],
+      resolutionSource: "US Bureau of Economic Analysis",
       endDate: new Date("2025-12-31T23:59:59Z"),
+      polymarketSlug: "us-recession-in-2025", // Espelha odds do Polymarket
+    },
+    {
+      title: "Fed aumentará juros em 2025?",
+      description: "Mercado será resolvido como SIM se o Federal Reserve aumentar a taxa de juros em qualquer momento durante 2025. NÃO caso contrário.",
+      category: "politics" as const,
+      tags: ["Fed", "USA", "Juros"],
+      resolutionSource: "Federal Reserve Official Announcements",
+      endDate: new Date("2025-12-31T23:59:59Z"),
+      polymarketSlug: "fed-rate-hike-in-2025", // Espelha odds do Polymarket
+    },
+    {
+      title: "Fed fará corte emergencial em 2025?",
+      description: "Mercado será resolvido como SIM se o Federal Reserve realizar um corte de emergência na taxa de juros fora das reuniões programadas em 2025. NÃO caso contrário.",
+      category: "crypto" as const,
+      tags: ["Fed", "Emergency", "Rate Cut"],
+      resolutionSource: "Federal Reserve",
+      endDate: new Date("2025-12-31T23:59:59Z"),
+      polymarketSlug: "fed-emergency-rate-cut-in-2025", // Espelha odds do Polymarket
     },
     {
       title: "IA substituirá 50% dos empregos até 2030?",
@@ -102,6 +106,7 @@ export async function seed() {
       tags: ["AI", "Jobs", "Technology"],
       resolutionSource: "World Economic Forum / ILO reports",
       endDate: new Date("2030-12-31T23:59:59Z"),
+      // Sem polymarketSlug: mantém odds seeded 50/50
     },
     {
       title: "Brasil sediará Copa do Mundo 2030?",
@@ -110,6 +115,7 @@ export async function seed() {
       tags: ["Copa", "Brasil", "FIFA"],
       resolutionSource: "FIFA Official Announcement",
       endDate: new Date("2025-06-30T23:59:59Z"),
+      // Sem polymarketSlug: mantém odds seeded 50/50
     },
   ];
 

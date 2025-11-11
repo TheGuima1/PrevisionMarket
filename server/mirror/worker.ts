@@ -1,10 +1,12 @@
 /**
  * Mirror Worker
  * Polls Polymarket markets every 60s and updates mirror state with freeze logic
+ * Also syncs AMM market reserves with Polymarket odds
  */
 
 import { fetchPolyBySlug } from './adapter';
 import { upsertMarket } from './state';
+import { syncAMMMarketsWithPolymarket } from '../amm-sync';
 
 const POLL_INTERVAL = Number(process.env.MIRROR_POLL_MS || 60000); // 60s default
 
@@ -59,15 +61,33 @@ async function validateSlugs(slugs: string[]): Promise<string[]> {
 
 /**
  * Poll all validated slugs once
+ * Step 1: Fetch Polymarket data and cache results
+ * Step 2: Update mirror state (in-memory)
+ * Step 3: Sync AMM market reserves (database) using cached data
  */
 export async function pollOnce(): Promise<void> {
+  // Cache fetch results to avoid double-fetching for AMM sync
+  const fetchCache = new Map<string, { probYes: number; title: string; volumeUsd?: number }>();
+  
+  // Step 1 & 2: Fetch and update mirror state
   for (const slug of validatedSlugs) {
     try {
-      const { probYes, title, volumeUsd } = await fetchPolyBySlug(slug);
-      upsertMarket(slug, { title, probYes_raw: probYes, volumeUsd });
+      const data = await fetchPolyBySlug(slug);
+      fetchCache.set(slug, data);
+      
+      // Update mirror state (in-memory)
+      upsertMarket(slug, { title: data.title, probYes_raw: data.probYes, volumeUsd: data.volumeUsd });
     } catch (error) {
       console.error(`[Mirror Worker] ✗ ${slug}:`, error instanceof Error ? error.message : 'Unknown error');
     }
+  }
+  
+  // Step 3: Sync AMM market reserves (non-blocking, won't affect mirror updates)
+  try {
+    await syncAMMMarketsWithPolymarket(fetchCache);
+  } catch (error) {
+    // Log error but don't throw - AMM sync failures shouldn't block mirror updates
+    console.error('[Mirror Worker] AMM sync failed (non-critical):', error);
   }
 }
 
