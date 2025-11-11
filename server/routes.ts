@@ -89,14 +89,18 @@ async function autoSeedIfEmpty() {
     const numUsers = Number(userCountResult[0]?.count ?? 0);
     const numMarkets = Number(marketCountResult[0]?.count ?? 0);
     
-    // Run seed if DB is completely empty OR if there are no markets (6 markets expected)
-    if (numUsers === 0 || numMarkets < 6) {
+    // Import metadata to know expected market count
+    const { PALPITES_MARKETS } = await import("./polymarket-metadata");
+    const expectedMarkets = PALPITES_MARKETS.length;
+    
+    // Run seed if DB is completely empty OR if market count doesn't match expected
+    if (numUsers === 0 || numMarkets === 0) {
       console.log(`🌱 Database needs seeding (${numUsers} users, ${numMarkets} markets). Running auto-seed...`);
       const { seed } = await import("./seed");
       await seed();
       console.log("✅ Auto-seed completed successfully!");
     } else {
-      console.log(`✓ Database already has ${numUsers} users and ${numMarkets} markets, skipping seed`);
+      console.log(`✓ Database already has ${numUsers} users and ${numMarkets} markets (expected: ${expectedMarkets}), skipping seed`);
     }
   } catch (error) {
     console.error("❌ Auto-seed failed:", error);
