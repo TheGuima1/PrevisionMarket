@@ -61,7 +61,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Markets table - AMM (Automated Market Maker) system
+// Markets table - Hybrid AMM+Escrow system
 export const markets = pgTable("markets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
@@ -73,12 +73,18 @@ export const markets = pgTable("markets", {
   endDate: timestamp("end_date").notNull(),
   resolvedAt: timestamp("resolved_at"),
   resolvedOutcome: orderTypeEnum("resolved_outcome"),
-  // AMM Reserves (liquidity pools) - admin-seeded at market creation
+  // AMM Reserves (for price discovery only - NOT used for payouts)
   yesReserve: decimal("yes_reserve", { precision: 12, scale: 2 }).notNull().default("0.00"),
   noReserve: decimal("no_reserve", { precision: 12, scale: 2 }).notNull().default("0.00"),
-  k: decimal("k", { precision: 24, scale: 4 }).notNull().default("0.0000"), // Constant product (x * y = k)
-  seedLiquidity: decimal("seed_liquidity", { precision: 12, scale: 2 }).notNull().default("0.00"), // Admin-provided initial liquidity
+  k: decimal("k", { precision: 24, scale: 4 }).notNull().default("0.0000"),
+  seedLiquidity: decimal("seed_liquidity", { precision: 12, scale: 2 }).notNull().default("0.00"),
   totalVolume: decimal("total_volume", { precision: 12, scale: 2 }).notNull().default("0.00"),
+  // Escrow System (Polymarket-style: locked collateral backs payouts)
+  escrowLockedYes: decimal("escrow_locked_yes", { precision: 12, scale: 2 }).notNull().default("0.00"), // Collateral locked for YES shares
+  escrowLockedNo: decimal("escrow_locked_no", { precision: 12, scale: 2 }).notNull().default("0.00"), // Collateral locked for NO shares
+  totalSharesYes: decimal("total_shares_yes", { precision: 12, scale: 2 }).notNull().default("0.00"), // Total outstanding YES shares
+  totalSharesNo: decimal("total_shares_no", { precision: 12, scale: 2 }).notNull().default("0.00"), // Total outstanding NO shares
+  maxCollateralLimit: decimal("max_collateral_limit", { precision: 12, scale: 2 }).notNull().default("1000000.00"), // Max escrow per outcome
   // Origin: "local" (native AMM) or "polymarket" (mirrored from Polymarket)
   origin: text("origin").notNull().default("local"),
   polymarketSlug: text("polymarket_slug"), // If origin="polymarket", this is the Polymarket slug
