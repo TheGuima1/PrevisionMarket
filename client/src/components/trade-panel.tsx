@@ -26,7 +26,7 @@ interface PreviewResult {
   displayOddsNo: number;
   estimatedShares: number;      // Net shares after 2% platform fee
   totalCost: number;
-  platformFee: number;          // Silent 2% fee (not shown to user)
+  platformFee: number;          // 2% platform fee (displayed transparently)
   potentialPayout: number;
   potentialProfit: number;
 }
