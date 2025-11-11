@@ -38,6 +38,7 @@ The platform utilizes a vibrant Brazilian color scheme with "verde-turquesa" pri
 - **E2E Validation**: Extensive Playwright E2E tests cover critical user journeys and admin functions.
 - **Cache Invalidation**: TanStack Query is configured for efficient cache invalidation.
 - **Mocked Features**: Pix and Crypto payments, along with manual market resolution, are mocked for the MVP.
+- **Pricing Strategy (Competitive Advantage)**: Palpites.AI uses Polymarket's "spot price" (consensus market price) from the Gamma API, not their execution price. This gives users ~10-15% better odds than Polymarket's execution price which includes their spread/slippage. For example: Polymarket spot 3.25% vs execution 3.7¢ = 12% better profit for Palpites.AI users. We charge only a transparent 2% platform fee on top of spot price. Tooltips in trade panel explain this advantage to users. Future enhancement: implement dual-price display showing both spot and estimated execution prices for complete transparency.
 
 ## External Dependencies
 - **Database**: PostgreSQL (Neon)

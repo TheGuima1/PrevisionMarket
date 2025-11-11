@@ -180,7 +180,18 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               </span>
             </div>
             <div className="flex justify-between items-center text-xs text-muted-foreground pt-1 border-t border-primary/10">
-              <span>Probabilidade implícita</span>
+              <span className="flex items-center gap-1">
+                Probabilidade implícita
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 cursor-help" data-testid="tooltip-trigger-spot-price" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs font-medium mb-1">Preço Spot Polymarket</p>
+                    <p className="text-xs">Usamos o preço de consenso de mercado puro da Polymarket. Na execução, eles cobram spread adicional (~10-15%), mas aqui você vê e paga apenas o preço spot + nossa taxa de 2%.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
               <span data-testid="text-yes-probability">{formatProbability(probability)}</span>
             </div>
           </div>
@@ -281,7 +292,18 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               </span>
             </div>
             <div className="flex justify-between items-center text-xs text-muted-foreground pt-1 border-t border-destructive/10">
-              <span>Probabilidade implícita</span>
+              <span className="flex items-center gap-1">
+                Probabilidade implícita
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 cursor-help" data-testid="tooltip-trigger-spot-price" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs font-medium mb-1">Preço Spot Polymarket</p>
+                    <p className="text-xs">Usamos o preço de consenso de mercado puro da Polymarket. Na execução, eles cobram spread adicional (~10-15%), mas aqui você vê e paga apenas o preço spot + nossa taxa de 2%.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </span>
               <span data-testid="text-no-probability">{formatProbability(probability)}</span>
             </div>
           </div>
