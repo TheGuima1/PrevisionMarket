@@ -205,6 +205,12 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               <span className="font-semibold tabular-nums" data-testid="text-total-cost-yes">{formatBRL3(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Taxa Palpites.AI (2%)</span>
+              <span className="font-semibold tabular-nums text-muted-foreground" data-testid="text-platform-fee-yes">
+                {stakeBRL > 0 ? formatBRL3(stakeBRL * 0.02) : formatBRL3(0)}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">
                 Shares que você receberá
               </span>
@@ -298,6 +304,12 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Investimento</span>
               <span className="font-semibold tabular-nums" data-testid="text-total-cost-no">{formatBRL3(stakeBRL)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Taxa Palpites.AI (2%)</span>
+              <span className="font-semibold tabular-nums text-muted-foreground" data-testid="text-platform-fee-no">
+                {stakeBRL > 0 ? formatBRL3(stakeBRL * 0.02) : formatBRL3(0)}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">
