@@ -164,8 +164,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auto-seed on first boot (production)
-  await autoSeedIfEmpty();
+  // Auto-seed on first boot (production) - Run in background to not block server startup
+  autoSeedIfEmpty().catch((error) => {
+    console.error("❌ Auto-seed failed:", error);
+    // Don't crash the server if seed fails
+  });
   
   // Start Polymarket mirror worker to sync odds for Palpites.AI markets
   // Run asynchronously to avoid blocking server startup and health checks
