@@ -1,0 +1,107 @@
+Pelo log anexado o *build* e o *bundle* concluem com sucesso; o erro ocorre no **Promote** devido a falhas no *health check* da plataforma de deployments da Replit. Ao analisar o projeto completo encontrei três causas principais:
+
+1. **Conflito de portas na configuração do `.replit`.**
+   O arquivo `.replit` define múltiplas portas (`5000`, `3001`, `3002`, `5173`, etc.). Na fase de deploy, a Replit expõe apenas uma porta externa (tipicamente `80`). Cada porta adicional cria um contêiner separado e gera conflitos. Isso explica as mensagens “Potential port conflict” e, posteriormente, a falha no *health check*.
+
+2. **Endpoint de saúde inexistente ou lento.**
+   A Replit verifica se a aplicação responde rapidamente a uma requisição `GET /`. O servidor atual só serve o front-end via Vite/Express (que lê arquivos do disco) e ainda dispara um *auto-seed* pesado no `registerRoutes`, que fica aguardando a sincronização com a API do Polymarket. Isso causa timeout no `/` e impede que o health check responda em tempo hábil.
+
+3. **Seed automático e mirror rodando antes da aplicação iniciar.**
+   A função `autoSeedIfEmpty()` é chamada com `await`, o que bloqueia o boot enquanto ela baixa dados externos (Polymarket) e insere registros no banco. Além disso, o mirror de odds e o cron podem ser iniciados enquanto a aplicação ainda está subindo. Caso ocorram erros no `@neondatabase/serverless` (ex.: `cannot read properties of undefined (reading 'size')`), o servidor cai antes mesmo de ouvir conexões.
+
+Para corrigir definitivamente esses problemas, você pode aplicar as seguintes mudanças e republicar:
+
+---
+
+### 🛠️ 1. Limpar o `.replit` e unificar as portas
+
+Edite o arquivo `.replit` para deixar **apenas uma porta local ligada à porta externa 80** e ajustar os comandos de build/run:
+
+```toml
+# .replit corrigido
+run = ["npm", "run", "start"]
+
+[deployment]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
+run = ["npm", "run", "start"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[env]
+PORT = "5000"
+```
+
+Apague todas as outras entradas de `[[ports]]` (3000, 5173, 3001, etc.) e, se necessário, remova as portas extras via painel *Networking* no Replit.
+
+---
+
+### 🛠️ 2. Criar um endpoint de saúde rápido
+
+No `server/index.ts`, adicione um endpoint simples que responde imediatamente (antes das rotas pesadas ou da serveStatic):
+
+```ts
+// server/index.ts
+// ... imports e configuração existentes ...
+
+const app = express();
+app.use(express.json({ verify: (req, _res, buf) => { req.rawBody = buf; } }));
+app.use(express.urlencoded({ extended: false }));
+
+// ✅ Endpoint de saúde na raiz (usado pelo health check do deploy)
+app.get("/", (_req, res) => {
+  res.status(200).send("OK");
+});
+
+// ... código de logging e setup (registerRoutes) ...
+```
+
+Isso garante que o `/` responda um `200 OK` em milissegundos, atendendo o health check, sem bloquear com seed ou mirror.
+
+---
+
+### 🛠️ 3. Rodar o seed em background (não bloquear a subida)
+
+No `server/routes.ts`, substitua o `await autoSeedIfEmpty()` por uma execução assíncrona sem `await`, para que o servidor continue inicializando enquanto o seed acontece:
+
+```ts
+// server/routes.ts
+// ... dentro de registerRoutes ...
+// Antes:
+await autoSeedIfEmpty();
+
+// Depois:
+autoSeedIfEmpty().catch((error) => {
+  console.error("Auto-seed failed:", error);
+});
+```
+
+Dessa forma, se o banco precisar ser populado, isso ocorre “por trás” e não faz o boot travar nem o health check falhar.
+
+---
+
+### 🛠️ 4. Garantir que variáveis de ambiente existam
+
+No painel **Secrets** do Replit, configure pelo menos:
+
+* `DATABASE_URL` → string de conexão PostgreSQL (Replit gera automaticamente se você provisionou o módulo `postgresql-16`).
+* `SESSION_SECRET` → string aleatória forte.
+* Mantenha `ENABLE_POLYMARKET=true` e outras variáveis (`POLYMARKET_GAMMA_URL`, etc.) conforme já estão no `.env`.
+
+Sem essas variáveis, o `server/db.ts` lança erro ao iniciar e a aplicação nunca chega a responder.
+
+---
+
+### ✔️ Resultado
+
+Depois de aplicar essas mudanças:
+
+1. Execute `npm run build` localmente para garantir que não haja erros.
+2. Rode `npm run start` e acesse `http://localhost:5000/`; você deverá ver "OK".
+3. Clique em **Republish** no Replit. O *health check* passará porque a rota `/` responde imediatamente, e o deploy seguirá até o fim, expondo a aplicação em `https://<nome>.replit.app`.
+
+Além dessas correções, verifique se está usando a versão mais recente do `@neondatabase/serverless` (>= 0.10.4) e atualize se necessário para evitar erros como “cannot read properties of undefined”.
+
+Seguindo esse passo a passo, você elimina os conflitos de porta, garante um endpoint de saúde rápido e evita bloquear o boot com tarefas pesadas — e o seu app será republicado com sucesso.
