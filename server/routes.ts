@@ -139,12 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
 
-  // Root health check endpoint for Replit Autoscale (MUST respond quickly with 200)
-  app.get("/", (_req, res) => {
-    res.status(200).send("OK");
-  });
-
-  // Detailed health check endpoint
+  // Health check endpoint for Replit Autoscale
   app.get("/health", async (_req, res) => {
     try {
       // Check database connection
