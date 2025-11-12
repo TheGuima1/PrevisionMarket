@@ -1,0 +1,251 @@
+Beleza — analisei o seu projeto que você anexou (o zip “PredictionMarket (4).zip”) e encontrei os pontos que estão impedindo o “Republish” no Replit. Abaixo vai um diagnóstico claro e, em seguida, um TASK LIST bem detalhado (no formato de “prompt” para você colar no Replit/Agent) que corrige tudo e publica.
+
+# O que está quebrando (diagnóstico objetivo)
+
+1. **Arquivos corrompidos com reticências (`...` / `…`) dentro do código**
+   — Muitos arquivos de código têm trechos truncados com `...` (por exemplo, `server/index.ts`, `server/routes.ts`, `server/vite.ts`, vários componentes React, `vite.config.ts`, `client/index.html`, `shared/schema.ts`, etc.).
+   — Isso **quebra o build** do Vite/esbuild/TypeScript e impede o deploy.
+
+2. **Variáveis de ambiente essenciais não definidas**
+   — `DATABASE_URL` e `SESSION_SECRET` estão em `.env` mas **vazias**. O `server/db.ts` lança erro se `DATABASE_URL` não existir. Em dev e build isso já pode travar.
+   — Flags/params da integração Polymarket precisam estar setadas (você já tem placeholders bons no `.env`, só faltam valores reais).
+
+3. **Banco de dados e schema não aplicados**
+   — O projeto usa **PostgreSQL (drizzle-orm)**. Você precisa **provisionar o Postgres do Replit** e rodar `drizzle-kit push` para criar as tabelas antes de iniciar/implantar.
+
+4. **Build/Start vs. módulos Replit**
+   — A sua `.replit` está coerente: `build = npm run build` e `start = npm run start`.
+   — O `build` faz `vite build` (cliente) e `esbuild server/index.ts` (servidor) gerando `dist/public` e `dist/index.js`. Tudo ok **desde que** o item (1) e (2) estejam resolvidos.
+
+5. **Possível resolução de `@shared/*` no bundle do servidor**
+   — O `esbuild` costuma respeitar `paths` do `tsconfig.json`, mas é boa prática passar `--tsconfig=tsconfig.json` no build para garantir. Vou incluir no task list.
+
+---
+
+# TASK LIST — cole isso no Replit (prompt passo a passo)
+
+> **Objetivo:** limpar arquivos corrompidos, restaurar o código-fonte válido a partir do Git, configurar segredos/DB, garantir build local, e então **Republish** com sucesso no Replit Autoscale.
+
+---
+
+## 0) Pré-cheques (não interativos)
+
+```bash
+# 0.1 - Mostrar Node e diretório
+node -v
+pwd
+
+# 0.2 - Limpar instalação anterior (se houver)
+rm -rf node_modules
+npm ci
+```
+
+---
+
+## 1) Detectar arquivos corrompidos (reticências no código)
+
+```bash
+# Lista arquivos de código com '...' ou '…' (reticências) que NÃO deveriam existir em código-fonte
+grep -RInE '\.\.\.|…' -- \
+  client server shared vite.config.ts tailwind.config.ts tsconfig.json \
+  | sed 's/^/CORRUPTED: /' || true
+```
+
+**Se aparecer qualquer “CORRUPTED: …” em arquivos .ts/.tsx/.js/.html/.css/.json**, considere esses arquivos corrompidos.
+
+---
+
+## 2) Restaurar código íntegro a partir do GitHub (origin/main)
+
+> O repositório aponta para: `https://github.com/TheGuima1/PrevisionMarket`
+
+```bash
+# 2.1 - Garantir que há remote origin
+git remote -v
+
+# 2.2 - Buscar última versão do main
+git fetch origin main
+
+# 2.3 - Resetar o workspace para a última versão limpa do GitHub
+# ⚠️ Isso DESEFAZ alterações locais (incluindo arquivos corrompidos).
+git reset --hard origin/main
+
+# 2.4 - Confirmar que os arquivos com '...' sumiram
+grep -RInE '\.\.\.|…' -- \
+  client server shared vite.config.ts tailwind.config.ts tsconfig.json \
+  | sed 's/^/RESIDUAL: /' || true
+```
+
+> Se ainda houver linhas “RESIDUAL”, verifique se não são apenas arquivos de **documentação**. Qualquer residual em **.ts/.tsx/.js/.html/.css** precisa ser corrigido manualmente (apagar trechos truncados e restaurar o conteúdo correto do commit mais recente).
+
+---
+
+## 3) Configurar variáveis de ambiente no Replit
+
+No Replit, abra **Secrets/Environment Variables** e defina:
+
+* `DATABASE_URL` → string de conexão Postgres do Replit (formato `postgres://...`)
+* `SESSION_SECRET` → gere um segredo forte (ex.: `openssl rand -hex 32`)
+* **Polymarket (opcional, mas recomendado agora):**
+
+  * `ENABLE_POLYMARKET=true`
+  * `POLYMARKET_GAMMA_URL=https://gamma-api.polymarket.com`
+  * `POLYMARKET_CLOB_URL=https://clob.polymarket.com`
+  * `POLYMARKET_SLUGS` (ex.: `presidential-election-2024,bitcoin-100k-2025`)
+  * `POLYMARKET_SPREAD=0.02`
+  * `POLYMARKET_SNAPSHOT_INTERVAL=60`
+
+> **Dica:** Remova conteúdos duplicados de `.env` no repositório. Em produção Replit, **use apenas Secrets**.
+
+---
+
+## 4) Provisionar o banco e aplicar schema (Drizzle)
+
+```bash
+# 4.1 - Verificar se DATABASE_URL está visível para o processo
+printenv | grep DATABASE_URL
+
+# 4.2 - Rodar migrations (Drizzle)
+npx drizzle-kit push
+```
+
+> Se não existir migrations, o comando `push` cria o schema a partir de `shared/schema.ts`.
+> Se der erro, copie o erro aqui e corrija o schema conforme necessário.
+
+---
+
+## 5) Ajuste de build do servidor (garantir paths)
+
+Edite o `package.json` e ajuste o script `build` para garantir que o esbuild lê o `tsconfig.json` (paths `@shared/*`):
+
+```json
+{
+  "scripts": {
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --tsconfig=tsconfig.json --outdir=dist"
+  }
+}
+```
+
+Salve.
+
+---
+
+## 6) Build e checagens locais
+
+```bash
+# 6.1 - Type-check
+npm run check
+
+# 6.2 - Build (cliente + servidor)
+npm run build
+
+# 6.3 - Verifique se gerou:
+# - dist/public/index.html e assets do Vite
+# - dist/index.js (bundle do servidor)
+ls -la dist dist/public | cat
+```
+
+> Se `npm run build` falhar, copie o LOG. Erros comuns:
+> — Falta de variável de ambiente (defina no Secrets).
+> — Import quebrado (nome de arquivo/pasta diferente do import).
+> — Algum arquivo ainda corrompido (volte ao passo 1/2).
+
+---
+
+## 7) Rodar em modo produção localmente (antes do Publish)
+
+```bash
+# 7.1 - Start server servindo dist/public (cliente) + API
+npm run start
+
+# 7.2 - Ouvindo em PORT=5000 (ou que o Replit definir). Verifique o log “serving on port XXXX”.
+# Abra o webview do Replit.
+```
+
+---
+
+## 8) Publicar (Republish) no Replit
+
+A sua `.replit` já está preparada:
+
+```toml
+[deployment]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
+run = ["npm", "run", "start"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+```
+
+No painel **Deploy** do Replit, clique em **Publish / Republish**.
+Isso vai executar `npm run build` e `npm run start` com os segredos do ambiente.
+
+---
+
+## 9) (Opcional) Guard-rails para evitar regressões
+
+Crie um script simples para **quebrar o build** se houver `...` no código:
+
+**scripts/check-corruption.mjs**
+
+```js
+import { readFileSync, readdirSync, statSync } from "fs";
+import { join, extname } from "path";
+
+const roots = ["client", "server", "shared", "vite.config.ts", "tsconfig.json"];
+const codeExt = new Set([".ts",".tsx",".js",".jsx",".html",".css",".json",".mts",".cts"]);
+
+let bad = [];
+
+function walk(p) {
+  const st = statSync(p);
+  if (st.isDirectory()) {
+    for (const f of readdirSync(p)) walk(join(p, f));
+  } else {
+    const ext = extname(p);
+    if (codeExt.has(ext) || roots.includes(p)) {
+      const s = readFileSync(p, "utf8");
+      if (s.includes("...") || s.includes("…")) bad.push(p);
+    }
+  }
+}
+
+for (const r of roots) walk(r);
+
+if (bad.length) {
+  console.error("Corruption detected in files:");
+  for (const f of bad) console.error(" -", f);
+  process.exit(1);
+} else {
+  console.log("No ellipsis corruption detected.");
+}
+```
+
+Adicione ao `package.json`:
+
+```json
+{
+  "scripts": {
+    "prebuild": "node scripts/check-corruption.mjs"
+  }
+}
+```
+
+Assim, qualquer `...` indevido volta a **falhar o build** imediatamente.
+
+---
+
+## 10) Checklist final de saúde
+
+* [ ] `grep` não retorna arquivos com `...` em **código**
+* [ ] `DATABASE_URL` e `SESSION_SECRET` definidos em **Secrets**
+* [ ] `npx drizzle-kit push` rodou sem erro
+* [ ] `npm run build` finaliza com sucesso
+* [ ] `npm run start` serve o app em `PORT`
+* [ ] Republish concluído sem erros no painel do Replit
+
+---
+
+Se você quiser, posso adaptar esse task list para virar **um único comando Makefile** ou um **workflow do Replit Agent** (formato `.replit` → `workflows`) que roda tudo em sequência e pára no primeiro erro com logs claros.
