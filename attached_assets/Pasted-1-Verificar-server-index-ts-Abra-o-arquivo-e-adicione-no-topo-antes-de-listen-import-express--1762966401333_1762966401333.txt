@@ -1,0 +1,101 @@
+1️⃣ Verificar server/index.ts
+
+Abra o arquivo e adicione no topo (antes de listen):
+
+import express from "express";
+import { seedDatabase } from "./db/seed"; // se existir
+const app = express();
+
+// Health check route — obrigatório no Replit
+app.get("/", (_, res) => res.status(200).send("OK"));
+
+// Outras rotas abaixo...
+// app.use("/api", ...);
+
+// Start server (importante: não bloquear com seed)
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, async () => {
+  console.log(`Server running on port ${PORT}`);
+
+  // Executa seed de forma assíncrona após o servidor subir
+  try {
+    await seedDatabase();
+    console.log("Database seeded successfully!");
+  } catch (err) {
+    console.error("Seed failed:", err);
+  }
+});
+
+2️⃣ Evitar que o seed trave o boot
+
+Abra server/db/seed.ts ou o arquivo equivalente.
+Garanta que ele exporta uma função e não roda automaticamente no import:
+
+// ❌ Errado
+seedDatabase(); // rodando no import bloqueia o boot
+
+// ✅ Certo
+export async function seedDatabase() {
+  // ... lógica
+}
+
+3️⃣ Checar se porta é 5000
+
+Se você tiver algo como const PORT = 3000;, troque para:
+
+const PORT = process.env.PORT || 5000;
+
+
+E confirme na .replit:
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+4️⃣ Reduzir startup delay
+
+Remova chamadas demoradas no index.ts antes de app.listen.
+
+Se estiver buscando dados do Polymarket ou DB no início, adie isso:
+
+app.listen(PORT, () => {
+  console.log(`Server started`);
+  setTimeout(fetchPolymarketData, 5000); // depois de subir
+});
+
+5️⃣ Testar localmente antes do republish
+npm run build
+npm run start
+
+
+Acesse o link do Replit (Preview) — se aparecer “OK” na tela, o health check vai passar.
+
+6️⃣ Ajustar seed async
+
+Se você usa Drizzle, o push e o seed não devem rodar automaticamente no deploy.
+Garanta que npx drizzle-kit push não está embutido no start script.
+
+O package.json deve ter:
+
+{
+  "scripts": {
+    "build": "vite build && esbuild server/index.ts --bundle --platform=node --outdir=dist",
+    "start": "node dist/index.js",
+    "db:push": "npx drizzle-kit push",
+    "db:seed": "node dist/db/seed.js"
+  }
+}
+
+7️⃣ Verificar se o / responde 200
+
+Com o app rodando (Replit ou local):
+
+curl http://localhost:5000/
+
+
+Se retornar:
+
+OK
+
+
+→ ✅ pronto para publicar.
