@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { pool } from "./db";
+import { stopMirror } from "./mirror/worker";
 
 const app = express();
 
@@ -77,5 +79,34 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+  });
+
+  async function gracefulShutdown(signal: string) {
+    console.log(`\n[Server] Received ${signal}, starting graceful shutdown...`);
+    
+    stopMirror();
+    
+    await new Promise<void>((resolve) => {
+      server.close(() => {
+        console.log('[Server] HTTP server closed');
+        resolve();
+      });
+    });
+
+    try {
+      await pool.end();
+      console.log('[Server] Database pool closed');
+      process.exit(0);
+    } catch (err) {
+      console.error('[Server] Error during shutdown:', err);
+      process.exit(1);
+    }
+  }
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('uncaughtException', (err) => {
+    console.error('[Server] Uncaught exception:', err);
+    gracefulShutdown('uncaughtException');
   });
 })();
