@@ -145,7 +145,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger 
             value="yes" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="data-[state=active]:bg-action-yes data-[state=active]:text-white hover-elevate"
             data-testid="tab-buy-yes"
           >
             <TrendingUp className="h-4 w-4 mr-2" />
@@ -153,7 +153,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
           </TabsTrigger>
           <TabsTrigger 
             value="no"
-            className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground"
+            className="data-[state=active]:bg-action-no data-[state=active]:text-white hover-elevate"
             data-testid="tab-buy-no"
           >
             <TrendingDown className="h-4 w-4 mr-2" />

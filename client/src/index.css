@@ -14,24 +14,24 @@
   --elevate-1: rgba(122, 76, 255, .06);
   --elevate-2: rgba(122, 76, 255, .12);
 
-  /* FUNDO ROXO PROFUNDO FUTURISTA */
-  --background: 252 33% 8%;         /* #130F1E - Roxo profundo escuro */
+  /* FUNDO ROXO MODERADO - MAIS CLARO E CONFORTÁVEL */
+  --background: 252 15% 20%;        /* Roxo escuro mas não profundo */
 
-  --foreground: 240 100% 93%;       /* #E8E8FF - Texto claro com toque roxo */
+  --foreground: 240 15% 95%;        /* Texto claro suave */
 
-  --border: 252 20% 15%;            /* Bordas roxas escuras */
+  --border: 252 12% 30%;            /* Bordas mais visíveis */
 
-  --card: 252 25% 11%;              /* #1A1922 - Cards roxos neutros */
+  --card: 252 12% 26%;              /* Cards com bom contraste */
 
-  --card-foreground: 240 100% 93%;
+  --card-foreground: 240 15% 95%;
 
-  --card-border: 252 20% 18%;
+  --card-border: 252 10% 35%;
 
-  --sidebar: 252 30% 9%;            /* Sidebar roxa profunda */
+  --sidebar: 252 15% 22%;           /* Sidebar levemente mais clara */
 
-  --sidebar-foreground: 240 100% 93%;
+  --sidebar-foreground: 240 15% 95%;
 
-  --sidebar-border: 252 20% 14%;
+  --sidebar-border: 252 12% 28%;
 
   --sidebar-primary: 256 100% 64%;  /* Roxo neon */
 
@@ -43,11 +43,11 @@
 
   --sidebar-ring: 256 100% 64%;
 
-  --popover: 252 28% 10%;
+  --popover: 252 12% 24%;
 
-  --popover-foreground: 240 100% 93%;
+  --popover-foreground: 240 15% 95%;
 
-  --popover-border: 252 20% 16%;
+  --popover-border: 252 10% 32%;
 
   /* COR PRIMÁRIA ROXO NEON */
   --primary: 256 100% 64%;          /* #7A4CFF - Roxo neon controlado */
@@ -58,9 +58,9 @@
 
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 252 20% 20%;
+  --muted: 252 10% 32%;
 
-  --muted-foreground: 240 15% 80%;
+  --muted-foreground: 240 10% 70%;
 
   --accent: 256 100% 95%;           /* #F0E9FF - Roxo suave neutro */
 
@@ -74,7 +74,7 @@
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 252 20% 16%;
+  --input: 252 10% 30%;
   --ring: 256 100% 64%;
 
   /* PALETA DE GRÁFICOS FUTURISTA */
