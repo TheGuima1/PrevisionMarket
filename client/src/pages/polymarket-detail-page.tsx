@@ -44,13 +44,13 @@ export default function PolymarketDetailPage() {
   // Get outcome names for chart lines
   const outcomeNames = market?.outcomes.map((o: any) => o.name) || [];
 
-  // Color palette for chart lines (Fintech Clean - Roxo Lavanda)
+  // Color palette for chart lines (using CSS variables for theme consistency)
   const colors = [
-    "hsl(250, 100%, 65%)",  // chart-1 roxo primário
-    "hsl(250, 100%, 83%)",  // chart-2 roxo claro
-    "hsl(280, 100%, 75%)",  // chart-3 violeta
-    "hsl(210, 100%, 65%)",  // chart-4 azul
-    "hsl(160, 84%, 58%)",   // chart-5 verde menta
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
   ];
 
   if (marketsLoading) {
@@ -157,7 +157,13 @@ export default function PolymarketDetailPage() {
                       color: "hsl(var(--card-foreground))",
                     }}
                   />
-                  <Legend />
+                  <Legend 
+                    wrapperStyle={{ 
+                      color: "hsl(var(--muted-foreground))",
+                      fontSize: "14px"
+                    }}
+                    iconType="line"
+                  />
                   {outcomeNames.map((name: string, idx: number) => (
                     <Line
                       key={name}
@@ -204,8 +210,8 @@ export default function PolymarketDetailPage() {
             </div>
 
             {/* Info box */}
-            <div className="mt-6 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg space-y-2">
-              <h3 className="font-semibold text-sm text-purple-400">⚠️ Piloto Beta</h3>
+            <div className="mt-6 p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
+              <h3 className="font-semibold text-sm text-primary">⚠️ Piloto Beta</h3>
               <p className="text-xs text-muted-foreground">
                 Este mercado é espelhado da Polymarket com spread de 2%. 
                 Apenas visualização - apostas não estão disponíveis no MVP piloto.

@@ -13,7 +13,7 @@ Palpites.AI is a prediction market platform, inspired by Polymarket, designed fo
 ## System Architecture
 
 ### UI/UX Decisions
-The platform utilizes a vibrant Brazilian color scheme with "verde-turquesa" primary, "amarelo dourado" secondary, and "roxo vibrante" accent. Typography includes Inter for body, Outfit for titles, and Roboto Mono for numerical values. All components strictly follow `design_guidelines.md`, ensuring consistent spacing, Shadcn UI component usage, an elevation system, full responsiveness, and visual states for loading, error, and empty content.
+The platform follows a **Fintech Clean** institutional design inspired by Kalshi, using an elegant purple-lavender color palette (#6B4CFF primary, #B9A9FF secondary, #E9E4FF accent) over pure white cards with subtle gray borders (#E3E4E8). The design prioritizes credibility, clarity, and professionalism through minimal shadows, clean spacing, and a sophisticated visual hierarchy. Typography includes Inter for body text, Manrope for headings, and Roboto Mono for numerical values. Light mode features a soft gray background (#F5F5F7) with white cards; dark mode uses a subtle dark gray (#17171A) with slightly elevated cards (#212125). All components strictly follow `design_guidelines.md`, ensuring institutional consistency, Shadcn UI component usage, an elevation system, full responsiveness, and visual states for loading, error, and empty content.
 
 ### Technical Implementations
 - **Frontend**: React, TypeScript, Tailwind CSS, Shadcn UI
