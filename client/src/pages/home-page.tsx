@@ -1,10 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { PublicNavbar } from "@/components/public-navbar";
+import { Navbar } from "@/components/navbar";
 import { MarketCard } from "@/components/market-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/use-auth";
 import type { Market } from "@shared/schema";
 
 export default function HomePage() {
+  const { user } = useAuth();
+  
   // Fetch Palpites.AI markets (exactly 4 markets mirroring Polymarket)
   const { data: markets, isLoading, error } = useQuery<Market[]>({
     queryKey: ["/api/markets"],
@@ -16,7 +20,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicNavbar />
+      {user ? <Navbar /> : <PublicNavbar />}
       <main className="container mx-auto px-4 py-6 space-y-8">
         {/* Hero Section */}
         <div className="space-y-4 text-center max-w-3xl mx-auto py-8">
