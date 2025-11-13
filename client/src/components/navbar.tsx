@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, User, Wallet, LogOut, LayoutDashboard, MessageSquare, Settings } from "lucide-react";
+import { Search, User, Wallet, LogOut, LayoutDashboard, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";
 import { HowToBetDialog } from "@/components/how-to-bet-dialog";
@@ -21,24 +21,25 @@ export function Navbar() {
   const navItems = [
     { href: "/", label: "Mercados", icon: LayoutDashboard },
     { href: "/portfolio", label: "Portfólio", icon: Wallet },
-    { href: "/discussions", label: "Discussões", icon: MessageSquare },
   ];
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-glass-white border-b border-[var(--border-soft)] shadow-sm">
+      <div className="container mx-auto px-6">
         <div className="flex h-16 items-center justify-between gap-4">
+          {/* Left Section: Logo + How to Bet */}
           <div className="flex items-center gap-3">
-            <HowToBetDialog />
             <Link href="/">
               <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home">
-                <span className="font-accent text-2xl font-bold bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 bg-clip-text text-transparent">
+                <span className="font-accent text-[22px] font-extrabold bg-gradient-to-r from-[var(--primary-blue)] to-[var(--primary-blue-light)] bg-clip-text text-transparent">
                   Palpites.AI
                 </span>
               </div>
             </Link>
+            <HowToBetDialog />
           </div>
 
+          {/* Center Navigation */}
           <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -47,7 +48,7 @@ export function Navbar() {
                 <Link key={item.href} href={item.href}>
                   <Button
                     variant={isActive ? "secondary" : "ghost"}
-                    className="gap-2"
+                    className={`gap-2 font-medium ${isActive ? 'text-[var(--primary-blue)]' : 'text-[var(--text-medium)]'} hover:text-[var(--primary-blue)]`}
                     data-testid={`link-${item.label.toLowerCase()}`}
                   >
                     <Icon className="h-4 w-4" />
@@ -58,25 +59,36 @@ export function Navbar() {
             })}
           </div>
 
+          {/* Search Bar */}
           <div className="flex items-center gap-2 flex-1 max-w-sm">
             <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-light)]" />
               <Input
                 type="search"
                 placeholder="Buscar mercados..."
-                className="pl-9"
+                className="pl-9 bg-white border-[var(--border-soft)] focus-visible:ring-[var(--primary-blue)]"
                 data-testid="input-search"
               />
             </div>
           </div>
 
+          {/* Right Section: Balance + Deposit + User Menu */}
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2">
-              <Badge variant="outline" className="bg-brand-500/10 border-brand-500/20 text-brand-300 font-mono tabular-nums" data-testid="badge-balance-brl3">
+              <Badge 
+                variant="outline" 
+                className="bg-[var(--primary-blue-bg)] border-[var(--primary-blue)]/20 text-[var(--primary-blue)] font-mono tabular-nums px-3 py-1" 
+                data-testid="badge-balance-brl3"
+              >
                 {parseFloat(user?.balanceBrl || "0").toLocaleString('pt-BR', { minimumFractionDigits: 2 })} BRL3
               </Badge>
               <Link href="/wallet/deposit">
-                <Button variant="outline" size="sm" className="border-brand-500/30 hover:bg-brand-500/10" data-testid="button-deposit-pix">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-[var(--primary-blue)]/30 text-[var(--primary-blue)] hover:bg-[var(--glass-blue)] font-medium" 
+                  data-testid="button-deposit-pix"
+                >
                   Depositar PIX
                 </Button>
               </Link>
@@ -84,18 +96,23 @@ export function Navbar() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" data-testid="button-user-menu">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="hover:bg-[var(--glass-blue)]"
+                  data-testid="button-user-menu"
+                >
                   <User className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56 bg-white border-[var(--border-soft)]">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium" data-testid="text-username">@{user?.username}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                    <p className="text-sm font-medium text-[var(--text-dark)]" data-testid="text-username">@{user?.username}</p>
+                    <p className="text-xs text-[var(--text-medium)] truncate">{user?.email}</p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-[var(--border-soft)]" />
                 <DropdownMenuItem asChild>
                   <Link href="/portfolio" className="cursor-pointer w-full">
                     <Wallet className="mr-2 h-4 w-4" />
@@ -110,10 +127,10 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-[var(--border-soft)]" />
                 <DropdownMenuItem
                   onClick={() => logoutMutation.mutate()}
-                  className="cursor-pointer text-destructive focus:text-destructive"
+                  className="cursor-pointer text-[var(--red-tech)] focus:text-[var(--red-tech)]"
                   data-testid="button-logout"
                 >
                   <LogOut className="mr-2 h-4 w-4" />

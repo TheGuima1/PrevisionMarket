@@ -7,34 +7,40 @@ export function PublicNavbar() {
   const [, setLocation] = useLocation();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        {/* Left Section: Como Palpitar + Logo */}
+    <header className="fixed top-0 left-0 right-0 z-50 bg-glass-white border-b border-[var(--border-soft)] shadow-sm">
+      <div className="container mx-auto flex h-16 items-center justify-between px-6">
+        {/* Left Section: Logo + Como Palpitar */}
         <div className="flex items-center gap-4">
-          <HowToBetDialog />
           <Link href="/" data-testid="link-home">
             <span className="flex items-center gap-2 hover-elevate px-3 py-1 rounded-md transition-all cursor-pointer">
-              <span className="font-accent text-3xl font-bold text-primary">
+              <span className="font-accent text-[22px] font-extrabold bg-gradient-to-r from-[var(--primary-blue)] to-[var(--primary-blue-light)] bg-clip-text text-transparent">
                 Palpites.AI
               </span>
             </span>
           </Link>
+          <HowToBetDialog />
         </div>
 
-        {/* Auth Buttons */}
+        {/* Center Navigation (hidden on mobile) */}
+        <div className="hidden md:flex items-center gap-6 text-[var(--text-medium)] font-medium">
+          <Link href="/">
+            <a className="hover:text-[var(--primary-blue)] transition cursor-pointer">
+              Mercados
+            </a>
+          </Link>
+          <Link href="/wallet/deposit">
+            <a className="hover:text-[var(--primary-blue)] transition cursor-pointer">
+              Carteira
+            </a>
+          </Link>
+        </div>
+
+        {/* Right Section: Auth Buttons */}
         <div className="flex items-center gap-3">
           <Button 
-            variant="outline"
-            onClick={() => setLocation("/wallet/deposit")}
-            className="bg-primary/10 border-primary/20 text-primary no-default-hover-elevate text-base h-10 px-5"
-            data-testid="button-deposit-pix"
-          >
-            Depositar via PIX
-          </Button>
-          <Button 
-            variant="ghost" 
+            variant="ghost"
             onClick={() => setLocation("/auth")}
-            className="no-default-hover-elevate text-base h-10 px-4"
+            className="px-4 py-2 text-[var(--primary-blue)] font-medium hover:bg-[var(--glass-blue)] rounded-md transition no-default-hover-elevate"
             data-testid="button-login"
           >
             <LogIn className="h-5 w-5 mr-2" />
@@ -42,11 +48,11 @@ export function PublicNavbar() {
           </Button>
           <Button 
             onClick={() => setLocation("/auth")}
-            className="no-default-hover-elevate text-base h-10 px-5"
+            className="px-5 py-2 bg-[var(--primary-blue)] text-white font-semibold rounded-md hover:brightness-110 transition no-default-hover-elevate"
             data-testid="button-signup"
           >
             <UserPlus className="h-5 w-5 mr-2" />
-            Sign Up
+            Criar Conta
           </Button>
         </div>
       </div>
