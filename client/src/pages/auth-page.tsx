@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,14 @@ export default function AuthPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="login-password">Senha</Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="login-password">Senha</Label>
+                        <Link href="/forgot-password">
+                          <a className="text-xs text-primary hover:underline" data-testid="link-forgot-password">
+                            Esqueci minha senha
+                          </a>
+                        </Link>
+                      </div>
                       <Input
                         id="login-password"
                         type="password"

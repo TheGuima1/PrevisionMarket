@@ -15,6 +15,8 @@ import PortfolioPage from "@/pages/portfolio-page";
 import AdminPage from "@/pages/admin-page";
 import AuthPage from "@/pages/auth-page";
 import DepositPage from "@/pages/deposit-page";
+import ForgotPasswordPage from "@/pages/forgot-password-page";
+import ResetPasswordPage from "@/pages/reset-password-page";
 import NotFound from "@/pages/not-found";
 
 function UsernameGuard({ children }: { children: React.ReactNode }) {
@@ -46,6 +48,8 @@ function Router() {
       {/* Public Routes */}
       <Route path="/" component={HomePage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/market/:id" component={MarketDetailPage} />
       <Route path="/polymarket/:slug" component={PolymarketDetailPage} />
       <Route path="/wallet/deposit" component={DepositPage} />
