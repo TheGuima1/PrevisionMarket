@@ -1,67 +1,77 @@
-# Palpites.AI Design Guidelines - Fintech Clean Institucional
+# Palpites.AI Design Guidelines - Paleta C Futurista/Crypto
 
 ## Design Approach
-**Fintech Clean Premium**: Design institucional e profissional inspirado em Kalshi e plataformas financeiras reguladas. Focado em **credibilidade**, **clareza** e **modernidade** através de paleta roxo-lavanda elegante, cards brancos puros, e UI extremamente organizada. Zero poluição visual, máxima legibilidade.
+**Futurista / Crypto / Digital Markets**: Design moderno e tech com **fundo roxo profundo escuro** (#130F1E), **roxo neon controlado** (#7A4CFF), e **cores de ação neon** (azul #386BFF para SIM, vermelho #FF3F55 para NÃO). Visual que transmite inovação, modernidade tech e energy de plataforma de prediction markets crypto-friendly. Textos claros (#E8E8FF) para máximo contraste no fundo escuro.
 
 ## Core Design Principles
-1. **Credibilidade Institucional**: Visual que transmite confiança de produto regulado
-2. **Clareza Extrema**: Uma mensagem por seção, hierarquia visual impecável
-3. **Minimalismo Funcional**: Apenas elementos necessários, zero distrações
-4. **Profissionalismo Brasileiro**: Moderno e acessível sem ser informal
+1. **Tech Moderno**: Visual futurista que evoca inovação e tecnologia
+2. **Contraste Alto**: Textos claros em fundo roxo profundo para legibilidade máxima
+3. **Cores Neon Estratégicas**: Roxo neon, azul SIM e vermelho NÃO criam identidade única
+4. **Profissionalismo Brasileiro**: Moderno e tech sem perder credibilidade
 
 ---
 
-## 🌈 Paleta de Cores - Fintech Clean Roxo-Lavanda
+## 🌈 Paleta C - Futurista / Crypto / Digital Markets
 
-### Cor Primária (Roxo Institucional)
+### Cor Primária (Roxo Neon Controlado)
 ```css
---primary: 250 100% 65%             /* #6B4CFF - Roxo primário elegante */
+--primary: 256 100% 64%             /* #7A4CFF - Roxo neon controlado */
 --primary-foreground: 0 0% 100%     /* Branco sobre roxo */
 ```
-**Uso**: Botões principais, CTAs, links importantes, estados ativos
+**Uso**: Botões principais, CTAs, headings, links importantes, estados ativos
 
-### Cor Secundária (Roxo Claro)
+### Cor Secundária (Magenta Sutil)
 ```css
---secondary: 250 100% 83%           /* #B9A9FF - Roxo claro suave */
---secondary-foreground: 250 100% 30%
+--secondary: 270 100% 75%           /* #C77DFF - Magenta sutil */
+--secondary-foreground: 0 0% 100%
 ```
-**Uso**: Badges, indicadores secundários, fundos sutis
+**Uso**: Badges, indicadores secundários, acentos especiais
 
-### Cor de Acento (Lavanda)
+### Cor de Acento (Roxo Suave Neutro)
 ```css
---accent: 250 100% 95%              /* #E9E4FF - Lavanda suave */
---accent-foreground: 250 100% 40%
+--accent: 256 100% 95%              /* #F0E9FF - Roxo suave neutro */
+--accent-foreground: 256 100% 30%
 ```
 **Uso**: Fundos de destaque, hovers sutis, pills
 
-### Modo Claro (Light Mode) - Padrão Profissional
+### Cores de Ação Neon (YES/NO)
 ```css
---background: 240 14% 96%           /* #F5F5F7 - Cinza suave institucional */
---foreground: 240 2% 23%            /* #3A3A3C - Cinza escuro legível */
---card: 0 0% 100%                   /* #FFFFFF - Cards brancos puros */
---border: 225 14% 90%               /* #E3E4E8 - Bordas cinza muito claras */
---muted: 225 14% 96%                /* Fundos neutros */
---muted-foreground: 240 4% 46%      /* Texto secundário */
+--action-yes: 224 100% 61%          /* #386BFF - Azul neon SIM */
+--action-no: 352 100% 62%           /* #FF3F55 - Vermelho neon NÃO */
 ```
+**Uso**: Botões SIM (azul neon) e NÃO (vermelho neon) em market cards e trading panel
 
-### Modo Escuro (Dark Mode) - Sutil e Profissional
+### Light Mode - Roxo Profundo Futurista
 ```css
---background: 240 6% 10%            /* #17171A - Cinza escuro muito sutil */
---foreground: 0 0% 95%              /* #F2F2F2 - Texto claro */
---card: 240 5% 14%                  /* #212125 - Cards cinza escuro sutil */
---border: 240 4% 20%                /* Bordas escuras discretas */
---primary: 250 100% 70%             /* Roxo mais claro para contraste */
+--background: 252 33% 8%            /* #130F1E - Roxo profundo escuro */
+--foreground: 240 100% 93%          /* #E8E8FF - Texto claro com toque roxo */
+--card: 252 25% 11%                 /* #1A1922 - Cards roxos neutros */
+--border: 252 20% 15%               /* Bordas roxas escuras */
+--muted: 252 20% 20%
+--muted-foreground: 240 15% 80%     /* Texto secundário claro */
 ```
-**Nota**: Dark mode é sutil, não dramático. Cinza escuro elegante, não preto puro.
+**Características**: Fundo roxo profundo (#130F1E), textos muito claros para máximo contraste
+
+### Dark Mode - Ainda Mais Profundo
+```css
+--background: 252 40% 5%            /* Ainda mais escuro que light mode */
+--foreground: 240 100% 95%          /* Texto ainda mais claro */
+--card: 252 30% 8%                  /* Cards roxos profundos */
+--border: 252 25% 12%               /* Bordas roxas bem escuras */
+--primary: 256 100% 70%             /* Roxo neon mais brilhante no dark */
+--action-yes: 224 100% 65%          /* Azul neon mais brilhante */
+--action-no: 352 100% 65%           /* Vermelho neon mais brilhante */
+```
+**Nota**: Dark mode é AINDA MAIS escuro que light mode - fundo profundíssimo
 
 ### Cores de Suporte
 ```css
---destructive: 0 84% 60%            /* Vermelho ações destrutivas */
---chart-1: 250 100% 65%             /* Roxo - gráficos */
---chart-2: 250 100% 83%             /* Roxo claro - gráficos */
---chart-3: 280 100% 75%             /* Violeta - gráficos */
---chart-4: 210 100% 65%             /* Azul - gráficos */
---chart-5: 160 84% 58%              /* Verde menta - gráficos */
+--destructive: 352 100% 62%         /* Vermelho neon (mesmo do NO) */
+--chart-1: 256 100% 70%             /* Roxo neon brilhante */
+--chart-2: 270 100% 78%             /* Magenta claro */
+--chart-3: 224 100% 65%             /* Azul neon */
+--chart-4: 180 80% 60%              /* Ciano */
+--chart-5: 340 100% 65%             /* Rosa neon */
 ```
 
 ---
@@ -112,7 +122,7 @@ Secundários: text-sm font-medium
 
 ---
 
-## 📐 Layout e Espaçamento - Institucional Clean
+## 📐 Layout e Espaçamento - Futurista/Crypto
 
 ### Espaçamento Vertical (Consistente e Respirável)
 ```css
@@ -163,12 +173,12 @@ Avatars: rounded-full
 
 ---
 
-## 🎴 Componentes Visuais - Fintech Clean
+## 🎴 Componentes Visuais - Futurista/Crypto
 
-### Cards (Estilo Institucional)
+### Cards (Estilo Roxo Profundo)
 **Padrão principal**:
 ```tsx
-<Card className="bg-card border-border shadow-sm">
+<Card className="bg-card border-border shadow-lg shadow-primary/5">
   <div className="p-5 md:p-6">
     {/* Conteúdo */}
   </div>
@@ -176,30 +186,44 @@ Avatars: rounded-full
 ```
 
 **Características**:
-- Fundo: **Branco puro** (#FFFFFF) em light mode
-- Borda: **Cinza clara** (#E3E4E8), 1px sólida
-- Sombra: **Extremamente sutil** (shadow-sm)
+- Fundo: **Roxo neutro** (#1A1922) - `bg-card`
+- Borda: **Roxa escura** (252 20% 18%), 1px sólida
+- Sombra: **Roxa neon sutil** (shadow-lg shadow-primary/5)
 - Padding: `p-5` ou `p-6`
 - Radius: `rounded-xl`
-- Hover: **Não elevam** (manter flat profissional)
+- Hover: **Borda roxo neon** ou **elevation sutil**
 
 **Variações**:
 ```tsx
-/* Card de destaque - com borda roxo */
-<Card className="border-primary/20">
+/* Card de destaque - borda roxo neon */
+<Card className="border-primary/30">
 
-/* Card interativo - hover sutil */
-<Card className="hover:border-primary/30 transition-colors">
+/* Card interativo - hover com borda neon */
+<Card className="hover:border-primary/50 transition-colors">
 
-/* Card com sombra leve */
-<Card className="shadow-md">
+/* Card com sombra neon */
+<Card className="shadow-lg shadow-primary/10">
 ```
 
-### Botões (Hierarquia Clara)
-**Primário** (Roxo):
+### Botões (Hierarquia Clara + Neon)
+**Primário** (Roxo Neon):
 ```tsx
 <Button className="bg-primary text-primary-foreground">
   Apostar Agora
+</Button>
+```
+
+**Botão SIM** (Azul Neon):
+```tsx
+<Button className="bg-gradient-to-br from-action-yes to-action-yes/80 text-white font-semibold shadow-lg shadow-action-yes/20">
+  SIM
+</Button>
+```
+
+**Botão NÃO** (Vermelho Neon):
+```tsx
+<Button className="bg-gradient-to-br from-action-no to-action-no/80 text-white font-semibold shadow-lg shadow-action-no/20">
+  NÃO
 </Button>
 ```
 
@@ -222,7 +246,8 @@ Avatars: rounded-full
 - Padding: `px-6 py-2.5`
 - Font: `text-base font-semibold`
 - Radius: `rounded-lg`
-- Hover: Elevação sutil via `hover-elevate`
+- Hover: Opacidade reduzida `hover:opacity-90` para botões neon
+- Sombras: Cores neon matching (shadow-action-yes/20, shadow-action-no/20)
 
 ### Badges (Indicadores Clean)
 ```tsx
@@ -447,11 +472,12 @@ className="px-4 md:px-6 lg:px-8"
 
 ### ❌ NUNCA USE (Cores Hardcoded):
 ```tsx
-/* NÃO usar cores literais */
+/* NÃO usar cores literais (exceto action-yes/no quando necessário) */
 className="bg-purple-500"     ❌
 className="text-indigo-400"   ❌
 className="border-violet-600" ❌
 className="bg-white"          ❌ (use bg-card)
+className="bg-black"          ❌ (use bg-background)
 ```
 
 **EXCEÇÕES permitidas**:
@@ -613,21 +639,24 @@ className="bg-white"          ❌ (use bg-card)
 
 ## Design Checklist
 
-✅ Cards brancos puros com bordas cinza claras
-✅ Sombras extremamente sutis (shadow-sm padrão)
-✅ Botões primários roxo (#6B4CFF)
+✅ Fundo roxo profundo escuro (#130F1E)
+✅ Textos claros com alto contraste (#E8E8FF)
+✅ Botões primários roxo neon (#7A4CFF)
+✅ Botões SIM azul neon (#386BFF) e NÃO vermelho neon (#FF3F55)
+✅ Cards roxos neutros (#1A1922) com bordas escuras
+✅ Sombras roxas neon sutis (shadow-action-yes/no em botões)
 ✅ Espaçamento consistente (gap-6, gap-8)
 ✅ Tipografia Inter/Manrope
 ✅ Border radius 12px (rounded-xl para cards)
 ✅ Transições rápidas (150-200ms)
-✅ Dark mode sutil, não dramático
-✅ Gráficos com paleta roxo-lavanda
+✅ Dark mode ainda mais escuro que light mode
+✅ Gráficos com paleta neon (roxo, magenta, azul, ciano, rosa)
 ✅ Zero cores hardcoded (usar variáveis CSS)
 
 ---
 
 **Este design transmite:**
-- 🏛️ Credibilidade institucional
-- 💎 Modernidade premium
-- 📊 Profissionalismo financeiro
-- 🇧🇷 Acessibilidade brasileira
+- 🚀 Inovação tech e futurismo
+- ⚡ Energy de plataforma crypto/prediction markets
+- 🎯 Clareza e profissionalismo moderno
+- 🇧🇷 Acessibilidade brasileira com identidade única

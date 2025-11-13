@@ -2,97 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
-/* FINTECH CLEAN - Paleta Roxo-Lavanda Institucional */
+/* PALETA C - FUTURISTA / CRYPTO / DIGITAL MARKETS */
 :root {
-  --button-outline: rgba(107, 76, 255, .12);
-  --badge-outline: rgba(107, 76, 255, .08);
+  --button-outline: rgba(122, 76, 255, .15);
+  --badge-outline: rgba(122, 76, 255, .10);
 
   /* Automatic computation of border around primary / danger buttons */
   --opaque-button-border-intensity: -8; /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(107, 76, 255, .04);
-  --elevate-2: rgba(107, 76, 255, .10);
+  --elevate-1: rgba(122, 76, 255, .06);
+  --elevate-2: rgba(122, 76, 255, .12);
 
-  /* FUNDO ESCURO ESTILO 3BIT - Roxo/Vinho */
-  --background: 320 35% 14%;        /* #2E1B2C - Roxo/vinho escuro igual 3BIT */
+  /* FUNDO ROXO PROFUNDO FUTURISTA */
+  --background: 252 33% 8%;         /* #130F1E - Roxo profundo escuro */
 
-  --foreground: 0 0% 95%;           /* #F2F2F2 - Texto claro */
+  --foreground: 240 100% 93%;       /* #E8E8FF - Texto claro com toque roxo */
 
-  --border: 310 25% 22%;            /* Bordas roxas escuras */
+  --border: 252 20% 15%;            /* Bordas roxas escuras */
 
-  --card: 310 30% 22%;              /* #4A2847 - Cards roxos levemente elevados */
+  --card: 252 25% 11%;              /* #1A1922 - Cards roxos neutros */
 
-  --card-foreground: 0 0% 95%;
+  --card-foreground: 240 100% 93%;
 
-  --card-border: 310 25% 28%;
+  --card-border: 252 20% 18%;
 
-  --sidebar: 315 32% 18%;           /* Sidebar roxa escura */
+  --sidebar: 252 30% 9%;            /* Sidebar roxa profunda */
 
-  --sidebar-foreground: 0 0% 95%;
+  --sidebar-foreground: 240 100% 93%;
 
-  --sidebar-border: 310 25% 24%;
+  --sidebar-border: 252 20% 14%;
 
-  --sidebar-primary: 250 100% 65%;  /* Roxo primário */
+  --sidebar-primary: 256 100% 64%;  /* Roxo neon */
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 310 25% 26%;
+  --sidebar-accent: 252 25% 15%;
 
-  --sidebar-accent-foreground: 250 100% 75%;
+  --sidebar-accent-foreground: 256 100% 78%;
 
-  --sidebar-ring: 250 100% 65%;
+  --sidebar-ring: 256 100% 64%;
 
-  --popover: 315 30% 20%;
+  --popover: 252 28% 10%;
 
-  --popover-foreground: 0 0% 95%;
+  --popover-foreground: 240 100% 93%;
 
-  --popover-border: 310 25% 26%;
+  --popover-border: 252 20% 16%;
 
-  /* COR PRIMÁRIA ROXO ELEGANTE */
-  --primary: 250 100% 65%;          /* #6B4CFF - Roxo primário institucional */
+  /* COR PRIMÁRIA ROXO NEON */
+  --primary: 256 100% 64%;          /* #7A4CFF - Roxo neon controlado */
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 250 100% 83%;        /* #B9A9FF - Roxo claro suave */
+  --secondary: 270 100% 75%;        /* #C77DFF - Magenta sutil */
 
-  --secondary-foreground: 315 30% 15%;
+  --secondary-foreground: 0 0% 100%;
 
-  --muted: 310 20% 28%;
+  --muted: 252 20% 20%;
 
-  --muted-foreground: 0 0% 70%;
+  --muted-foreground: 240 15% 80%;
 
-  --accent: 250 100% 95%;           /* #E9E4FF - Lavanda suave */
+  --accent: 256 100% 95%;           /* #F0E9FF - Roxo suave neutro */
 
-  --accent-foreground: 250 100% 75%;
+  --accent-foreground: 256 100% 30%;
 
-  --destructive: 0 84% 60%;
+  /* CORES DE AÇÃO NEON */
+  --action-yes: 224 100% 61%;       /* #386BFF - Azul neon SIM */
+  --action-no: 352 100% 62%;        /* #FF3F55 - Vermelho neon NÃO */
+
+  --destructive: 352 100% 62%;      /* Mesmo vermelho neon */
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 310 25% 26%;
-  --ring: 250 100% 65%;
+  --input: 252 20% 16%;
+  --ring: 256 100% 64%;
 
-  /* PALETA DE GRÁFICOS FUNDO ESCURO */
-  --chart-1: 250 100% 75%;          /* Roxo brilhante */
-  --chart-2: 250 100% 85%;          /* Roxo muito claro */
-  --chart-3: 280 100% 80%;          /* Violeta claro */
-  --chart-4: 210 100% 70%;          /* Azul claro */
-  --chart-5: 160 70% 65%;           /* Verde menta claro */
+  /* PALETA DE GRÁFICOS FUTURISTA */
+  --chart-1: 256 100% 70%;          /* Roxo neon brilhante */
+  --chart-2: 270 100% 78%;          /* Magenta claro */
+  --chart-3: 224 100% 65%;          /* Azul neon */
+  --chart-4: 180 80% 60%;           /* Ciano */
+  --chart-5: 340 100% 65%;          /* Rosa neon */
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-accent: 'Manrope', 'Inter', -apple-system, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Roboto Mono', 'SF Mono', Menlo, monospace;
   --radius: .75rem; /* 12px - Arredondamento suave institucional */
-  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.20);
-  --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.30);
-  --shadow-sm: 0px 2px 4px -1px hsl(0 0% 0% / 0.25), 0px 1px 2px -1px hsl(0 0% 0% / 0.20);
-  --shadow: 0px 4px 6px -1px hsl(0 0% 0% / 0.35), 0px 2px 4px -2px hsl(0 0% 0% / 0.25);
-  --shadow-md: 0px 6px 12px -2px hsl(0 0% 0% / 0.40), 0px 3px 6px -3px hsl(0 0% 0% / 0.30);
-  --shadow-lg: 0px 10px 20px -4px hsl(0 0% 0% / 0.45), 0px 4px 8px -4px hsl(0 0% 0% / 0.30);
-  --shadow-xl: 0px 20px 30px -6px hsl(0 0% 0% / 0.50), 0px 8px 12px -6px hsl(0 0% 0% / 0.35);
-  --shadow-2xl: 0px 30px 50px -12px hsl(0 0% 0% / 0.60);
+  --shadow-2xs: 0px 1px 2px 0px hsl(256 100% 64% / 0.10);
+  --shadow-xs: 0px 1px 3px 0px hsl(256 100% 64% / 0.15);
+  --shadow-sm: 0px 2px 4px -1px hsl(256 100% 64% / 0.12), 0px 1px 2px -1px hsl(0 0% 0% / 0.20);
+  --shadow: 0px 4px 6px -1px hsl(256 100% 64% / 0.15), 0px 2px 4px -2px hsl(0 0% 0% / 0.25);
+  --shadow-md: 0px 6px 12px -2px hsl(256 100% 64% / 0.18), 0px 3px 6px -3px hsl(0 0% 0% / 0.30);
+  --shadow-lg: 0px 10px 20px -4px hsl(256 100% 64% / 0.20), 0px 4px 8px -4px hsl(0 0% 0% / 0.30);
+  --shadow-xl: 0px 20px 30px -6px hsl(256 100% 64% / 0.22), 0px 8px 12px -6px hsl(0 0% 0% / 0.35);
+  --shadow-2xl: 0px 30px 50px -12px hsl(256 100% 64% / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -119,92 +123,95 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
-/* DARK MODE SUTIL - Não dramático, profissional */
+/* DARK MODE - Paleta C Futurista ainda mais escura */
 .dark {
-  --button-outline: rgba(185, 169, 255, .15);
-  --badge-outline: rgba(185, 169, 255, .10);
+  --button-outline: rgba(199, 125, 255, .18);
+  --badge-outline: rgba(199, 125, 255, .12);
 
   --opaque-button-border-intensity: 8;
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(185, 169, 255, .06);
-  --elevate-2: rgba(185, 169, 255, .12);
+  --elevate-1: rgba(199, 125, 255, .08);
+  --elevate-2: rgba(199, 125, 255, .14);
 
-  /* Dark mode sutil - cinza escuro elegante */
-  --background: 240 6% 10%;         /* #17171A - Cinza escuro muito sutil */
+  /* FUNDO AINDA MAIS PROFUNDO NO DARK MODE */
+  --background: 252 40% 5%;         /* Ainda mais escuro que light mode */
 
-  --foreground: 0 0% 95%;           /* #F2F2F2 - Texto claro */
+  --foreground: 240 100% 95%;       /* Texto ainda mais claro no dark */
 
-  --border: 240 4% 20%;             /* Bordas cinza escuro */
+  --border: 252 25% 12%;            /* Bordas roxas bem escuras */
 
-  --card: 240 5% 14%;               /* #212125 - Cards cinza escuro sutil */
+  --card: 252 30% 8%;               /* Cards roxos profundos */
 
-  --card-foreground: 0 0% 95%;
+  --card-foreground: 240 100% 95%;
 
-  --card-border: 240 4% 22%;
+  --card-border: 252 25% 14%;
 
-  --sidebar: 240 6% 12%;            /* Sidebar levemente mais escura */
+  --sidebar: 252 35% 6%;            /* Sidebar roxa profundíssima */
 
-  --sidebar-foreground: 0 0% 93%;
+  --sidebar-foreground: 240 100% 95%;
 
-  --sidebar-border: 240 4% 18%;
+  --sidebar-border: 252 25% 11%;
 
-  --sidebar-primary: 250 100% 70%;  /* Roxo mais claro no dark */
+  --sidebar-primary: 256 100% 70%;  /* Roxo neon mais brilhante no dark */
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 240 5% 20%;
+  --sidebar-accent: 252 30% 12%;
 
-  --sidebar-accent-foreground: 250 100% 75%;
+  --sidebar-accent-foreground: 270 100% 80%;
 
-  --sidebar-ring: 250 100% 70%;
+  --sidebar-ring: 256 100% 70%;
 
-  --popover: 240 5% 15%;
+  --popover: 252 32% 7%;
 
-  --popover-foreground: 0 0% 95%;
+  --popover-foreground: 240 100% 95%;
 
-  --popover-border: 240 4% 22%;
+  --popover-border: 252 25% 13%;
 
-  /* COR PRIMÁRIA no dark mode - roxo mais vibrante */
-  --primary: 250 100% 70%;          /* Roxo mais claro para contraste */
+  /* COR PRIMÁRIA ROXO NEON NO DARK - Mais vibrante */
+  --primary: 256 100% 70%;          /* Roxo neon mais brilhante */
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 250 100% 80%;        /* Roxo muito claro */
+  --secondary: 270 100% 78%;        /* Magenta mais claro */
 
-  --secondary-foreground: 240 6% 10%;
+  --secondary-foreground: 0 0% 100%;
 
-  --muted: 240 4% 22%;
+  --muted: 252 25% 18%;
 
-  --muted-foreground: 0 0% 65%;
+  --muted-foreground: 240 15% 85%;
 
-  --accent: 240 5% 20%;
+  --accent: 256 100% 96%;           /* Roxo suave quase branco */
 
-  --accent-foreground: 250 100% 75%;
+  --accent-foreground: 256 100% 25%;
 
-  --destructive: 0 84% 65%;
+  /* CORES DE AÇÃO NEON - Mesmas em ambos os modos */
+  --action-yes: 224 100% 65%;       /* Azul neon mais brilhante no dark */
+  --action-no: 352 100% 65%;        /* Vermelho neon mais brilhante no dark */
+
+  --destructive: 352 100% 65%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 240 4% 22%;
-  --ring: 250 100% 70%;
+  --input: 252 25% 14%;
+  --ring: 256 100% 70%;
 
   /* PALETA DE GRÁFICOS DARK MODE */
-  --chart-1: 250 100% 75%;          /* Roxo brilhante */
-  --chart-2: 250 100% 85%;          /* Roxo muito claro */
-  --chart-3: 280 100% 80%;          /* Violeta claro */
-  --chart-4: 210 100% 70%;          /* Azul claro */
-  --chart-5: 160 70% 65%;           /* Verde menta claro */
+  --chart-1: 256 100% 75%;          /* Roxo neon super brilhante */
+  --chart-2: 270 100% 82%;          /* Magenta muito claro */
+  --chart-3: 224 100% 70%;          /* Azul neon brilhante */
+  --chart-4: 180 85% 65%;           /* Ciano brilhante */
+  --chart-5: 340 100% 70%;          /* Rosa neon brilhante */
 
-  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.20);
-  --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.30);
-  --shadow-sm: 0px 2px 4px -1px hsl(0 0% 0% / 0.25), 0px 1px 2px -1px hsl(0 0% 0% / 0.20);
-  --shadow: 0px 4px 6px -1px hsl(0 0% 0% / 0.35), 0px 2px 4px -2px hsl(0 0% 0% / 0.25);
-  --shadow-md: 0px 6px 12px -2px hsl(0 0% 0% / 0.40), 0px 3px 6px -3px hsl(0 0% 0% / 0.30);
-  --shadow-lg: 0px 10px 20px -4px hsl(0 0% 0% / 0.45), 0px 4px 8px -4px hsl(0 0% 0% / 0.30);
-  --shadow-xl: 0px 20px 30px -6px hsl(0 0% 0% / 0.50), 0px 8px 12px -6px hsl(0 0% 0% / 0.35);
-  --shadow-2xl: 0px 30px 50px -12px hsl(0 0% 0% / 0.60);
-
+  --shadow-2xs: 0px 1px 2px 0px hsl(256 100% 70% / 0.12);
+  --shadow-xs: 0px 1px 3px 0px hsl(256 100% 70% / 0.18);
+  --shadow-sm: 0px 2px 4px -1px hsl(256 100% 70% / 0.15), 0px 1px 2px -1px hsl(0 0% 0% / 0.25);
+  --shadow: 0px 4px 6px -1px hsl(256 100% 70% / 0.18), 0px 2px 4px -2px hsl(0 0% 0% / 0.30);
+  --shadow-md: 0px 6px 12px -2px hsl(256 100% 70% / 0.20), 0px 3px 6px -3px hsl(0 0% 0% / 0.35);
+  --shadow-lg: 0px 10px 20px -4px hsl(256 100% 70% / 0.22), 0px 4px 8px -4px hsl(0 0% 0% / 0.35);
+  --shadow-xl: 0px 20px 30px -6px hsl(256 100% 70% / 0.25), 0px 8px 12px -6px hsl(0 0% 0% / 0.40);
+  --shadow-2xl: 0px 30px 50px -12px hsl(256 100% 70% / 0.28);
 }
 
 @layer base {
