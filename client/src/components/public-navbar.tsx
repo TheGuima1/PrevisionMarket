@@ -23,15 +23,11 @@ export function PublicNavbar() {
 
         {/* Center Navigation (hidden on mobile) */}
         <div className="hidden md:flex items-center gap-6 text-[var(--text-medium)] font-medium">
-          <Link href="/">
-            <a className="hover:text-[var(--primary-blue)] transition cursor-pointer">
-              Mercados
-            </a>
+          <Link href="/" className="hover:text-[var(--primary-blue)] transition">
+            Mercados
           </Link>
-          <Link href="/wallet/deposit">
-            <a className="hover:text-[var(--primary-blue)] transition cursor-pointer">
-              Carteira
-            </a>
+          <Link href="/wallet/deposit" className="hover:text-[var(--primary-blue)] transition">
+            Carteira
           </Link>
         </div>
 
@@ -40,7 +36,7 @@ export function PublicNavbar() {
           <Button 
             variant="ghost"
             onClick={() => setLocation("/auth")}
-            className="px-4 py-2 text-[var(--primary-blue)] font-medium hover:bg-[var(--glass-blue)] rounded-md transition no-default-hover-elevate"
+            className="text-[var(--primary-blue)] font-medium"
             data-testid="button-login"
           >
             <LogIn className="h-5 w-5 mr-2" />
@@ -48,7 +44,7 @@ export function PublicNavbar() {
           </Button>
           <Button 
             onClick={() => setLocation("/auth")}
-            className="px-5 py-2 bg-[var(--primary-blue)] text-white font-semibold rounded-md hover:brightness-110 transition no-default-hover-elevate"
+            className="bg-[var(--primary-blue)] text-white font-semibold"
             data-testid="button-signup"
           >
             <UserPlus className="h-5 w-5 mr-2" />
