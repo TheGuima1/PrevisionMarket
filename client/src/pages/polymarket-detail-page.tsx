@@ -44,13 +44,13 @@ export default function PolymarketDetailPage() {
   // Get outcome names for chart lines
   const outcomeNames = market?.outcomes.map((o: any) => o.name) || [];
 
-  // Color palette for chart lines (using 3BIT theme colors)
+  // Color palette for chart lines (Fintech Clean - Roxo Lavanda)
   const colors = [
-    "hsl(173, 80%, 40%)",  // chart-1 verde-turquesa
-    "hsl(320, 35%, 50%)",  // chart-2 roxo/vinho
-    "hsl(280, 40%, 55%)",  // chart-3 violeta
-    "hsl(200, 60%, 50%)",  // chart-4 azul
-    "hsl(150, 55%, 45%)",  // chart-5 verde
+    "hsl(250, 100%, 65%)",  // chart-1 roxo primário
+    "hsl(250, 100%, 83%)",  // chart-2 roxo claro
+    "hsl(280, 100%, 75%)",  // chart-3 violeta
+    "hsl(210, 100%, 65%)",  // chart-4 azul
+    "hsl(160, 84%, 58%)",   // chart-5 verde menta
   ];
 
   if (marketsLoading) {
@@ -101,7 +101,7 @@ export default function PolymarketDetailPage() {
           <div className="flex items-start gap-3">
             <Badge 
               variant="outline" 
-              className="whitespace-nowrap inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary border-primary/30"
+              className="bg-primary/10 text-primary border-primary/20"
             >
               <TrendingUp className="h-3 w-3" />
               Polymarket
@@ -116,7 +116,7 @@ export default function PolymarketDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Chart */}
-          <Card className="lg:col-span-2 p-6">
+          <Card className="lg:col-span-2 p-6 bg-card border-border shadow-sm">
             <h2 className="text-xl font-semibold mb-4">Histórico de Probabilidades</h2>
             
             {historyLoading ? (
@@ -128,23 +128,32 @@ export default function PolymarketDetailPage() {
             ) : (
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke="hsl(var(--border))" 
+                    opacity={0.3}
+                  />
                   <XAxis 
                     dataKey="timestamp" 
-                    stroke="hsl(var(--foreground))"
-                    tick={{ fill: "hsl(var(--muted-foreground))" }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                   />
                   <YAxis 
                     domain={[0, 100]}
-                    stroke="hsl(var(--foreground))"
-                    tick={{ fill: "hsl(var(--muted-foreground))" }}
-                    label={{ value: 'Probabilidade (%)', angle: -90, position: 'insideLeft', fill: "hsl(var(--muted-foreground))" }}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    label={{ 
+                      value: 'Probabilidade (%)', 
+                      angle: -90, 
+                      position: 'insideLeft', 
+                      fill: "hsl(var(--muted-foreground))" 
+                    }}
                   />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",
-                      borderColor: "hsl(var(--border))",
-                      borderRadius: "0.5rem",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
                       color: "hsl(var(--card-foreground))",
                     }}
                   />
@@ -155,8 +164,9 @@ export default function PolymarketDetailPage() {
                       type="monotone"
                       dataKey={name}
                       stroke={colors[idx % colors.length]}
-                      strokeWidth={2}
-                      dot={false}
+                      strokeWidth={2.5}
+                      dot={{ fill: colors[idx % colors.length], r: 4 }}
+                      activeDot={{ r: 6 }}
                     />
                   ))}
                 </LineChart>
@@ -165,7 +175,7 @@ export default function PolymarketDetailPage() {
           </Card>
 
           {/* Sidebar - Current Odds */}
-          <Card className="p-6">
+          <Card className="p-6 bg-card border-border shadow-sm">
             <h2 className="text-xl font-semibold mb-4">Probabilidades Atuais</h2>
             
             <div className="space-y-4">

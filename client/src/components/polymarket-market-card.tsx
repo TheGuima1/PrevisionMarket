@@ -31,15 +31,15 @@ export function PolymarketMarketCard({ market }: PolymarketMarketCardProps) {
   return (
     <Link href={`/polymarket/${market.slug}`}>
       <Card 
-        className="overflow-hidden hover-elevate transition-all duration-200 border-primary/30 cursor-pointer" 
+        className="bg-card border-border shadow-sm hover:border-primary/30 transition-colors duration-150 cursor-pointer" 
         data-testid={`polymarket-card-${market.slug}`}
       >
-        <div className="p-4 space-y-4">
+        <div className="p-5 space-y-3">
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-2">
               <Badge 
                 variant="outline" 
-                className="whitespace-nowrap inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-primary/10 text-primary border-primary/30 border"
+                className="bg-primary/10 text-primary border-primary/20"
                 data-testid={`badge-polymarket-${market.slug}`}
               >
                 <TrendingUp className="h-3 w-3" />
