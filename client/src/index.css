@@ -2,83 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
-/* IDENTIDADE VISUAL 3BIT - LIGHT MODE */
+/* IDENTIDADE VISUAL 3BIT - Roxo Escuro + Verde-Turquesa */
 :root {
-  --button-outline: rgba(217, 96, 41, .15);
-  --badge-outline: rgba(217, 96, 41, .08);
+  --button-outline: rgba(20, 184, 166, .15);
+  --badge-outline: rgba(20, 184, 166, .08);
 
   /* Automatic computation of border around primary / danger buttons */
   --opaque-button-border-intensity: -8; /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(217, 96, 41, .04);
-  --elevate-2: rgba(217, 96, 41, .12);
+  --elevate-1: rgba(20, 184, 166, .04);
+  --elevate-2: rgba(20, 184, 166, .12);
 
-  /* 3BIT Light Mode - Clean & Spacious */
-  --background: 0 0% 98%;           /* #FAFAFA - Fundo geral claro */
+  /* 3BIT Light Mode - Fundo claro e limpo */
+  --background: 0 0% 99%;           /* #FCFCFC - Fundo quase branco */
 
-  --foreground: 0 0% 12%;           /* #1F1F1F - Texto principal */
+  --foreground: 0 0% 10%;           /* #1A1A1A - Texto escuro */
 
-  --border: 0 0% 88%;               /* #E0E0E0 - Bordas sutis */
+  --border: 0 0% 90%;               /* #E5E5E5 - Bordas sutis */
 
-  --card: 0 0% 96%;                 /* #F5F5F5 - Cards levemente elevados */
+  --card: 0 0% 97%;                 /* #F7F7F7 - Cards levemente elevados */
 
-  --card-foreground: 0 0% 12%;      /* Texto em cards */
+  --card-foreground: 0 0% 10%;
 
-  --card-border: 0 0% 90%;          /* Bordas de cards */
+  --card-border: 0 0% 92%;
 
-  --sidebar: 0 5% 97%;              /* Sidebar clara */
+  --sidebar: 0 0% 98%;
 
-  --sidebar-foreground: 0 0% 12%;
+  --sidebar-foreground: 0 0% 10%;
 
-  --sidebar-border: 0 0% 88%;
+  --sidebar-border: 0 0% 90%;
 
-  --sidebar-primary: 18 75% 48%;    /* Laranja 3BIT */
+  --sidebar-primary: 173 80% 40%;   /* Verde-turquesa 3BIT */
 
-  --sidebar-primary-foreground: 18 75% 98%;
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 18 30% 94%;
+  --sidebar-accent: 173 30% 95%;
 
-  --sidebar-accent-foreground: 18 60% 30%;
+  --sidebar-accent-foreground: 173 80% 25%;
 
-  --sidebar-ring: 18 75% 48%;
+  --sidebar-ring: 173 80% 40%;
 
-  --popover: 0 0% 98%;
+  --popover: 0 0% 99%;
 
-  --popover-foreground: 0 0% 12%;
+  --popover-foreground: 0 0% 10%;
 
-  --popover-border: 0 0% 90%;
+  --popover-border: 0 0% 92%;
 
-  /* COR PRIMÁRIA LARANJA/COBRE INSTITUCIONAL 3BIT */
-  --primary: 18 75% 48%;            /* #D96029 - Laranja 3BIT */
+  /* COR PRIMÁRIA VERDE-TURQUESA 3BIT */
+  --primary: 173 80% 40%;           /* #14B8A6 - Verde-turquesa */
 
-  --primary-foreground: 18 75% 98%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 330 45% 38%;         /* Roxo vinho (para contraste) */
+  --secondary: 173 30% 50%;         /* Verde-turquesa mais claro */
 
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 0 2% 89%;                /* #E3E3E3 - Texto secundário */
+  --muted: 0 0% 95%;
 
-  --muted-foreground: 0 4% 46%;
+  --muted-foreground: 0 0% 45%;
 
-  --accent: 18 75% 48%;             /* Laranja para acentos */
+  --accent: 173 80% 40%;            /* Verde-turquesa para acentos */
 
-  --accent-foreground: 18 75% 98%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 72% 42%;         /* Vermelho para ações destrutivas */
+  --destructive: 0 72% 50%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 0 0% 90%;
-  --ring: 18 75% 48%;
+  --input: 0 0% 93%;
+  --ring: 173 80% 40%;
 
   /* PALETA DE GRÁFICOS 3BIT */
-  --chart-1: 18 75% 48%;            /* Laranja principal */
-  --chart-2: 330 45% 38%;           /* Roxo vinho */
-  --chart-3: 280 30% 42%;           /* Violeta */
-  --chart-4: 200 55% 45%;           /* Azul */
-  --chart-5: 150 50% 40%;           /* Verde */
+  --chart-1: 173 80% 40%;           /* Verde-turquesa principal */
+  --chart-2: 320 35% 50%;           /* Roxo/vinho */
+  --chart-3: 280 40% 55%;           /* Violeta */
+  --chart-4: 200 60% 50%;           /* Azul */
+  --chart-5: 150 55% 45%;           /* Verde */
 
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-accent: Outfit, Inter, -apple-system, sans-serif;
@@ -96,122 +96,114 @@
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
-  /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
-
-  /* Fallback for older browsers */
+  /* Automatically computed borders */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --primary-border: hsl(var(--primary));
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --secondary-border: hsl(var(--secondary));
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --muted-border: hsl(var(--muted));
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --accent-border: hsl(var(--accent));
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
-/* IDENTIDADE VISUAL 3BIT - DARK MODE VINHO/ROXO */
+/* IDENTIDADE VISUAL 3BIT - DARK MODE ROXO/VINHO */
 .dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(20, 184, 166, .15);
+  --badge-outline: rgba(20, 184, 166, .08);
 
-  --opaque-button-border-intensity: 9;  /* In terms of percentages */
+  --opaque-button-border-intensity: 9;
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(20, 184, 166, .08);
+  --elevate-2: rgba(20, 184, 166, .15);
 
-  /* 3BIT Dark Mode - Tom Vinho/Roxo Escuro */
-  --background: 330 45% 8%;         /* #140A0F - Fundo escuro vinho */
+  /* 3BIT Dark Mode - Roxo/Vinho Escuro (igual screenshots) */
+  --background: 320 35% 14%;        /* #2E1B2C - Roxo/vinho escuro */
 
-  --foreground: 330 5% 92%;         /* #EBE9EA - Texto claro */
+  --foreground: 0 0% 95%;           /* #F2F2F2 - Texto claro */
 
-  --border: 330 5% 18%;             /* #2E2729 - Bordas escuras */
+  --border: 310 25% 22%;            /* Bordas roxas */
 
-  --card: 330 5% 10%;               /* #1A1518 - Cards escuros */
+  --card: 310 30% 22%;              /* #4A2847 - Cards roxos */
 
-  --card-foreground: 330 5% 92%;
+  --card-foreground: 0 0% 95%;
 
-  --card-border: 330 5% 17%;
+  --card-border: 310 25% 28%;
 
-  --sidebar: 330 5% 12%;            /* #1F181C - Sidebar escura */
+  --sidebar: 315 32% 18%;           /* Sidebar roxa */
 
-  --sidebar-foreground: 330 5% 92%;
+  --sidebar-foreground: 0 0% 95%;
 
-  --sidebar-border: 330 5% 17%;
+  --sidebar-border: 310 25% 24%;
 
-  --sidebar-primary: 18 75% 48%;    /* Laranja mantém no dark */
+  --sidebar-primary: 173 80% 40%;   /* Verde-turquesa */
 
-  --sidebar-primary-foreground: 18 75% 98%;
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 330 5% 19%;
+  --sidebar-accent: 310 25% 26%;
 
-  --sidebar-accent-foreground: 18 50% 85%;
+  --sidebar-accent-foreground: 173 60% 70%;
 
-  --sidebar-ring: 18 75% 48%;
+  --sidebar-ring: 173 80% 40%;
 
-  --popover: 330 5% 13%;
+  --popover: 315 30% 20%;
 
-  --popover-foreground: 330 5% 92%;
+  --popover-foreground: 0 0% 95%;
 
-  --popover-border: 330 5% 18%;
+  --popover-border: 310 25% 26%;
 
-  /* COR PRIMÁRIA LARANJA (mesma no dark) */
-  --primary: 18 75% 48%;            /* #D96029 - Laranja */
+  /* COR PRIMÁRIA VERDE-TURQUESA (mesma no dark) */
+  --primary: 173 80% 40%;           /* #14B8A6 - Verde-turquesa */
 
-  --primary-foreground: 18 75% 98%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 330 50% 70%;         /* Roxo claro (contraste dark) */
+  --secondary: 173 60% 60%;         /* Verde-turquesa mais claro */
 
-  --secondary-foreground: 330 74% 15%;
+  --secondary-foreground: 315 30% 15%;
 
-  --muted: 330 5% 19%;
+  --muted: 310 20% 28%;
 
-  --muted-foreground: 330 10% 70%;
+  --muted-foreground: 0 0% 70%;
 
-  --accent: 18 75% 48%;
+  --accent: 173 80% 40%;
 
-  --accent-foreground: 18 75% 98%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 72% 48%;
+  --destructive: 0 72% 55%;
 
-  --destructive-foreground: 0 72% 96%;
+  --destructive-foreground: 0 0% 100%;
 
-  --input: 330 5% 22%;
-  --ring: 18 75% 48%;
+  --input: 310 25% 26%;
+  --ring: 173 80% 40%;
 
   /* PALETA DE GRÁFICOS DARK MODE */
-  --chart-1: 18 75% 65%;            /* Laranja mais claro */
-  --chart-2: 330 45% 58%;           /* Roxo vinho claro */
-  --chart-3: 280 30% 62%;           /* Violeta claro */
-  --chart-4: 200 55% 60%;           /* Azul claro */
-  --chart-5: 150 50% 55%;           /* Verde claro */
+  --chart-1: 173 80% 50%;           /* Verde-turquesa brilhante */
+  --chart-2: 320 45% 60%;           /* Roxo/vinho claro */
+  --chart-3: 280 50% 65%;           /* Violeta claro */
+  --chart-4: 200 65% 60%;           /* Azul claro */
+  --chart-5: 150 60% 55%;           /* Verde claro */
 
-  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.30);
-  --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.40);
-  --shadow-sm: 0px 2px 4px -1px hsl(0 0% 0% / 0.35), 0px 1px 2px -1px hsl(0 0% 0% / 0.25);
-  --shadow: 0px 4px 6px -1px hsl(0 0% 0% / 0.45), 0px 2px 4px -2px hsl(0 0% 0% / 0.30);
-  --shadow-md: 0px 6px 12px -2px hsl(0 0% 0% / 0.50), 0px 3px 6px -3px hsl(0 0% 0% / 0.35);
-  --shadow-lg: 0px 10px 20px -4px hsl(0 0% 0% / 0.55), 0px 4px 8px -4px hsl(0 0% 0% / 0.35);
-  --shadow-xl: 0px 20px 30px -6px hsl(0 0% 0% / 0.60), 0px 8px 12px -6px hsl(0 0% 0% / 0.40);
-  --shadow-2xl: 0px 30px 50px -12px hsl(0 0% 0% / 0.70);
+  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.40);
+  --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.50);
+  --shadow-sm: 0px 2px 4px -1px hsl(0 0% 0% / 0.45), 0px 1px 2px -1px hsl(0 0% 0% / 0.35);
+  --shadow: 0px 4px 6px -1px hsl(0 0% 0% / 0.55), 0px 2px 4px -2px hsl(0 0% 0% / 0.40);
+  --shadow-md: 0px 6px 12px -2px hsl(0 0% 0% / 0.60), 0px 3px 6px -3px hsl(0 0% 0% / 0.45);
+  --shadow-lg: 0px 10px 20px -4px hsl(0 0% 0% / 0.65), 0px 4px 8px -4px hsl(0 0% 0% / 0.45);
+  --shadow-xl: 0px 20px 30px -6px hsl(0 0% 0% / 0.70), 0px 8px 12px -6px hsl(0 0% 0% / 0.50);
+  --shadow-2xl: 0px 30px 50px -12px hsl(0 0% 0% / 0.80);
 
 }
 
@@ -227,23 +219,7 @@
 
 /**
  * SISTEMA DE ELEVAÇÃO 3BIT
- * Efeitos sutis de hover/active seguindo identidade visual
- *
- * <element className="hover-elevate" />
- * <element className="active-elevate-2" />
- *
- * // Using the tailwind utility when a data attribute is "on"
- * <element className="toggle-elevate data-[state=on]:toggle-elevated" />
- * // Or manually controlling the toggle state
- * <element className="toggle-elevate toggle-elevated" />
- *
- * Elevation systems have to handle many states.
- * - not-hovered, vs. hovered vs. active  (three mutually exclusive states)
- * - toggled or not
- * - focused or not (this is not handled with these utilities)
- *
- * Even without handling focused or not, this is six possible combinations that
- * need to be distinguished from eachother visually.
+ * Efeitos sutis de hover/active com verde-turquesa
  */
 @layer utilities {
 
@@ -259,42 +235,28 @@
     pointer-events: none;
   }
 
-  /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
-   * buttons/badges can remove the automatic brightness adjustment on interactions
-   * and program their own. */
   .no-default-hover-elevate {}
 
   .no-default-active-elevate {}
 
-
-  /**
-   * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
-   * This way they can stack/compound. Both will overlap the parent's borders!
-   * So borders will be automatically adjusted both on toggle, and hover/active,
-   * and they will be compounded.
-   */
   .toggle-elevate::before,
   .toggle-elevate-2::before {
     content: "";
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
     border-radius: inherit;
     z-index: -1;
-    /* sits behind content but above backdrop */
   }
 
   .toggle-elevate.toggle-elevated::before {
     background-color: var(--elevate-2);
   }
 
-  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
   .border.toggle-elevate::before {
     inset: -1px;
   }
 
-  /* Does not work on elements with overflow:hidden! */
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
   .hover-elevate-2:not(.no-default-hover-elevate),
@@ -311,10 +273,8 @@
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
     border-radius: inherit;
     z-index: 999;
-    /* sits in front of content */
   }
 
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
@@ -327,7 +287,6 @@
     background-color: var(--elevate-2);
   }
 
-  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
   .border.active-elevate:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
