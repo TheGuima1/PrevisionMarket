@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { HowToBetDialog } from "@/components/how-to-bet-dialog";
 
 export function Navbar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
 
   const navItems = [
@@ -45,16 +45,16 @@ export function Navbar() {
               const Icon = item.icon;
               const isActive = location === item.href;
               return (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant={isActive ? "secondary" : "ghost"}
-                    className={`gap-2 font-medium ${isActive ? 'text-[var(--primary-blue)]' : 'text-[var(--text-medium)]'} hover:text-[var(--primary-blue)]`}
-                    data-testid={`link-${item.label.toLowerCase()}`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Button>
-                </Link>
+                <Button
+                  key={item.href}
+                  variant={isActive ? "secondary" : "ghost"}
+                  className={`gap-2 font-medium ${isActive ? 'text-[var(--primary-blue)]' : 'text-[var(--text-medium)]'} hover:text-[var(--primary-blue)]`}
+                  onClick={() => setLocation(item.href)}
+                  data-testid={`link-${item.label.toLowerCase()}`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Button>
               );
             })}
           </div>
@@ -82,16 +82,15 @@ export function Navbar() {
               >
                 {parseFloat(user?.balanceBrl || "0").toLocaleString('pt-BR', { minimumFractionDigits: 2 })} BRL3
               </Badge>
-              <Link href="/wallet/deposit">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="border-[var(--primary-blue)]/30 text-[var(--primary-blue)] hover:bg-[var(--glass-blue)] font-medium" 
-                  data-testid="button-deposit-pix"
-                >
-                  Depositar PIX
-                </Button>
-              </Link>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-[var(--primary-blue)]/30 text-[var(--primary-blue)] hover:bg-[var(--glass-blue)] font-medium" 
+                onClick={() => setLocation("/wallet/deposit")}
+                data-testid="button-deposit-pix"
+              >
+                Depositar PIX
+              </Button>
             </div>
 
             <DropdownMenu>
