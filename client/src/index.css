@@ -2,101 +2,138 @@
 @tailwind components;
 @tailwind utilities;
 
-/* PALETA C - FUTURISTA / CRYPTO / DIGITAL MARKETS */
+/* NOVA PALETA CLARA HIGH-TECH - LUXO FINTECH */
 :root {
-  --button-outline: rgba(122, 76, 255, .15);
-  --badge-outline: rgba(122, 76, 255, .10);
+  /* Primary palette */
+  --primary-purple: #6B4CFF;
+  --primary-purple-light: #A48CFF;
+  --primary-purple-bg: #EDE7FF;
 
-  /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8; /* In terms of percentages */
+  /* Neutral / background */
+  --bg-white: #FAFAFF;
+  --bg-gradient-top: #FAFAFF;
+  --bg-gradient-bottom: #F3F0FF;
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(122, 76, 255, .06);
-  --elevate-2: rgba(122, 76, 255, .12);
+  /* Text colors */
+  --text-dark: #2E2E38;
+  --text-medium: #5A5570;
+  --text-light: #7A7A90;
 
-  /* FUNDO ROXO MODERADO - MAIS CLARO E CONFORTÁVEL */
-  --background: 252 15% 20%;        /* Roxo escuro mas não profundo */
+  /* Border */
+  --border-soft: #D8D8E3;
 
-  --foreground: 240 15% 95%;        /* Texto claro suave */
+  /* Chart colors */
+  --chart-blue: #4A75FF;
+  --chart-blue-light: #EAF2FF;
 
-  --border: 252 12% 30%;            /* Bordas mais visíveis */
+  /* Status */
+  --green-tech: #00C48C;
+  --red-tech: #FF5C5C;
 
-  --card: 252 12% 26%;              /* Cards com bom contraste */
+  /* Effects */
+  --glass-white: rgba(255,255,255,0.55);
+  --glass-purple: rgba(107,76,255,0.12);
+  --shadow-soft: 0 8px 24px rgba(0,0,0,0.06);
+  --shadow-card: 0px 4px 18px rgba(0,0,0,0.04);
 
-  --card-foreground: 240 15% 95%;
+  /* Radius system */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
 
-  --card-border: 252 10% 35%;
+  /* Shadcn UI tokens - Light Mode */
+  --button-outline: rgba(107, 76, 255, .15);
+  --badge-outline: rgba(107, 76, 255, .10);
 
-  --sidebar: 252 15% 22%;           /* Sidebar levemente mais clara */
+  --opaque-button-border-intensity: -8;
 
-  --sidebar-foreground: 240 15% 95%;
+  --elevate-1: rgba(107, 76, 255, .04);
+  --elevate-2: rgba(107, 76, 255, .08);
 
-  --sidebar-border: 252 12% 28%;
+  /* Background - Clara suave */
+  --background: 250 100% 99%;
 
-  --sidebar-primary: 256 100% 64%;  /* Roxo neon */
+  --foreground: 240 12% 18%;
+
+  --border: 250 15% 87%;
+
+  --card: 0 0% 100%;
+
+  --card-foreground: 240 12% 18%;
+
+  --card-border: 250 12% 92%;
+
+  --sidebar: 250 20% 98%;
+
+  --sidebar-foreground: 240 12% 18%;
+
+  --sidebar-border: 250 15% 90%;
+
+  --sidebar-primary: 256 100% 64%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 252 25% 15%;
+  --sidebar-accent: 250 35% 96%;
 
-  --sidebar-accent-foreground: 256 100% 78%;
+  --sidebar-accent-foreground: 256 100% 50%;
 
   --sidebar-ring: 256 100% 64%;
 
-  --popover: 252 12% 24%;
+  --popover: 0 0% 100%;
 
-  --popover-foreground: 240 15% 95%;
+  --popover-foreground: 240 12% 18%;
 
-  --popover-border: 252 10% 32%;
+  --popover-border: 250 12% 90%;
 
-  /* COR PRIMÁRIA ROXO NEON */
-  --primary: 256 100% 64%;          /* #7A4CFF - Roxo neon controlado */
+  /* Primary - Roxo neon */
+  --primary: 256 100% 64%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 270 100% 75%;        /* #C77DFF - Magenta sutil */
+  --secondary: 270 100% 75%;
 
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 252 10% 32%;
+  --muted: 250 20% 96%;
 
-  --muted-foreground: 240 10% 70%;
+  --muted-foreground: 240 10% 45%;
 
-  --accent: 256 100% 95%;           /* #F0E9FF - Roxo suave neutro */
+  --accent: 250 100% 97%;
 
   --accent-foreground: 256 100% 30%;
 
-  /* CORES DE AÇÃO NEON */
-  --action-yes: 224 100% 61%;       /* #386BFF - Azul neon SIM */
-  --action-no: 352 100% 62%;        /* #FF3F55 - Vermelho neon NÃO */
+  /* Action colors - YES/NO */
+  --action-yes: 224 100% 61%;
+  --action-no: 352 100% 62%;
 
-  --destructive: 352 100% 62%;      /* Mesmo vermelho neon */
+  --destructive: 352 100% 62%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 252 10% 30%;
+  --input: 250 15% 94%;
   --ring: 256 100% 64%;
 
-  /* PALETA DE GRÁFICOS FUTURISTA */
-  --chart-1: 256 100% 70%;          /* Roxo neon brilhante */
-  --chart-2: 270 100% 78%;          /* Magenta claro */
-  --chart-3: 224 100% 65%;          /* Azul neon */
-  --chart-4: 180 80% 60%;           /* Ciano */
-  --chart-5: 340 100% 65%;          /* Rosa neon */
+  /* Chart palette */
+  --chart-1: 256 100% 70%;
+  --chart-2: 270 100% 78%;
+  --chart-3: 224 100% 65%;
+  --chart-4: 180 80% 60%;
+  --chart-5: 340 100% 65%;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-accent: 'Manrope', 'Inter', -apple-system, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Roboto Mono', 'SF Mono', Menlo, monospace;
-  --radius: .75rem; /* 12px - Arredondamento suave institucional */
-  --shadow-2xs: 0px 1px 2px 0px hsl(256 100% 64% / 0.10);
-  --shadow-xs: 0px 1px 3px 0px hsl(256 100% 64% / 0.15);
-  --shadow-sm: 0px 2px 4px -1px hsl(256 100% 64% / 0.12), 0px 1px 2px -1px hsl(0 0% 0% / 0.20);
-  --shadow: 0px 4px 6px -1px hsl(256 100% 64% / 0.15), 0px 2px 4px -2px hsl(0 0% 0% / 0.25);
-  --shadow-md: 0px 6px 12px -2px hsl(256 100% 64% / 0.18), 0px 3px 6px -3px hsl(0 0% 0% / 0.30);
-  --shadow-lg: 0px 10px 20px -4px hsl(256 100% 64% / 0.20), 0px 4px 8px -4px hsl(0 0% 0% / 0.30);
-  --shadow-xl: 0px 20px 30px -6px hsl(256 100% 64% / 0.22), 0px 8px 12px -6px hsl(0 0% 0% / 0.35);
-  --shadow-2xl: 0px 30px 50px -12px hsl(256 100% 64% / 0.25);
+  --radius: .75rem;
+  --shadow-2xs: 0px 1px 2px 0px rgba(107, 76, 255, 0.08);
+  --shadow-xs: 0px 1px 3px 0px rgba(107, 76, 255, 0.10);
+  --shadow-sm: 0px 2px 4px -1px rgba(107, 76, 255, 0.08), 0px 1px 2px -1px rgba(0, 0, 0, 0.10);
+  --shadow: 0px 4px 6px -1px rgba(107, 76, 255, 0.10), 0px 2px 4px -2px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0px 6px 12px -2px rgba(107, 76, 255, 0.12), 0px 3px 6px -3px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0px 10px 20px -4px rgba(107, 76, 255, 0.14), 0px 4px 8px -4px rgba(0, 0, 0, 0.18);
+  --shadow-xl: 0px 20px 30px -6px rgba(107, 76, 255, 0.16), 0px 8px 12px -6px rgba(0, 0, 0, 0.20);
+  --shadow-2xl: 0px 30px 50px -12px rgba(107, 76, 255, 0.18);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -123,37 +160,36 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
-/* DARK MODE - Paleta C Futurista ainda mais escura */
+/* DARK MODE - Mantém a paleta futurista escura original */
 .dark {
   --button-outline: rgba(199, 125, 255, .18);
   --badge-outline: rgba(199, 125, 255, .12);
 
   --opaque-button-border-intensity: 8;
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
   --elevate-1: rgba(199, 125, 255, .08);
   --elevate-2: rgba(199, 125, 255, .14);
 
   /* FUNDO AINDA MAIS PROFUNDO NO DARK MODE */
-  --background: 252 40% 5%;         /* Ainda mais escuro que light mode */
+  --background: 252 40% 5%;
 
-  --foreground: 240 100% 95%;       /* Texto ainda mais claro no dark */
+  --foreground: 240 100% 95%;
 
-  --border: 252 25% 12%;            /* Bordas roxas bem escuras */
+  --border: 252 25% 12%;
 
-  --card: 252 30% 8%;               /* Cards roxos profundos */
+  --card: 252 30% 8%;
 
   --card-foreground: 240 100% 95%;
 
   --card-border: 252 25% 14%;
 
-  --sidebar: 252 35% 6%;            /* Sidebar roxa profundíssima */
+  --sidebar: 252 35% 6%;
 
   --sidebar-foreground: 240 100% 95%;
 
   --sidebar-border: 252 25% 11%;
 
-  --sidebar-primary: 256 100% 70%;  /* Roxo neon mais brilhante no dark */
+  --sidebar-primary: 256 100% 70%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
@@ -169,12 +205,11 @@
 
   --popover-border: 252 25% 13%;
 
-  /* COR PRIMÁRIA ROXO NEON NO DARK - Mais vibrante */
-  --primary: 256 100% 70%;          /* Roxo neon mais brilhante */
+  --primary: 256 100% 70%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 270 100% 78%;        /* Magenta mais claro */
+  --secondary: 270 100% 78%;
 
   --secondary-foreground: 0 0% 100%;
 
@@ -182,13 +217,12 @@
 
   --muted-foreground: 240 15% 85%;
 
-  --accent: 256 100% 96%;           /* Roxo suave quase branco */
+  --accent: 256 100% 96%;
 
   --accent-foreground: 256 100% 25%;
 
-  /* CORES DE AÇÃO NEON - Mesmas em ambos os modos */
-  --action-yes: 224 100% 65%;       /* Azul neon mais brilhante no dark */
-  --action-no: 352 100% 65%;        /* Vermelho neon mais brilhante no dark */
+  --action-yes: 224 100% 65%;
+  --action-no: 352 100% 65%;
 
   --destructive: 352 100% 65%;
 
@@ -197,12 +231,11 @@
   --input: 252 25% 14%;
   --ring: 256 100% 70%;
 
-  /* PALETA DE GRÁFICOS DARK MODE */
-  --chart-1: 256 100% 75%;          /* Roxo neon super brilhante */
-  --chart-2: 270 100% 82%;          /* Magenta muito claro */
-  --chart-3: 224 100% 70%;          /* Azul neon brilhante */
-  --chart-4: 180 85% 65%;           /* Ciano brilhante */
-  --chart-5: 340 100% 70%;          /* Rosa neon brilhante */
+  --chart-1: 256 100% 75%;
+  --chart-2: 270 100% 82%;
+  --chart-3: 224 100% 70%;
+  --chart-4: 180 85% 65%;
+  --chart-5: 340 100% 70%;
 
   --shadow-2xs: 0px 1px 2px 0px hsl(256 100% 70% / 0.12);
   --shadow-xs: 0px 1px 3px 0px hsl(256 100% 70% / 0.18);
@@ -220,22 +253,26 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased text-foreground;
+    background: linear-gradient(
+      180deg,
+      var(--bg-gradient-top) 0%,
+      var(--bg-gradient-bottom) 100%
+    );
+  }
+
+  .dark body {
+    background: hsl(var(--background));
   }
 }
 
-/**
- * SISTEMA DE ELEVAÇÃO FINTECH CLEAN
- * Efeitos extremamente sutis e profissionais
- */
+/* SISTEMA DE ELEVAÇÃO FINTECH CLEAN */
 @layer utilities {
 
-  /* Hide ugly search cancel button in Chrome until we can style it properly */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
 
-  /* Placeholder styling for contentEditable div */
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
@@ -300,5 +337,24 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+
+  /* Utilitários adicionais high-tech */
+  .bg-glass-white {
+    background-color: var(--glass-white);
+    backdrop-filter: blur(12px);
+  }
+
+  .bg-glass-purple {
+    background-color: var(--glass-purple);
+    backdrop-filter: blur(12px);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
   }
 }
