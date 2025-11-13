@@ -2,85 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT FUTURISTIC MODE */
+/* IDENTIDADE VISUAL 3BIT - LIGHT MODE */
 :root {
-  --button-outline: rgba(99, 102, 241, .15);
-  --badge-outline: rgba(99, 102, 241, .08);
+  --button-outline: rgba(217, 96, 41, .15);
+  --badge-outline: rgba(217, 96, 41, .08);
 
   /* Automatic computation of border around primary / danger buttons */
   --opaque-button-border-intensity: -8; /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(99, 102, 241, .04);
-  --elevate-2: rgba(99, 102, 241, .12);
+  --elevate-1: rgba(217, 96, 41, .04);
+  --elevate-2: rgba(217, 96, 41, .12);
 
-  --background: 0 0% 100%;
+  /* 3BIT Light Mode - Clean & Spacious */
+  --background: 0 0% 98%;           /* #FAFAFA - Fundo geral claro */
 
-  --foreground: 240 10% 15%;
+  --foreground: 0 0% 12%;           /* #1F1F1F - Texto principal */
 
-  --border: 240 6% 92%;
+  --border: 0 0% 88%;               /* #E0E0E0 - Bordas sutis */
 
-  --card: 0 0% 99%;
+  --card: 0 0% 96%;                 /* #F5F5F5 - Cards levemente elevados */
 
-  --card-foreground: 240 10% 15%;
+  --card-foreground: 0 0% 12%;      /* Texto em cards */
 
-  --card-border: 240 6% 94%;
+  --card-border: 0 0% 90%;          /* Bordas de cards */
 
-  --sidebar: 240 5% 97%;
+  --sidebar: 0 5% 97%;              /* Sidebar clara */
 
-  --sidebar-foreground: 240 10% 15%;
+  --sidebar-foreground: 0 0% 12%;
 
-  --sidebar-border: 240 6% 92%;
+  --sidebar-border: 0 0% 88%;
 
-  --sidebar-primary: 268 74% 59%;
+  --sidebar-primary: 18 75% 48%;    /* Laranja 3BIT */
 
-  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-primary-foreground: 18 75% 98%;
 
-  --sidebar-accent: 268 30% 94%;
+  --sidebar-accent: 18 30% 94%;
 
-  --sidebar-accent-foreground: 268 60% 30%;
+  --sidebar-accent-foreground: 18 60% 30%;
 
-  --sidebar-ring: 268 74% 59%;
+  --sidebar-ring: 18 75% 48%;
 
   --popover: 0 0% 98%;
 
-  --popover-foreground: 240 10% 15%;
+  --popover-foreground: 0 0% 12%;
 
-  --popover-border: 240 6% 90%;
+  --popover-border: 0 0% 90%;
 
-  --primary: 268 74% 59%;
+  /* COR PRIMÁRIA LARANJA/COBRE INSTITUCIONAL 3BIT */
+  --primary: 18 75% 48%;            /* #D96029 - Laranja 3BIT */
 
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 18 75% 98%;
 
-  --secondary: 220 70% 50%;
+  --secondary: 330 45% 38%;         /* Roxo vinho (para contraste) */
 
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 240 5% 96%;
+  --muted: 0 2% 89%;                /* #E3E3E3 - Texto secundário */
 
-  --muted-foreground: 240 4% 46%;
+  --muted-foreground: 0 4% 46%;
 
-  --accent: 268 74% 59%;
+  --accent: 18 75% 48%;             /* Laranja para acentos */
 
-  --accent-foreground: 0 0% 100%;
+  --accent-foreground: 18 75% 98%;
 
-  --destructive: 0 72% 51%;
+  --destructive: 0 72% 42%;         /* Vermelho para ações destrutivas */
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 240 6% 90%;
-  --ring: 268 74% 59%;
-  --chart-1: 268 74% 59%;
-  --chart-2: 220 70% 50%;
-  --chart-3: 280 85% 65%;
-  --chart-4: 200 80% 55%;
-  --chart-5: 340 72% 58%;
+  --input: 0 0% 90%;
+  --ring: 18 75% 48%;
+
+  /* PALETA DE GRÁFICOS 3BIT */
+  --chart-1: 18 75% 48%;            /* Laranja principal */
+  --chart-2: 330 45% 38%;           /* Roxo vinho */
+  --chart-3: 280 30% 42%;           /* Violeta */
+  --chart-4: 200 55% 45%;           /* Azul */
+  --chart-5: 150 50% 40%;           /* Verde */
 
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-accent: Outfit, Inter, -apple-system, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Roboto Mono', Menlo, monospace;
-  --radius: .5rem; /* 8px */
+  --radius: .5rem; /* 8px - 3BIT border radius */
   --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.08);
   --shadow-sm: 0px 2px 4px -1px hsl(0 0% 0% / 0.06), 0px 1px 2px -1px hsl(0 0% 0% / 0.04);
@@ -123,6 +127,7 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
+/* IDENTIDADE VISUAL 3BIT - DARK MODE VINHO/ROXO */
 .dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
@@ -133,67 +138,71 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 231 31% 9%;
+  /* 3BIT Dark Mode - Tom Vinho/Roxo Escuro */
+  --background: 330 45% 8%;         /* #140A0F - Fundo escuro vinho */
 
-  --foreground: 0 0% 95%;
+  --foreground: 330 5% 92%;         /* #EBE9EA - Texto claro */
 
-  --border: 231 25% 16%;
+  --border: 330 5% 18%;             /* #2E2729 - Bordas escuras */
 
-  --card: 231 28% 12%;
+  --card: 330 5% 10%;               /* #1A1518 - Cards escuros */
 
-  --card-foreground: 0 0% 95%;
+  --card-foreground: 330 5% 92%;
 
-  --card-border: 231 25% 17%;
+  --card-border: 330 5% 17%;
 
-  --sidebar: 231 28% 12%;
+  --sidebar: 330 5% 12%;            /* #1F181C - Sidebar escura */
 
-  --sidebar-foreground: 0 0% 95%;
+  --sidebar-foreground: 330 5% 92%;
 
-  --sidebar-border: 231 25% 17%;
+  --sidebar-border: 330 5% 17%;
 
-  --sidebar-primary: 268 74% 59%;
+  --sidebar-primary: 18 75% 48%;    /* Laranja mantém no dark */
 
-  --sidebar-primary-foreground: 268 74% 98%;
+  --sidebar-primary-foreground: 18 75% 98%;
 
-  --sidebar-accent: 231 25% 19%;
+  --sidebar-accent: 330 5% 19%;
 
-  --sidebar-accent-foreground: 268 50% 85%;
+  --sidebar-accent-foreground: 18 50% 85%;
 
-  --sidebar-ring: 268 74% 59%;
+  --sidebar-ring: 18 75% 48%;
 
-  --popover: 231 28% 13%;
+  --popover: 330 5% 13%;
 
-  --popover-foreground: 0 0% 95%;
+  --popover-foreground: 330 5% 92%;
 
-  --popover-border: 231 25% 18%;
+  --popover-border: 330 5% 18%;
 
-  --primary: 268 74% 59%;
+  /* COR PRIMÁRIA LARANJA (mesma no dark) */
+  --primary: 18 75% 48%;            /* #D96029 - Laranja */
 
-  --primary-foreground: 268 74% 98%;
+  --primary-foreground: 18 75% 98%;
 
-  --secondary: 268 50% 70%;
+  --secondary: 330 50% 70%;         /* Roxo claro (contraste dark) */
 
-  --secondary-foreground: 268 74% 15%;
+  --secondary-foreground: 330 74% 15%;
 
-  --muted: 231 25% 19%;
+  --muted: 330 5% 19%;
 
-  --muted-foreground: 231 10% 70%;
+  --muted-foreground: 330 10% 70%;
 
-  --accent: 268 74% 59%;
+  --accent: 18 75% 48%;
 
-  --accent-foreground: 268 74% 98%;
+  --accent-foreground: 18 75% 98%;
 
   --destructive: 0 72% 48%;
 
   --destructive-foreground: 0 72% 96%;
 
-  --input: 231 25% 22%;
-  --ring: 268 74% 59%;
-  --chart-1: 268 74% 65%;
-  --chart-2: 45 90% 60%;
-  --chart-3: 202 89% 63%;
-  --chart-4: 340 82% 62%;
-  --chart-5: 160 70% 60%;
+  --input: 330 5% 22%;
+  --ring: 18 75% 48%;
+
+  /* PALETA DE GRÁFICOS DARK MODE */
+  --chart-1: 18 75% 65%;            /* Laranja mais claro */
+  --chart-2: 330 45% 58%;           /* Roxo vinho claro */
+  --chart-3: 280 30% 62%;           /* Violeta claro */
+  --chart-4: 200 55% 60%;           /* Azul claro */
+  --chart-5: 150 50% 55%;           /* Verde claro */
 
   --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.30);
   --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.40);
@@ -217,8 +226,8 @@
 }
 
 /**
- * Using the elevate system.
- * Automatic contrast adjustment.
+ * SISTEMA DE ELEVAÇÃO 3BIT
+ * Efeitos sutis de hover/active seguindo identidade visual
  *
  * <element className="hover-elevate" />
  * <element className="active-elevate-2" />
