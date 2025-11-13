@@ -1,78 +1,78 @@
-# Palpites.AI Design Guidelines - Paleta C Futurista/Crypto
+# Palpites.AI Design Guidelines - Blue Tech Premium
 
 ## Design Approach
-**Futurista / Crypto / Digital Markets**: Design moderno e tech com **fundo roxo profundo escuro** (#130F1E), **roxo neon controlado** (#7A4CFF), e **cores de ação neon** (azul #386BFF para SIM, vermelho #FF3F55 para NÃO). Visual que transmite inovação, modernidade tech e energy de plataforma de prediction markets crypto-friendly. Textos claros (#E8E8FF) para máximo contraste no fundo escuro.
+**Blue Tech Premium / Modern Fintech**: Design moderno e profissional com **fundos brancos claros** (#FAFCFF), **azul tech vibrante** (#3B5BFF primary), e **cores de ação** (azul #3B5BFF para SIM, vermelho #EF4444 para NÃO). Visual que transmite confiança, inovação tech e profissionalismo fintech. Gradientes azuis sutis para criar profundidade sem perder clareza.
 
 ## Core Design Principles
-1. **Tech Moderno**: Visual futurista que evoca inovação e tecnologia
-2. **Contraste Alto**: Textos claros em fundo roxo profundo para legibilidade máxima
-3. **Cores Neon Estratégicas**: Roxo neon, azul SIM e vermelho NÃO criam identidade única
-4. **Profissionalismo Brasileiro**: Moderno e tech sem perder credibilidade
+1. **Premium Moderno**: Visual clean e profissional inspirado em fintechs de sucesso
+2. **Fundos Claros**: Branco com gradientes azuis sutis para profundidade
+3. **Azul Tech Vibrante**: Cor primária azul (#3B5BFF) que transmite confiança e inovação
+4. **Contraste Suave**: Textos escuros em fundos claros para legibilidade máxima
+5. **Profissionalismo Brasileiro**: Moderno e tech com credibilidade institucional
 
 ---
 
-## 🌈 Paleta C - Futurista / Crypto / Digital Markets
+## 🌈 Paleta - Blue Tech Premium
 
-### Cor Primária (Roxo Neon Controlado)
+### Cor Primária (Azul Tech)
 ```css
---primary: 256 100% 64%             /* #7A4CFF - Roxo neon controlado */
---primary-foreground: 0 0% 100%     /* Branco sobre roxo */
+--primary-blue: 230 86% 62%          /* #3B5BFF - Azul tech vibrante */
+--primary-blue-dark: 230 86% 52%    /* #1E3FFF - Azul escuro */
 ```
 **Uso**: Botões principais, CTAs, headings, links importantes, estados ativos
 
-### Cor Secundária (Magenta Sutil)
+### Backgrounds (Fundos Claros com Gradientes)
 ```css
---secondary: 270 100% 75%           /* #C77DFF - Magenta sutil */
---secondary-foreground: 0 0% 100%
+--bg-white: 220 100% 99%            /* #FAFCFF - Branco azulado */
+--bg-gradient-start: 220 100% 98%   /* #F5F9FF */
+--bg-gradient-end: 210 100% 97%     /* #EBF4FF */
 ```
-**Uso**: Badges, indicadores secundários, acentos especiais
+**Uso**: Background principal da página, sections, hero areas
 
-### Cor de Acento (Roxo Suave Neutro)
+### Superfícies (Cards e Componentes)
 ```css
---accent: 256 100% 95%              /* #F0E9FF - Roxo suave neutro */
---accent-foreground: 256 100% 30%
+--card-white: 0 0% 100%             /* #FFFFFF - Branco puro para cards */
+--glass-blue: 220 100% 97%          /* #EBF4FF - Fundo glass com toque azul */
 ```
-**Uso**: Fundos de destaque, hovers sutis, pills
+**Uso**: Cards, panels, componentes elevados
 
-### Cores de Ação Neon (YES/NO)
+### Bordas e Separadores
 ```css
---action-yes: 224 100% 61%          /* #386BFF - Azul neon SIM */
---action-no: 352 100% 62%           /* #FF3F55 - Vermelho neon NÃO */
+--border-soft: 220 20% 90%          /* #E0E7F0 - Borda suave azulada */
+--border-medium: 220 20% 80%        /* #CBD5E0 - Borda média */
 ```
-**Uso**: Botões SIM (azul neon) e NÃO (vermelho neon) em market cards e trading panel
+**Uso**: Bordas de cards, separadores, dividers
 
-### Light Mode - Roxo Profundo Futurista
+### Textos
 ```css
---background: 252 33% 8%            /* #130F1E - Roxo profundo escuro */
---foreground: 240 100% 93%          /* #E8E8FF - Texto claro com toque roxo */
---card: 252 25% 11%                 /* #1A1922 - Cards roxos neutros */
---border: 252 20% 15%               /* Bordas roxas escuras */
---muted: 252 20% 20%
---muted-foreground: 240 15% 80%     /* Texto secundário claro */
+--text-dark: 220 40% 15%            /* #1A2942 - Texto principal escuro */
+--text-medium: 220 20% 45%          /* #6B7A8F - Texto secundário */
+--text-light: 220 15% 65%           /* #9BA8B8 - Texto terciário */
 ```
-**Características**: Fundo roxo profundo (#130F1E), textos muito claros para máximo contraste
+**Uso**: Hierarquia de texto (dark > medium > light)
 
-### Dark Mode - Ainda Mais Profundo
+### Cores de Ação (YES/NO)
 ```css
---background: 252 40% 5%            /* Ainda mais escuro que light mode */
---foreground: 240 100% 95%          /* Texto ainda mais claro */
---card: 252 30% 8%                  /* Cards roxos profundos */
---border: 252 25% 12%               /* Bordas roxas bem escuras */
---primary: 256 100% 70%             /* Roxo neon mais brilhante no dark */
---action-yes: 224 100% 65%          /* Azul neon mais brilhante */
---action-no: 352 100% 65%           /* Vermelho neon mais brilhante */
+--action-yes: 230 86% 62%           /* #3B5BFF - Azul tech (mesmo do primary) */
+--action-no: 0 85% 60%              /* #EF4444 - Vermelho vibrante */
 ```
-**Nota**: Dark mode é AINDA MAIS escuro que light mode - fundo profundíssimo
+**Uso**: Botões SIM (azul) e NÃO (vermelho) em market cards e trading panel
 
-### Cores de Suporte
+### Cores Semânticas
 ```css
---destructive: 352 100% 62%         /* Vermelho neon (mesmo do NO) */
---chart-1: 256 100% 70%             /* Roxo neon brilhante */
---chart-2: 270 100% 78%             /* Magenta claro */
---chart-3: 224 100% 65%             /* Azul neon */
---chart-4: 180 80% 60%              /* Ciano */
---chart-5: 340 100% 65%             /* Rosa neon */
+--success: 142 71% 45%              /* #22C55E - Verde sucesso */
+--warning: 38 92% 50%               /* #F59E0B - Amarelo aviso */
+--error: 0 85% 60%                  /* #EF4444 - Vermelho erro */
+--info: 199 89% 48%                 /* #0EA5E9 - Azul informação */
 ```
+
+### Dark Mode (Opcional - Para Toggle Futuro)
+```css
+--background-dark: 220 30% 10%      /* #151D2E - Fundo escuro azulado */
+--card-dark: 220 25% 15%            /* #1F2937 - Cards escuros */
+--text-dark-mode: 220 100% 95%      /* #EBF4FF - Texto claro */
+```
+**Nota**: Light mode é o padrão. Dark mode pode ser adicionado futuramente.
 
 ---
 
@@ -120,9 +120,15 @@ Secundários: text-sm font-medium
 - Body: `leading-normal` (1.5)
 - Relaxed text: `leading-relaxed` (1.625)
 
+**Cores de Texto**:
+- Texto principal: `text-[var(--text-dark)]` (#1A2942)
+- Texto secundário: `text-[var(--text-medium)]` (#6B7A8F)
+- Texto terciário: `text-[var(--text-light)]` (#9BA8B8)
+- Links e CTAs: `text-[var(--primary-blue)]` (#3B5BFF)
+
 ---
 
-## 📐 Layout e Espaçamento - Futurista/Crypto
+## 📐 Layout e Espaçamento - Modern Premium
 
 ### Espaçamento Vertical (Consistente e Respirável)
 ```css
@@ -162,23 +168,23 @@ grid-cols-1 lg:grid-cols-3
 
 ### Border Radius
 ```css
---radius: 0.75rem   /* 12px - Arredondamento suave institucional */
+--radius: 0.75rem   /* 12px - Arredondamento suave moderno */
 
-Cards: rounded-xl
-Buttons: rounded-lg
-Inputs: rounded-lg
-Badges: rounded-md
+Cards: rounded-xl (12px)
+Buttons: rounded-lg (8px)
+Inputs: rounded-lg (8px)
+Badges: rounded-md (6px)
 Avatars: rounded-full
 ```
 
 ---
 
-## 🎴 Componentes Visuais - Futurista/Crypto
+## 🎴 Componentes Visuais - Blue Tech Premium
 
-### Cards (Estilo Roxo Profundo)
+### Cards (Estilo Branco Premium)
 **Padrão principal**:
 ```tsx
-<Card className="bg-card border-border shadow-lg shadow-primary/5">
+<Card className="bg-white border-[var(--border-soft)] shadow-card">
   <div className="p-5 md:p-6">
     {/* Conteúdo */}
   </div>
@@ -186,43 +192,52 @@ Avatars: rounded-full
 ```
 
 **Características**:
-- Fundo: **Roxo neutro** (#1A1922) - `bg-card`
-- Borda: **Roxa escura** (252 20% 18%), 1px sólida
-- Sombra: **Roxa neon sutil** (shadow-lg shadow-primary/5)
+- Fundo: **Branco puro** (#FFFFFF)
+- Borda: **Cinza azulada suave** (#E0E7F0), 1px sólida
+- Sombra: **Sombra suave** (0 1px 3px rgba(0,0,0,0.08))
 - Padding: `p-5` ou `p-6`
-- Radius: `rounded-xl`
-- Hover: **Borda roxo neon** ou **elevation sutil**
+- Radius: `rounded-xl` (12px)
+- Hover: **Sombra elevada** ou **borda azul sutil**
 
 **Variações**:
 ```tsx
-/* Card de destaque - borda roxo neon */
-<Card className="border-primary/30">
+/* Card de destaque - borda azul */
+<Card className="border-[var(--primary-blue)]/20">
 
-/* Card interativo - hover com borda neon */
-<Card className="hover:border-primary/50 transition-colors">
+/* Card interativo - hover com sombra */
+<Card className="hover:shadow-md transition-shadow">
 
-/* Card com sombra neon */
-<Card className="shadow-lg shadow-primary/10">
+/* Card com background glass */
+<Card className="bg-[var(--glass-blue)]">
 ```
 
-### Botões (Hierarquia Clara + Neon)
-**Primário** (Roxo Neon):
+### Backgrounds Gradientes
 ```tsx
-<Button className="bg-primary text-primary-foreground">
+/* Hero section com gradiente azul */
+<section className="bg-gradient-to-br from-[var(--bg-gradient-start)] to-[var(--bg-gradient-end)]">
+
+/* Background com glass effect */
+<div className="bg-[var(--glass-blue)] backdrop-blur-sm">
+```
+
+### Botões (Hierarquia Clara)
+**Primário** (Azul Tech):
+```tsx
+<Button variant="default" className="bg-[var(--primary-blue)] text-white">
   Apostar Agora
 </Button>
 ```
 
-**Botão SIM** (Azul Neon):
+**Botão SIM** (Azul):
 ```tsx
-<Button className="bg-gradient-to-br from-action-yes to-action-yes/80 text-white font-semibold shadow-lg shadow-action-yes/20">
+<Button variant="actionYes">
   SIM
 </Button>
 ```
 
-**Botão NÃO** (Vermelho Neon):
+**Botão NÃO** (Vermelho):
 ```tsx
-<Button className="bg-gradient-to-br from-action-no to-action-no/80 text-white font-semibold shadow-lg shadow-action-no/20">
+<Button variant="actionNo">
   NÃO
 </Button>
 ```
@@ -242,23 +257,21 @@ Avatars: rounded-full
 ```
 
 **Características**:
-- Altura padrão: `min-h-10` (40px)
-- Padding: `px-6 py-2.5`
-- Font: `text-base font-semibold`
-- Radius: `rounded-lg`
-- Hover: Opacidade reduzida `hover:opacity-90` para botões neon
-- Sombras: Cores neon matching (shadow-action-yes/20, shadow-action-no/20)
+- Sistema hover-elevate automático (não sobrescrever!)
+- Usar apenas variants do Button (actionYes, actionNo, outline, ghost, default)
+- NUNCA adicionar classes de hover/padding manualmente
+- Altura padrão: variants definem automaticamente
 
 ### Badges (Indicadores Clean)
 ```tsx
-/* Badge primário - roxo */
-<Badge className="bg-primary/10 text-primary border-primary/20">
-  Ao Vivo
+/* Badge de categoria */
+<Badge className="bg-blue-50 text-[var(--primary-blue)] border-[var(--primary-blue)]/20">
+  Política
 </Badge>
 
-/* Badge secundário */
-<Badge variant="secondary">
-  Beta
+/* Badge de status */
+<Badge className="bg-green-50 text-green-700 border-green-200">
+  Ao Vivo
 </Badge>
 
 /* Badge outline */
@@ -267,39 +280,22 @@ Avatars: rounded-full
 </Badge>
 ```
 
-### Inputs/Forms (Profissional)
+### Navbar (Glass Effect Premium)
 ```tsx
-<Input 
-  className="border-2 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary"
-  placeholder="Valor da aposta"
-/>
+<nav className="sticky top-0 z-50 bg-[var(--glass-white)] backdrop-blur-md border-b border-[var(--border-soft)]">
+  <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <Logo />
+    <NavLinks />
+    <UserMenu />
+  </div>
+</nav>
 ```
 
 **Características**:
-- Borda: 2px sólida em estado normal
-- Focus: Ring roxo 2px
-- Altura: `h-11` ou `h-12` (confortável)
-- Font: `text-base`
-- Placeholder: `text-muted-foreground`
-
-### Tabelas (Dados Financeiros)
-**Header**:
-```tsx
-<thead className="bg-muted/50 border-b">
-  <tr>
-    <th className="text-left text-sm font-medium text-muted-foreground">
-      Mercado
-    </th>
-  </tr>
-</thead>
-```
-
-**Rows**:
-```tsx
-<tr className="border-b hover:bg-muted/30 transition-colors">
-  <td className="py-3 px-4 text-sm">...</td>
-</tr>
-```
+- Background: Glass white com blur
+- Borda inferior: Suave
+- Sticky: `sticky top-0 z-50`
+- Logo com gradiente azul: `bg-gradient-to-r from-[var(--primary-blue)] to-[var(--primary-blue-dark)]`
 
 ---
 
@@ -310,88 +306,53 @@ Avatars: rounded-full
 <LineChart>
   <CartesianGrid 
     strokeDasharray="3 3" 
-    stroke="hsl(var(--border))" 
+    stroke="hsl(var(--border-soft))" 
     opacity={0.3}
-  />
-  <XAxis 
-    stroke="hsl(var(--muted-foreground))"
-    tick={{ fontSize: 12 }}
-  />
-  <YAxis 
-    stroke="hsl(var(--muted-foreground))"
-    tick={{ fontSize: 12 }}
   />
   <Line 
     type="monotone" 
-    stroke="hsl(var(--chart-1))"  /* Roxo primário */
+    stroke="hsl(var(--primary-blue))"
     strokeWidth={2.5}
-    dot={{ fill: "hsl(var(--chart-1))", r: 4 }}
-  />
-  <Tooltip 
-    contentStyle={{
-      backgroundColor: "hsl(var(--card))",
-      border: "1px solid hsl(var(--border))",
-      borderRadius: "8px",
-    }}
+    dot={{ fill: "hsl(var(--primary-blue))", r: 4 }}
   />
 </LineChart>
 ```
-
-### Paleta de Gráficos
-```css
-Linha 1 (principal): hsl(var(--chart-1))  /* Roxo #6B4CFF */
-Linha 2: hsl(var(--chart-2))              /* Roxo claro #B9A9FF */
-Linha 3: hsl(var(--chart-3))              /* Violeta */
-Linha 4: hsl(var(--chart-4))              /* Azul */
-Linha 5: hsl(var(--chart-5))              /* Verde menta */
-```
-
-**Características**:
-- Fundo: Branco puro ou `bg-card`
-- Grid: Cinza clara, opacity 0.3
-- Linhas: 2-3px grossura
-- Pontos: 4-5px raio
-- Tooltip: Card branco com borda
 
 ---
 
 ## ✨ Efeitos Especiais - Sutil e Profissional
 
 ### Sistema de Elevação (Hover/Active)
-```css
-/* Hover sutil - aplicado a cards, botões */
-.hover-elevate:hover {
-  background overlay: rgba(107,76,255, 0.04) /* Extremamente sutil */
-}
+**IMPORTANTE**: Usar sistema hover-elevate do projeto (não sobrescrever!)
 
-/* Active - click feedback */
-.active-elevate-2:active {
-  background overlay: rgba(107,76,255, 0.10)
-}
+```tsx
+/* Componentes já têm hover-elevate built-in */
+<Button>  {/* ✅ Já tem hover-elevate */}
+<Badge>   {/* ✅ Já tem hover-elevate */}
+
+/* Para outros elementos, pode adicionar */
+<Card className="hover-elevate cursor-pointer">
 ```
 
-**Uso**:
+**NUNCA fazer**:
 ```tsx
-<Card className="hover-elevate cursor-pointer">
-<Button className="active-elevate-2">
+<Button className="hover:bg-blue-600">  {/* ❌ Quebra sistema */}
+<Button className="px-4 py-2">         {/* ❌ Quebra altura padrão */}
 ```
 
 ### Transições (Rápidas e Suaves)
 ```css
 transition-all duration-150  /* Padrão rápido */
 transition-colors duration-200  /* Mudanças de cor */
-transition-transform duration-150  /* Hover lift */
+transition-shadow duration-150  /* Hover sombras */
 ```
 
-### Sombras (Mínimas)
+### Sombras (Sutis e Profissionais)
 ```css
-shadow-sm   /* Cards padrão - quase invisível */
-shadow      /* Modals, dropdowns */
-shadow-md   /* Popovers, tooltips */
-shadow-lg   /* Overlays grandes */
+shadow-card: 0 1px 3px rgba(0,0,0,0.08)  /* Cards padrão */
+shadow-md: 0 4px 6px rgba(0,0,0,0.1)     /* Hover elevado */
+shadow-lg: 0 10px 15px rgba(0,0,0,0.1)   /* Modals */
 ```
-
-**EVITAR**: Sombras pesadas (shadow-xl, shadow-2xl) - manter flat
 
 ---
 
@@ -401,13 +362,13 @@ shadow-lg   /* Overlays grandes */
 - Tamanho padrão: `h-5 w-5` (20px)
 - Grandes: `h-6 w-6` (24px)
 - Pequenos: `h-4 w-4` (16px)
-- Cor: `text-muted-foreground` ou `text-primary`
+- Cor: `text-[var(--text-medium)]` ou `text-[var(--primary-blue)]`
 
 **Avatars**:
 ```tsx
 <Avatar className="h-10 w-10">
   <AvatarImage src={url} />
-  <AvatarFallback className="bg-primary/10 text-primary">
+  <AvatarFallback className="bg-blue-50 text-[var(--primary-blue)]">
     JD
   </AvatarFallback>
 </Avatar>
@@ -437,52 +398,47 @@ className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
 /* Espaçamento responsivo */
 className="py-8 md:py-12 lg:py-16"
 className="gap-4 md:gap-6 lg:gap-8"
-
-/* Padding responsivo */
-className="px-4 md:px-6 lg:px-8"
 ```
 
 ---
 
 ## 🎯 Padrões de Uso de Cores
 
-### ✅ SEMPRE USE (Cores Semânticas):
+### ✅ SEMPRE USE (Cores Semânticas via CSS Variables):
 ```tsx
-/* Botões e CTAs primários */
-<Button className="bg-primary text-primary-foreground">
+/* Backgrounds principais */
+<div className="bg-[var(--bg-white)]">           {/* Fundo página */}
+<Card className="bg-white">                      {/* Cards brancos */}
+<div className="bg-[var(--glass-blue)]">         {/* Glass effect */}
 
-/* Badges e pills de destaque */
-<Badge className="bg-primary/10 text-primary border-primary/20">
+/* Textos com hierarquia */
+<h1 className="text-[var(--text-dark)]">         {/* Texto principal */}
+<p className="text-[var(--text-medium)]">        {/* Texto secundário */}
+<span className="text-[var(--text-light)]">     {/* Texto terciário */}
 
-/* Links importantes */
-<Link className="text-primary hover:text-primary/80">
+/* Links e CTAs */
+<a className="text-[var(--primary-blue)]">       {/* Links */}
+<Button className="bg-[var(--primary-blue)]">    {/* CTAs */}
 
-/* Bordas de destaque */
-<Card className="border-primary/30">
-
-/* Texto de destaque */
-<span className="text-primary font-semibold">
-
-/* Cards brancos padrão */
-<Card className="bg-card border-border">
-
-/* Fundos neutros */
-<div className="bg-muted">
+/* Bordas */
+<Card className="border-[var(--border-soft)]">   {/* Bordas suaves */}
 ```
 
-### ❌ NUNCA USE (Cores Hardcoded):
+### ❌ NUNCA FAZER:
 ```tsx
-/* NÃO usar cores literais (exceto action-yes/no quando necessário) */
-className="bg-purple-500"     ❌
-className="text-indigo-400"   ❌
-className="border-violet-600" ❌
-className="bg-white"          ❌ (use bg-card)
-className="bg-black"          ❌ (use bg-background)
-```
+/* NÃO sobrescrever Button variants */
+<Button className="px-4 py-2">                   ❌
+<Button className="hover:bg-blue-600">           ❌
+<Button className="bg-blue-500 text-white">      ❌
 
-**EXCEÇÕES permitidas**:
-- Gráficos que requerem `hsl()` explícito
-- Componentes externos que exigem hex colors
+/* NÃO aninhar interactive elements */
+<Link><Button>...</Button></Link>                ❌
+<a><button>...</button></a>                      ❌
+
+/* USE ISSO */
+<Button onClick={() => setLocation(...)}>        ✅
+<Link>Texto do Link</Link>                       ✅
+```
 
 ---
 
@@ -490,135 +446,29 @@ className="bg-black"          ❌ (use bg-background)
 
 ### Homepage/Landing
 **Estrutura**:
-1. **Header**: Branco puro, borda inferior cinza clara, sticky
-2. **Hero section**: Fundo `bg-background`, headline grande
-3. **Market grid**: 3 colunas desktop, gap-8
+1. **Navbar**: Glass white com blur, sticky
+2. **Hero section**: Gradiente azul suave, headline grande
+3. **Market grid**: 3 colunas desktop, gap-6
 4. **Footer**: Minimalista
 
-**Cards de Mercado**:
+**Background da Página**:
 ```tsx
-<Card className="bg-card border-border shadow-sm hover:border-primary/30 transition-colors">
-  <div className="p-5">
-    <Badge className="mb-3 bg-primary/10 text-primary">Ao Vivo</Badge>
-    <h3 className="text-lg font-semibold mb-2">Título do Mercado</h3>
-    <div className="flex gap-2 mt-4">
-      <Button size="sm">SIM R$0.63</Button>
-      <Button size="sm" variant="outline">NÃO R$0.37</Button>
-    </div>
-  </div>
-</Card>
+<div className="min-h-screen bg-gradient-to-br from-[var(--bg-gradient-start)] to-[var(--bg-gradient-end)]">
 ```
 
-### Market Detail Page
-**Layout**:
+### Market Cards (Grid View)
 ```tsx
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-  {/* Info e gráfico - 2/3 */}
-  <div className="lg:col-span-2 space-y-6">
-    <Card>Gráfico</Card>
-    <Tabs>Overview | Histórico | Discussão</Tabs>
-  </div>
-  
-  {/* Trading panel - 1/3 */}
-  <div>
-    <Card className="sticky top-20">
-      Trading interface
-    </Card>
-  </div>
-</div>
-```
-
-### Portfolio
-**Cards de resumo**:
-```tsx
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-  <Card>
-    <div className="p-6">
-      <p className="text-sm text-muted-foreground">Valor Total</p>
-      <p className="text-3xl font-bold font-mono mt-2">R$ 1.234,56</p>
-    </div>
-  </Card>
-</div>
-```
-
----
-
-## 🎨 Component Library Específico
-
-### Navigation Bar
-```tsx
-<nav className="sticky top-0 z-50 bg-card border-b border-border">
-  <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-    <Logo />
-    <NavLinks />
-    <UserMenu />
-  </div>
-</nav>
-```
-
-### Trading Panel
-```tsx
-<Card className="p-6">
-  <div className="space-y-4">
-    {/* YES/NO toggle */}
-    <div className="flex gap-2">
-      <Button variant={side === 'yes' ? 'default' : 'outline'}>
-        SIM
-      </Button>
-      <Button variant={side === 'no' ? 'default' : 'outline'}>
-        NÃO
-      </Button>
-    </div>
-    
-    {/* Amount input */}
-    <Input type="number" placeholder="R$ 100,00" />
-    
-    {/* Preview */}
-    <div className="bg-muted/50 rounded-lg p-4">
-      <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">Você recebe</span>
-        <span className="font-mono font-semibold">123 shares</span>
-      </div>
-    </div>
-    
-    {/* Submit */}
-    <Button className="w-full" size="lg">
-      Confirmar Aposta
-    </Button>
-  </div>
-</Card>
-```
-
-### Market Card (Grid View)
-```tsx
-<Card className="hover:border-primary/30 transition-colors cursor-pointer">
-  <div className="p-5 space-y-3">
-    <div className="flex items-start justify-between">
-      <Badge variant="outline" className="bg-primary/10 text-primary">
-        Polymarket
-      </Badge>
-      <span className="text-xs text-muted-foreground">2h atrás</span>
-    </div>
-    
-    <h3 className="font-semibold line-clamp-2">
-      Título do mercado aqui
+<Card className="bg-white border-[var(--border-soft)] shadow-card hover:shadow-md transition-shadow">
+  <div className="p-6 space-y-4">
+    <Badge className="bg-blue-50 text-[var(--primary-blue)]">
+      Política
+    </Badge>
+    <h3 className="font-semibold text-[var(--text-dark)]">
+      Título do Mercado
     </h3>
-    
-    {/* Mini sparkline (opcional) */}
-    <div className="h-12">
-      <MiniChart />
-    </div>
-    
-    {/* Odds */}
-    <div className="flex gap-2">
-      <div className="flex-1 text-center py-2 bg-primary/10 rounded-lg">
-        <p className="text-xs text-muted-foreground">SIM</p>
-        <p className="font-mono font-semibold text-primary">63%</p>
-      </div>
-      <div className="flex-1 text-center py-2 bg-muted rounded-lg">
-        <p className="text-xs text-muted-foreground">NÃO</p>
-        <p className="font-mono font-semibold">37%</p>
-      </div>
+    <div className="grid grid-cols-2 gap-2">
+      <Button variant="actionYes" size="sm">SIM</Button>
+      <Button variant="actionNo" size="sm">NÃO</Button>
     </div>
   </div>
 </Card>
@@ -630,8 +480,8 @@ className="bg-black"          ❌ (use bg-background)
 
 - Alto contraste: WCAG AA mínimo (4.5:1 para texto)
 - Labels ARIA em todas interações
-- Estados de foco visíveis: `ring-2 ring-primary`
-- Atalhos de teclado documentados
+- Estados de foco visíveis: `ring-2 ring-[var(--primary-blue)]`
+- Semântica HTML correta: Sem aninhamento de `<a><button>`
 - Screen reader friendly: `sr-only` para contexto
 - Cores não são único indicador (usar ícones também)
 
@@ -639,24 +489,27 @@ className="bg-black"          ❌ (use bg-background)
 
 ## Design Checklist
 
-✅ Fundo roxo profundo escuro (#130F1E)
-✅ Textos claros com alto contraste (#E8E8FF)
-✅ Botões primários roxo neon (#7A4CFF)
-✅ Botões SIM azul neon (#386BFF) e NÃO vermelho neon (#FF3F55)
-✅ Cards roxos neutros (#1A1922) com bordas escuras
-✅ Sombras roxas neon sutis (shadow-action-yes/no em botões)
+✅ Fundos brancos claros com gradientes azuis sutis
+✅ Textos escuros com hierarquia clara (dark > medium > light)
+✅ Azul tech vibrante como cor primária (#3B5BFF)
+✅ Botões SIM azul e NÃO vermelho (variants corretos)
+✅ Cards brancos com bordas suaves e sombras sutis
+✅ Navbar glass white com backdrop-blur
+✅ Sistema hover-elevate preservado (sem overrides!)
+✅ Sem aninhamento de interactive elements
 ✅ Espaçamento consistente (gap-6, gap-8)
 ✅ Tipografia Inter/Manrope
-✅ Border radius 12px (rounded-xl para cards)
+✅ Border radius suave (rounded-xl para cards)
 ✅ Transições rápidas (150-200ms)
-✅ Dark mode ainda mais escuro que light mode
-✅ Gráficos com paleta neon (roxo, magenta, azul, ciano, rosa)
-✅ Zero cores hardcoded (usar variáveis CSS)
+✅ Ícones Lucide com cores semânticas
+✅ Zero cores hardcoded (usar CSS variables)
+✅ Semântica HTML correta
 
 ---
 
 **Este design transmite:**
-- 🚀 Inovação tech e futurismo
-- ⚡ Energy de plataforma crypto/prediction markets
-- 🎯 Clareza e profissionalismo moderno
-- 🇧🇷 Acessibilidade brasileira com identidade única
+- 💼 Profissionalismo e confiança fintech
+- 🚀 Modernidade tech e inovação
+- 🎯 Clareza e facilidade de uso
+- 🇧🇷 Acessibilidade brasileira com identidade premium
+- ⚡ Credibilidade institucional
