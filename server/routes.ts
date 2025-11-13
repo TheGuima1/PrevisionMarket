@@ -735,6 +735,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Deposited ${depositAmount} ${currency} (MOCKED)`,
       });
 
+      // Integração com BRL3 (3BIT XChange) - apenas para depósitos em BRL via PIX
+      if (currency === "BRL" && type === "deposit_pix") {
+        const amountNumber = typeof depositAmount === "number"
+          ? depositAmount
+          : parseFloat(depositAmount.toString());
+
+        if (!Number.isNaN(amountNumber) && amountNumber > 0) {
+          await notifyMintToBRL3({
+            externalUserId: user.id,
+            amountBrl: amountNumber,
+          });
+        }
+      }
+
       res.json({ success: true });
     } catch (error: any) {
       if (error.name === "ZodError") {
@@ -785,6 +799,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currency,
         description: `Withdrew ${withdrawAmount} ${currency} (MOCKED)`,
       });
+
+      // Integração com BRL3 (3BIT XChange) - apenas para saques em BRL via PIX
+      if (currency === "BRL" && type === "withdrawal_pix") {
+        const amountNumber = typeof withdrawAmount === "number"
+          ? withdrawAmount
+          : parseFloat(withdrawAmount.toString());
+
+        if (!Number.isNaN(amountNumber) && amountNumber > 0) {
+          await notifyBurnToBRL3({
+            externalUserId: user.id,
+            amountBrl: amountNumber,
+          });
+        }
+      }
 
       res.json({ success: true });
     } catch (error: any) {
