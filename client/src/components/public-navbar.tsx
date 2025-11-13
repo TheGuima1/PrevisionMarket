@@ -8,13 +8,13 @@ export function PublicNavbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-14 items-center justify-between px-4">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Left Section: Como Palpitar + Logo */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <HowToBetDialog />
           <Link href="/" data-testid="link-home">
             <span className="flex items-center gap-2 hover-elevate px-3 py-1 rounded-md transition-all cursor-pointer">
-              <span className="font-accent text-2xl font-bold bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 bg-clip-text text-transparent">
+              <span className="font-accent text-3xl font-bold text-primary">
                 Palpites.AI
               </span>
             </span>
@@ -22,33 +22,30 @@ export function PublicNavbar() {
         </div>
 
         {/* Auth Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button 
             variant="outline"
-            size="sm" 
             onClick={() => setLocation("/wallet/deposit")}
-            className="bg-primary/10 border-primary/20 text-primary no-default-hover-elevate"
+            className="bg-primary/10 border-primary/20 text-primary no-default-hover-elevate text-base h-10 px-5"
             data-testid="button-deposit-pix"
           >
             Depositar via PIX
           </Button>
           <Button 
             variant="ghost" 
-            size="sm" 
             onClick={() => setLocation("/auth")}
-            className="no-default-hover-elevate"
+            className="no-default-hover-elevate text-base h-10 px-4"
             data-testid="button-login"
           >
-            <LogIn className="h-4 w-4 mr-2" />
+            <LogIn className="h-5 w-5 mr-2" />
             Login
           </Button>
           <Button 
-            size="sm" 
             onClick={() => setLocation("/auth")}
-            className="no-default-hover-elevate"
+            className="no-default-hover-elevate text-base h-10 px-5"
             data-testid="button-signup"
           >
-            <UserPlus className="h-4 w-4 mr-2" />
+            <UserPlus className="h-5 w-5 mr-2" />
             Sign Up
           </Button>
         </div>
