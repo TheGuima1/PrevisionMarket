@@ -12,6 +12,7 @@ import * as AMM from "./amm-engine";
 import { startPolymarketSnapshots } from "./polymarket-cron";
 import { getSnapshot } from "./mirror/state";
 import { startMirror } from "./mirror/worker";
+import { notifyMintToBRL3, notifyBurnToBRL3 } from "./brl3-client";
 
 // Error messages in Portuguese
 const errorMessages = {
