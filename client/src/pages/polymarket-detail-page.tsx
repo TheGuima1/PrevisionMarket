@@ -44,8 +44,14 @@ export default function PolymarketDetailPage() {
   // Get outcome names for chart lines
   const outcomeNames = market?.outcomes.map((o: any) => o.name) || [];
 
-  // Color palette for chart lines
-  const colors = ["#8b5cf6", "#22c55e", "#3b82f6", "#f59e0b", "#ef4444"];
+  // Color palette for chart lines (using 3BIT theme colors)
+  const colors = [
+    "hsl(173, 80%, 40%)",  // chart-1 verde-turquesa
+    "hsl(320, 35%, 50%)",  // chart-2 roxo/vinho
+    "hsl(280, 40%, 55%)",  // chart-3 violeta
+    "hsl(200, 60%, 50%)",  // chart-4 azul
+    "hsl(150, 55%, 45%)",  // chart-5 verde
+  ];
 
   if (marketsLoading) {
     return (
@@ -95,7 +101,7 @@ export default function PolymarketDetailPage() {
           <div className="flex items-start gap-3">
             <Badge 
               variant="outline" 
-              className="whitespace-nowrap inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-purple-500/10 text-purple-400 border-purple-500/30"
+              className="whitespace-nowrap inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-primary/10 text-primary border-primary/30"
             >
               <TrendingUp className="h-3 w-3" />
               Polymarket

@@ -1,7 +1,7 @@
 # Palpites.AI Design Guidelines - Identidade Visual 3BIT
 
 ## Design Approach
-**3BIT Visual Identity**: Identidade visual moderna com laranja institucional como cor primária, dark mode em tom vinho/roxo, e design conversacional e acessível. O sistema equilibra profissionalismo financeiro com simplicidade brasileira, evitando jargões técnicos e priorizando clareza.
+**3BIT Visual Identity**: Identidade visual moderna com **verde-turquesa** (#14B8A6) como cor primária, dark mode em **tom roxo/vinho escuro** (#2E1B2C), e design conversacional e acessível. O sistema equilibra profissionalismo financeiro com simplicidade brasileira, evitando jargões técnicos e priorizando clareza.
 
 ## Core Design Principles
 1. **Radical Simplicity**: Uma mensagem clara por seção, sem cramped layouts
@@ -13,39 +13,39 @@
 
 ## 🌈 Paleta de Cores 3BIT
 
-### Cor Primária (Laranja/Cobre Institucional)
+### Cor Primária (Verde-Turquesa/Ciano)
 ```css
---primary: 18 75% 48%              /* #D96029 - Laranja institucional */
---primary-foreground: 18 75% 98%   /* Texto sobre primária */
+--primary: 173 80% 40%             /* #14B8A6 - Verde-turquesa */
+--primary-foreground: 0 0% 100%    /* Branco sobre primária */
 ```
-**Uso**: Botões principais, CTAs, links importantes, destaques
+**Uso**: Botões principais, CTAs, links importantes, destaques, ícones
 
-### Modo Claro (Light Mode)
+### Modo Claro (Light Mode) - Fundo Limpo e Claro
 ```css
---background: 0 0% 98%             /* #FAFAFA - Fundo geral */
---foreground: 0 0% 12%             /* #1F1F1F - Texto principal */
---card: 0 0% 96%                   /* #F5F5F5 - Cards */
---border: 0 0% 88%                 /* #E0E0E0 - Bordas */
---muted: 0 2% 89%                  /* #E3E3E3 - Texto secundário */
+--background: 0 0% 99%             /* #FCFCFC - Fundo quase branco */
+--foreground: 0 0% 10%             /* #1A1A1A - Texto escuro */
+--card: 0 0% 97%                   /* #F7F7F7 - Cards */
+--border: 0 0% 90%                 /* #E5E5E5 - Bordas */
+--muted: 0 0% 95%                  /* Texto secundário */
 ```
 
-### Modo Escuro (Dark Mode) - Tom Vinho/Roxo
+### Modo Escuro (Dark Mode) - Tom Roxo/Vinho Escuro (Referência 3BIT)
 ```css
---background: 330 45% 8%           /* #140A0F - Fundo escuro vinho */
---foreground: 330 5% 92%           /* #EBE9EA - Texto claro */
---card: 330 5% 10%                 /* #1A1518 - Cards escuros */
---border: 330 5% 18%               /* #2E2729 - Bordas */
---sidebar: 330 5% 12%              /* #1F181C - Sidebar */
+--background: 320 35% 14%          /* #2E1B2C - Roxo/vinho escuro */
+--foreground: 0 0% 95%             /* #F2F2F2 - Texto claro */
+--card: 310 30% 22%                /* #4A2847 - Cards roxos */
+--border: 310 25% 22%              /* Bordas roxas */
+--sidebar: 315 32% 18%             /* Sidebar roxa */
 ```
 
 ### Cores de Suporte
 ```css
---destructive: 0 72% 42%           /* Vermelho ações destrutivas */
---chart-1: 18 75% 48%              /* Laranja - gráficos */
---chart-2: 330 45% 38%             /* Roxo - gráficos */
---chart-3: 280 30% 42%             /* Violeta - gráficos */
---chart-4: 200 55% 45%             /* Azul - gráficos */
---chart-5: 150 50% 40%             /* Verde - gráficos */
+--destructive: 0 72% 50%           /* Vermelho ações destrutivas */
+--chart-1: 173 80% 40%             /* Verde-turquesa - gráficos */
+--chart-2: 320 35% 50%             /* Roxo/vinho - gráficos */
+--chart-3: 280 40% 55%             /* Violeta - gráficos */
+--chart-4: 200 60% 50%             /* Azul - gráficos */
+--chart-5: 150 55% 45%             /* Verde - gráficos */
 ```
 
 ---
@@ -96,13 +96,14 @@ Grids multi-coluna:   max-w-6xl
 ## 🎴 Componentes Visuais
 
 ### Cards
-- **Estilo**: Bordas sutis, **sem sombras pesadas**
-- **Padding**: `p-8`
+- **Estilo**: Bordas sutis com `border-primary/30` para destaque, **sem sombras pesadas**
+- **Padding**: `p-8` ou `p-6`
 - **Gap entre cards**: `gap-8`
 - **Background**: `bg-card` (levemente elevado do fundo)
+- **Dark mode**: Cards roxos (#4A2847) sobre fundo roxo escuro (#2E1B2C)
 
 ### Botões
-**Primário**:
+**Primário** (Verde-turquesa):
 ```css
 bg-primary text-primary-foreground
 rounded-lg px-6 py-3
@@ -115,10 +116,14 @@ bg-secondary text-secondary-foreground
 outline variant com border
 ```
 
+### Badges
+- Usar `bg-primary/10 text-primary border-primary/30` para badges de destaque
+- Evitar cores hardcoded como `purple-500` ou `indigo-600`
+
 ### Inputs/Forms
 ```css
 Inputs:  border-2 rounded-lg p-4
-Focus:   ring-2 ring-primary
+Focus:   ring-2 ring-primary (verde-turquesa)
 Labels:  Acima do input, font-medium
 ```
 
@@ -130,31 +135,31 @@ Labels:  Acima do input, font-medium
 ```css
 /* Elevação no hover - sutil */
 .hover-elevate:hover {
-  background overlay: rgba(217,96,41, 0.04) em light mode
-  background overlay: rgba(255,255,255, 0.04) em dark mode
+  background overlay: rgba(20,184,166, 0.04) em light mode
+  background overlay: rgba(20,184,166, 0.08) em dark mode
 }
 
 /* Elevação no click - mais pronunciada */
 .active-elevate-2:active {
-  background overlay: rgba(217,96,41, 0.12) em light mode
-  background overlay: rgba(255,255,255, 0.09) em dark mode
+  background overlay: rgba(20,184,166, 0.12) em light mode
+  background overlay: rgba(20,184,166, 0.15) em dark mode
 }
 ```
 
 ### Glassmorphism (Cards Premium)
 ```css
 backdrop-filter: blur(12px)
-background: rgba(255, 255, 255, 0.1) em dark mode
+background: rgba(20, 184, 166, 0.1) em dark mode
 background: rgba(0, 0, 0, 0.05) em light mode
-border: 1px solid rgba(255, 255, 255, 0.2)
+border: 1px solid rgba(20, 184, 166, 0.2)
 ```
 
 ### Gradientes (Hero Sections)
 ```css
-/* Gradiente laranja/roxo para backgrounds */
+/* Gradiente verde-turquesa/roxo para backgrounds */
 background: linear-gradient(135deg, 
-  hsl(18, 75%, 48%) 0%,    /* Laranja */
-  hsl(330, 45%, 38%) 100%  /* Roxo vinho */
+  hsl(173, 80%, 40%) 0%,    /* Verde-turquesa */
+  hsl(320, 35%, 50%) 100%   /* Roxo/vinho */
 );
 ```
 
@@ -172,7 +177,7 @@ background: linear-gradient(135deg,
 **Hero Background**:
 ```css
 /* Overlay escuro sobre imagem para legibilidade */
-background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6))
+background: linear-gradient(rgba(46, 27, 44, 0.7), rgba(46, 27, 44, 0.9))
 ```
 
 ---
@@ -212,27 +217,62 @@ className="py-8 md:py-16 lg:py-24"
 
 ---
 
+## 🎯 Padrão de Cores em Componentes
+
+### ✅ SEMPRE USE (Cores Semânticas):
+```tsx
+// Botões principais
+<Button className="bg-primary text-primary-foreground">
+
+// Badges de destaque
+<Badge className="bg-primary/10 text-primary border-primary/30">
+
+// Links e ícones importantes
+<Link className="text-primary hover:text-primary/80">
+
+// Bordas de cards especiais
+<Card className="border-primary/30">
+
+// Texto de destaque
+<span className="text-primary">
+```
+
+### ❌ NUNCA USE (Cores Hardcoded):
+```tsx
+// NÃO usar cores literais do Tailwind
+className="bg-purple-500"    ❌
+className="text-indigo-400"  ❌
+className="border-violet-600" ❌
+
+// EXCEÇÕES (permitido em casos específicos):
+// - Gráficos com paleta fixa (usar hsl() das variáveis CSS)
+// - Componentes externos que exigem hex colors
+```
+
+---
+
 ## Component Library
 
 ### Navigation
 - **Top Navigation Bar**: Sticky, full-width, altura `h-16`
-  - Logo esquerda, navegação principal centro
+  - Logo esquerda (verde-turquesa), navegação principal centro
   - User menu + saldo wallet direita
   - Barra de busca com autocomplete de mercados
   - Toggle AI assistant (ícone cachorro) acessível de qualquer página
 
 ### Market Cards
 - **Compact Card** (grid view):
-  - Título do mercado, badge de categoria, odds atuais proeminentes
+  - Título do mercado, badge verde-turquesa, odds atuais proeminentes
+  - Bordas `border-primary/30` para destaque sutil
   - Mini indicador de volume e contagem de participantes
   - Botões de ação rápida YES/NO
-  - Hover state mostra mais detalhes
+  - Hover state com `hover-elevate`
   
 - **Expanded Card** (detail view):
   - Descrição completa do mercado e critérios de resolução
   - Preview do order book (top 5 bids/asks)
   - Toggle de odds em três formatos (Decimal/Americano/Porcentagem)
-  - Gráfico mostrando probabilidade ao longo do tempo
+  - Gráfico mostrando probabilidade ao longo do tempo (cores do chart)
   - Métricas de volume, liquidez e atividade
 
 ### Trading Interface
@@ -241,7 +281,7 @@ className="py-8 md:py-16 lg:py-24"
   - Input de valor com display de saldo
   - Payout calculado mostrado proeminentemente
   - Seletor de tipo de ordem (Market/Limit)
-  - Botão confirmar com odds finais claras
+  - Botão confirmar verde-turquesa com odds finais claras
   
 - **Position Display**:
   - Tabela mostrando posições ativas
@@ -249,52 +289,37 @@ className="py-8 md:py-16 lg:py-24"
   - Ações rápidas de vender/fechar
 
 ### AI Assistant (Cachorro Mascot)
-- **Floating Widget**: Canto inferior direito, expansível
+- **Floating Widget**: Canto inferior direito, expansível, cor primária verde-turquesa
 - **Expanded View**: 
   - Interface de chat com avatar amigável do cachorro
-  - Botões de ação rápida: "Explicar Odds", "Sentimento do Mercado", "Recomendar Mercados", "Como Funciona"
+  - Botões de ação rápida verde-turquesa
   - Respostas contextuais baseadas na página atual
   - Formatação estilo Markdown para explicações
-
-### Discussion Pages
-- **Per-Market Discussion**:
-  - Comentários em thread estilo Reddit
-  - Avatares de usuário com username e badges de reputação
-  - Sistema de upvote/downvote
-  - Filtrar por Top/Novo/Controverso
-  - Editor de rich text para posts (negrito, itálico, links)
 
 ---
 
 ## Key Page Layouts
 
 ### Homepage/Dashboard
-- Hero section: Grande headline "Aposte no Futuro do Brasil" com explicação da plataforma
-- Categorias de mercados como tabs/pills horizontais abaixo do hero
-- Grid de mercados em destaque (3 colunas desktop, mercados trending)
+- Hero section: Grande headline com explicação da plataforma
+- Fundo dark mode: Roxo escuro (#2E1B2C) com gradiente sutil
+- Cards de mercados com bordas verde-turquesa
+- Categorias de mercados como tabs/pills horizontais
+- Grid de mercados em destaque (3 colunas desktop)
 - Preview do leaderboard na sidebar
 - Card de introdução do AI assistant
 
 ### Market Detail Page
 - Layout duas colunas: Info do mercado esquerda (60%), Trading panel direita (40%)
-- Gráfico de probabilidade full-width acima do fold
-- Seção de discussão abaixo do gráfico (estilo Reddit)
+- Gráfico de probabilidade full-width com cores da paleta (chart-1 a chart-5)
+- Seção de discussão abaixo do gráfico
 - Sidebar de mercados relacionados
 
 ### Portfolio Page
 - Cards de resumo: Valor Total, P&L Hoje, Taxa de Acerto
 - Tabela de posições ativas com filtros
 - Timeline de histórico de transações
-- Gráfico de performance ao longo do tempo
-
----
-
-## 🎯 Princípios de Design 3BIT
-
-1. **Radical Simplicity**: Uma mensagem clara por seção
-2. **Whitespace Generoso**: Nunca cramped ou corporate
-3. **Conversacional**: Zero jargão técnico
-4. **Confiança através da Calma**: Experiência espaçosa, sem pressa
+- Gráfico de performance ao longo do tempo (cores do chart)
 
 ---
 
@@ -304,4 +329,5 @@ className="py-8 md:py-16 lg:py-24"
 - Labels ARIA em todas as ações de trading
 - Atalhos de teclado para trading rápido (documentado no help)
 - Confirmações de ordem friendly para screen readers
-- Estados de foco consistentes em elementos interativos
+- Estados de foco verde-turquesa consistentes em elementos interativos
+- Dark mode roxo/vinho com contraste adequado para legibilidade
