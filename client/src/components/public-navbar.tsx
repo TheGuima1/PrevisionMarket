@@ -27,7 +27,7 @@ export function PublicNavbar() {
             variant="outline"
             size="sm" 
             onClick={() => setLocation("/wallet/deposit")}
-            className="bg-brand-500/10 border-brand-500/20 text-brand-300 hover:bg-brand-500/20"
+            className="bg-primary/10 border-primary/20 text-primary no-default-hover-elevate"
             data-testid="button-deposit-pix"
           >
             Depositar via PIX
@@ -36,6 +36,7 @@ export function PublicNavbar() {
             variant="ghost" 
             size="sm" 
             onClick={() => setLocation("/auth")}
+            className="no-default-hover-elevate"
             data-testid="button-login"
           >
             <LogIn className="h-4 w-4 mr-2" />
@@ -44,6 +45,7 @@ export function PublicNavbar() {
           <Button 
             size="sm" 
             onClick={() => setLocation("/auth")}
+            className="no-default-hover-elevate"
             data-testid="button-signup"
           >
             <UserPlus className="h-4 w-4 mr-2" />

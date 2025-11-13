@@ -20,7 +20,7 @@ export default function HomePage() {
       <main className="container mx-auto px-4 py-6 space-y-8">
         {/* Hero Section */}
         <div className="space-y-4 text-center max-w-3xl mx-auto py-8">
-          <h1 className="font-accent text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">Palpite certo. Pix no bolso!</h1>
+          <h1 className="font-accent text-4xl md:text-5xl lg:text-6xl font-bold text-primary">Palpite certo. Pix no bolso!</h1>
           <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto">Mensagem a ser escrita - subtitulo</p>
         </div>
 

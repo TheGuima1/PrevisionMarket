@@ -111,7 +111,7 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
           <Link href={`/market/${market.id}?action=buy&type=yes`}>
             <Button 
               size="sm" 
-              className="w-full bg-primary hover:bg-primary/90" 
+              className="w-full bg-gradient-to-r from-primary via-secondary to-primary hover:opacity-90 transition-opacity" 
               data-testid={`button-buy-yes-${market.id}`}
             >
               <span className="flex items-center justify-center gap-1">
@@ -124,7 +124,7 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
             <Button 
               size="sm" 
               variant="destructive" 
-              className="w-full" 
+              className="w-full bg-gradient-to-r from-destructive via-red-400 to-destructive hover:opacity-90 transition-opacity" 
               data-testid={`button-buy-no-${market.id}`}
             >
               <span className="flex items-center justify-center gap-1">
