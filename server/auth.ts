@@ -8,6 +8,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { z } from "zod";
+import jwt from "jsonwebtoken";
 
 declare global {
   namespace Express {
@@ -29,6 +30,9 @@ async function comparePasswords(supplied: string, stored: string) {
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
+
+// Export hashPassword for use in reset password
+export { hashPassword };
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
@@ -177,6 +181,79 @@ export function setupAuth(app: Express) {
       res.json(sanitizeUser(updatedUser));
     } catch (error: any) {
       res.status(400).send(error.message || "Failed to set username");
+    }
+  });
+
+  // ===== FORGOT PASSWORD ROUTES =====
+  
+  // POST /api/auth/request-reset - Request password reset
+  app.post("/api/auth/request-reset", async (req, res) => {
+    try {
+      const requestResetSchema = z.object({
+        email: z.string().email("Email inválido"),
+      });
+
+      const validated = requestResetSchema.parse(req.body);
+      const user = await storage.getUserByEmail(validated.email);
+
+      if (!user) {
+        return res.status(404).json({ error: "Usuário não cadastrado." });
+      }
+
+      // Generate JWT token valid for 1 hour
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        process.env.SESSION_SECRET!,
+        { expiresIn: "1h" }
+      );
+
+      // In production, send email with reset link
+      // For now, log to console (simulated email)
+      const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${token}`;
+      console.log("📧 LINK DE RESET:", resetUrl);
+
+      res.json({
+        success: true,
+        message: "Um link de redefinição de senha foi enviado para o seu email.",
+      });
+    } catch (error: any) {
+      console.error("Error in request-reset:", error);
+      res.status(400).json({ error: error.message || "Falha ao solicitar reset de senha." });
+    }
+  });
+
+  // POST /api/auth/reset-password - Reset password with token
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const resetPasswordSchema = z.object({
+        token: z.string(),
+        newPassword: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+      });
+
+      const validated = resetPasswordSchema.parse(req.body);
+
+      // Verify JWT token
+      const decoded = jwt.verify(
+        validated.token,
+        process.env.SESSION_SECRET!
+      ) as { userId: string; email: string };
+
+      // Hash new password
+      const hashedPassword = await hashPassword(validated.newPassword);
+
+      // Update password in database
+      await storage.updateUserPassword(decoded.userId, hashedPassword);
+
+      res.json({
+        success: true,
+        message: "Senha atualizada com sucesso! Você já pode fazer login.",
+      });
+    } catch (error: any) {
+      console.error("Error in reset-password:", error);
+      if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+        return res.status(400).json({ error: "Token inválido ou expirado." });
+      }
+      res.status(400).json({ error: error.message || "Falha ao redefinir senha." });
     }
   });
 }
