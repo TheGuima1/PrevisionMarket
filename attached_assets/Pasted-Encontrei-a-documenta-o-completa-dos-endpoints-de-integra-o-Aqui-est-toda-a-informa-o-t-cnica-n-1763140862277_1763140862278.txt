@@ -1,0 +1,226 @@
+Encontrei a documentação completa dos endpoints de integração! Aqui está toda a informação técnica necessária para integrar o Palpites.AI com o sistema XCHANGE (3BIT):
+
+📋 DOCUMENTAÇÃO TÉCNICA - INTEGRAÇÃO PALPITES.AI + XCHANGE
+1. 🔗 ENDPOINTS
+Base URL: https://seu-dominio.replit.app (ou o domínio configurado no seu deployment)
+
+MINT (Crédito de BRL3)
+POST /api/palpites/mint
+
+BURN (Débito de BRL3)
+POST /api/palpites/burn
+
+CONSULTAR SALDO (Endpoint bônus)
+GET /api/palpites/balance/:externalUserId
+
+CONSULTAR TRANSAÇÕES (Endpoint bônus)
+GET /api/palpites/transactions/:externalUserId
+
+2. 📦 PAYLOADS ESPERADOS
+MINT - Payload JSON:
+{
+  "externalUserId": "uuid-do-usuario-na-palpites",
+  "amountBrl": "150.00"
+}
+
+Campos obrigatórios:
+
+externalUserId (string): ID único do usuário no sistema Palpites.AI
+amountBrl (string | number): Valor em BRL (aceita "150.00" ou 150.00)
+Formato dos valores:
+
+✅ Enviar em BRL (Reais Brasileiros)
+✅ Exemplos válidos: "150.00", 150, "1500.50"
+❌ NÃO enviar em Wei ou outras unidades
+BURN - Payload JSON:
+{
+  "externalUserId": "uuid-do-usuario-na-palpites",
+  "amountBrl": "75.50"
+}
+
+Campos obrigatórios:
+
+externalUserId (string): ID único do usuário no sistema Palpites.AI
+amountBrl (string | number): Valor em BRL a ser debitado
+3. 🔐 AUTENTICAÇÃO
+Header obrigatório:
+
+x-api-key: SUA_CHAVE_SECRETA_AQUI
+
+Detalhes:
+
+Nome do header: x-api-key (em minúsculas)
+Tipo: API Key (chave compartilhada)
+IMPORTANTE: A chave de API deve ser configurada como secret PALPITES_API_KEY no ambiente do 3BIT
+A mesma chave deve ser utilizada pelo Palpites.AI em todas as requisições
+Exemplo de configuração:
+
+# No .env do 3BIT (lado servidor):
+PALPITES_API_KEY=sua-chave-super-secreta-aqui-12345
+
+4. ✅ RESPOSTAS
+Sucesso (HTTP 200)
+MINT/BURN - Resposta:
+
+{
+  "success": true
+}
+
+BALANCE - Resposta:
+
+{
+  "balance": "150.00",
+  "account": "PalpitesUser:uuid:BRL3"
+}
+
+❌ Erros Possíveis
+HTTP 400 - Bad Request
+
+{
+  "error": "externalUserId é obrigatório"
+}
+
+{
+  "error": "amountBrl inválido"
+}
+
+HTTP 401 - Unauthorized
+
+{
+  "error": "Invalid API key"
+}
+
+HTTP 500 - Internal Server Error
+
+{
+  "error": "Palpites integration not configured"
+}
+
+{
+  "error": "Internal server error"
+}
+
+5. ℹ️ INFORMAÇÕES ADICIONAIS
+Carteira Administrativa:
+✅ NÃO é necessário passar endereço de carteira no payload
+✅ A carteira-mãe/banco está configurada internamente no sistema como Bank:BRL3
+✅ O sistema usa contabilidade em ledger duplo (double-entry bookkeeping)
+Contas Internas (Ledger):
+Quando você chama MINT ou BURN, o sistema cria automaticamente entradas no ledger:
+
+Conta do usuário: PalpitesUser:{externalUserId}:BRL3
+Conta do banco: Bank:BRL3
+Rate Limiting:
+⚠️ Não há rate limiting configurado atualmente
+✅ Sistema suporta alta volumetria
+💡 Recomendado: Implementar retry com backoff exponencial no lado do cliente
+Idempotência:
+⚠️ Os endpoints MINT/BURN não são idempotentes atualmente
+💡 Recomendado: Implementar controle de duplicatas no lado do Palpites.AI
+💡 Futura melhoria: Adicionar campo idempotencyKey opcional
+Logs & Auditoria:
+✅ Todas as operações são registradas no ledger com metadata completo
+✅ Timestamp automático em todas as transações
+✅ Logs de console identificam origem: [PALPITES MINT] e [PALPITES BURN]
+6. 📝 EXEMPLOS DE INTEGRAÇÃO
+Exemplo em cURL - MINT:
+curl -X POST https://seu-dominio.replit.app/api/palpites/mint \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: sua-chave-secreta" \
+  -d '{
+    "externalUserId": "123e4567-e89b-12d3-a456-426614174000",
+    "amountBrl": "150.00"
+  }'
+
+Exemplo em cURL - BURN:
+curl -X POST https://seu-dominio.replit.app/api/palpites/burn \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: sua-chave-secreta" \
+  -d '{
+    "externalUserId": "123e4567-e89b-12d3-a456-426614174000",
+    "amountBrl": "75.50"
+  }'
+
+Exemplo em JavaScript/Node.js:
+const axios = require('axios');
+const BASE_URL = 'https://seu-dominio.replit.app';
+const API_KEY = 'sua-chave-secreta';
+// MINT - Creditar BRL3 após depósito PIX
+async function creditarBRL3(userId, valor) {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/api/palpites/mint`,
+      {
+        externalUserId: userId,
+        amountBrl: valor
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY
+        }
+      }
+    );
+    
+    console.log('✅ MINT realizado:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Erro no MINT:', error.response?.data || error.message);
+    throw error;
+  }
+}
+// BURN - Debitar BRL3 após saque PIX
+async function debitarBRL3(userId, valor) {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/api/palpites/burn`,
+      {
+        externalUserId: userId,
+        amountBrl: valor
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY
+        }
+      }
+    );
+    
+    console.log('✅ BURN realizado:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Erro no BURN:', error.response?.data || error.message);
+    throw error;
+  }
+}
+// Consultar saldo
+async function consultarSaldo(userId) {
+  try {
+    const response = await axios.get(
+      `${BASE_URL}/api/palpites/balance/${userId}`,
+      {
+        headers: {
+          'x-api-key': API_KEY
+        }
+      }
+    );
+    
+    console.log('💰 Saldo:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Erro ao consultar saldo:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+7. 🚀 FLUXO DE INTEGRAÇÃO RECOMENDADO
+Quando usuário DEPOSITA via PIX no Palpites.AI:
+Usuário faz depósito PIX na Palpites.AI
+Palpites.AI confirma o pagamento internamente
+Palpites.AI chama POST /api/palpites/mint → 3BIT credita BRL3
+Usuário agora tem BRL3 disponível
+Quando usuário SACA via PIX no Palpites.AI:
+Usuário solicita saque PIX na Palpites.AI
+Palpites.AI valida saldo interno
+Palpites.AI chama POST /api/palpites/burn → 3BIT debita BRL3
+Palpites.AI processa PIX para a conta do usuário
