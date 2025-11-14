@@ -107,7 +107,9 @@ export default function PortfolioPage() {
 
   const totalPnL = positions?.reduce((acc, pos) => acc + calculatePnL(pos).pnl, 0) || 0;
   const totalInvested = positions?.reduce((acc, pos) => acc + parseFloat(pos.totalInvested), 0) || 0;
-  const totalValue = positions?.reduce((acc, pos) => acc + calculatePnL(pos).currentValue, 0) || 0;
+  const positionsValue = positions?.reduce((acc, pos) => acc + calculatePnL(pos).currentValue, 0) || 0;
+  const availableBalance = parseFloat(user?.balanceBrl || "0");
+  const totalValue = availableBalance + positionsValue;
 
   return (
     <div className="min-h-screen bg-background">
@@ -132,7 +134,7 @@ export default function PortfolioPage() {
           )}
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-4 gap-6">
           <Card className="p-6 space-y-2">
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <Wallet className="h-4 w-4" />
@@ -146,10 +148,20 @@ export default function PortfolioPage() {
           <Card className="p-6 space-y-2">
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
               <DollarSign className="h-4 w-4" />
-              <span>Investido</span>
+              <span>Disponível</span>
             </div>
-            <div className="text-3xl font-bold tabular-nums" data-testid="text-total-invested">
-              {formatBRL3(totalInvested)}
+            <div className="text-3xl font-bold tabular-nums" data-testid="text-available-balance">
+              {formatBRL3(availableBalance)}
+            </div>
+          </Card>
+
+          <Card className="p-6 space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <TrendingUp className="h-4 w-4" />
+              <span>Em Posições</span>
+            </div>
+            <div className="text-3xl font-bold tabular-nums" data-testid="text-positions-value">
+              {formatBRL3(positionsValue)}
             </div>
           </Card>
 
