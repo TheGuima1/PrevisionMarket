@@ -58,7 +58,7 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
 
   return (
     <Card className="overflow-hidden bg-white border-[var(--border-soft)] shadow-card hover:shadow-md transition-all duration-200" data-testid={`card-market-${market.id}`}>
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-4 bg-[#f5edff]">
         <div className="space-y-2">
           <div className="flex items-start justify-between gap-2">
             <Badge 
