@@ -139,6 +139,40 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Admin login with password only
+  app.post("/api/auth/admin-login", async (req, res, next) => {
+    try {
+      const adminPasswordSchema = z.object({
+        password: z.string(),
+      });
+
+      const validated = adminPasswordSchema.parse(req.body);
+      const adminPassword = process.env.ADMIN_PASSWORD;
+
+      if (!adminPassword) {
+        return res.status(500).send("Senha de administrador não configurada");
+      }
+
+      if (validated.password !== adminPassword) {
+        return res.status(401).send("Senha de administrador incorreta");
+      }
+
+      // Find admin user
+      const adminUser = await storage.getUserByUsername("admin");
+      if (!adminUser) {
+        return res.status(500).send("Usuário administrador não encontrado");
+      }
+
+      // Login as admin
+      req.login(adminUser, (err) => {
+        if (err) return next(err);
+        res.status(200).json(sanitizeUser(adminUser));
+      });
+    } catch (error: any) {
+      res.status(400).send(error.message || "Falha no login de administrador");
+    }
+  });
+
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);

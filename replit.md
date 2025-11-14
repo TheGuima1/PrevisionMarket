@@ -28,7 +28,7 @@ The platform follows a **Paleta C - Futurista/Crypto** design with deep purple b
 - **Localization**: Full PT-BR localization for all UI elements and backend error messages.
 
 ### Feature Specifications
-- **Authentication**: Standard email/password login/registration with unique username setup and protected routes.
+- **Authentication**: Standard email/password login/registration with unique username setup and protected routes. Admin quick access via password-only login (ADMIN_PASSWORD secret) available on login page.
 - **Public Landing Page**: Displays the 4 available markets with real-time Polymarket odds in a simplified layout.
 - **Market Detail Page**: Offers comprehensive market information, multiple odds formats, a Reddit-style discussion system, and an integrated trading panel.
 - **Trading Panel**: Features a visual YES/NO toggle, quantity input, real-time debounced preview of share estimates, and automatic calculation of cost, potential gain, and profit.

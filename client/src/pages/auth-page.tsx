@@ -6,14 +6,48 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, BarChart3, Users, Zap } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { TrendingUp, BarChart3, Users, Zap, Shield } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({ email: "", password: "", confirmPassword: "" });
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+
+  const adminLoginMutation = useMutation({
+    mutationFn: async (password: string) => {
+      const res = await apiRequest("POST", "/api/auth/admin-login", { password });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/user"], data);
+      setAdminDialogOpen(false);
+      setAdminPassword("");
+      setLocation("/admin");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro no login de administrador",
+        description: error.message || "Senha incorreta",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (user) {
@@ -35,6 +69,11 @@ export default function AuthPage() {
       email: registerData.email,
       password: registerData.password,
     });
+  };
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    adminLoginMutation.mutate(adminPassword);
   };
 
   if (user) {
@@ -84,9 +123,9 @@ export default function AuthPage() {
                       <div className="flex items-center justify-between">
                         <Label htmlFor="login-password">Senha</Label>
                         <Link href="/forgot-password">
-                          <a className="text-xs text-primary hover:underline" data-testid="link-forgot-password">
+                          <span className="text-xs text-primary hover:underline cursor-pointer" data-testid="link-forgot-password">
                             Esqueci minha senha
-                          </a>
+                          </span>
                         </Link>
                       </div>
                       <Input
@@ -166,6 +205,63 @@ export default function AuthPage() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full gap-2 border-[var(--primary-blue)]/30 text-[var(--primary-blue)] hover:bg-[var(--glass-blue)]"
+                data-testid="button-admin-access"
+              >
+                <Shield className="h-4 w-4" />
+                Acesso Admin
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Acesso Administrativo</DialogTitle>
+                <DialogDescription>
+                  Digite a senha de administrador para acessar o painel
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAdminLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-password">Senha de Administrador</Label>
+                  <Input
+                    id="admin-password"
+                    type="password"
+                    placeholder="Digite a senha"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    required
+                    data-testid="input-admin-password"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setAdminDialogOpen(false);
+                      setAdminPassword("");
+                    }}
+                    data-testid="button-admin-cancel"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={adminLoginMutation.isPending}
+                    data-testid="button-admin-login-submit"
+                  >
+                    {adminLoginMutation.isPending ? "Entrando..." : "Entrar"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
