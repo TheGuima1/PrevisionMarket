@@ -6,6 +6,7 @@ import {
   orders,
   comments,
   transactions,
+  pendingDeposits,
   type User,
   type InsertUser,
   type Market,
@@ -17,6 +18,8 @@ import {
   type InsertComment,
   type Transaction,
   type InsertTransaction,
+  type PendingDeposit,
+  type InsertPendingDeposit,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, and, or, desc, sql } from "drizzle-orm";
@@ -83,6 +86,13 @@ export interface IStorage {
   // Transaction methods
   getTransactions(userId: string): Promise<Transaction[]>;
   createTransaction(userId: string, transaction: Omit<InsertTransaction, "id" | "userId">): Promise<Transaction>;
+
+  // Pending Deposit methods (manual approval workflow)
+  createPendingDeposit(userId: string, deposit: Omit<InsertPendingDeposit, "userId">): Promise<PendingDeposit>;
+  getPendingDeposits(status?: "pending" | "approved" | "rejected"): Promise<(PendingDeposit & { user: { username: string; email: string } })[]>;
+  getPendingDeposit(id: string): Promise<PendingDeposit | undefined>;
+  approvePendingDeposit(depositId: string, adminUserId: string): Promise<PendingDeposit>;
+  rejectPendingDeposit(depositId: string, adminUserId: string, reason?: string): Promise<PendingDeposit>;
 
   // Recent trades method
   getRecentTrades(limit?: number): Promise<RecentTrade[]>;
@@ -530,6 +540,76 @@ export class DatabaseStorage implements IStorage {
       .values({ ...insertTransaction, userId })
       .returning();
     return transaction;
+  }
+
+  // Pending Deposit methods (manual approval workflow)
+  async createPendingDeposit(userId: string, deposit: Omit<InsertPendingDeposit, "userId">): Promise<PendingDeposit> {
+    const [pendingDeposit] = await db
+      .insert(pendingDeposits)
+      .values({ ...deposit, userId })
+      .returning();
+    return pendingDeposit;
+  }
+
+  async getPendingDeposits(status?: "pending" | "approved" | "rejected"): Promise<(PendingDeposit & { user: { username: string; email: string } })[]> {
+    const query = db
+      .select({
+        pendingDeposit: pendingDeposits,
+        user: {
+          username: users.username,
+          email: users.email,
+        },
+      })
+      .from(pendingDeposits)
+      .innerJoin(users, eq(pendingDeposits.userId, users.id))
+      .orderBy(desc(pendingDeposits.createdAt));
+
+    const result = status
+      ? await query.where(eq(pendingDeposits.status, status))
+      : await query;
+
+    return result.map((row) => ({
+      ...row.pendingDeposit,
+      user: {
+        username: row.user.username || "Anônimo",
+        email: row.user.email,
+      },
+    }));
+  }
+
+  async getPendingDeposit(id: string): Promise<PendingDeposit | undefined> {
+    const [deposit] = await db
+      .select()
+      .from(pendingDeposits)
+      .where(eq(pendingDeposits.id, id));
+    return deposit || undefined;
+  }
+
+  async approvePendingDeposit(depositId: string, adminUserId: string): Promise<PendingDeposit> {
+    const [approved] = await db
+      .update(pendingDeposits)
+      .set({
+        status: "approved",
+        approvedAt: new Date(),
+        approvedBy: adminUserId,
+      })
+      .where(eq(pendingDeposits.id, depositId))
+      .returning();
+    return approved;
+  }
+
+  async rejectPendingDeposit(depositId: string, adminUserId: string, reason?: string): Promise<PendingDeposit> {
+    const [rejected] = await db
+      .update(pendingDeposits)
+      .set({
+        status: "rejected",
+        rejectedAt: new Date(),
+        approvedBy: adminUserId, // We reuse this field to track who rejected
+        rejectionReason: reason || "Comprovante inválido",
+      })
+      .where(eq(pendingDeposits.id, depositId))
+      .returning();
+    return rejected;
   }
 
   // Recent trades implementation

@@ -50,6 +50,12 @@ export const transactionTypeEnum = pgEnum("transaction_type", [
   "platform_fee",
 ]);
 
+export const depositStatusEnum = pgEnum("deposit_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -150,6 +156,21 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Pending Deposits table (manual approval workflow)
+export const pendingDeposits = pgTable("pending_deposits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("BRL"), // 'BRL' or 'USDC'
+  proofFileUrl: text("proof_file_url"), // URL to uploaded PIX proof
+  status: depositStatusEnum("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  approvedAt: timestamp("approved_at"),
+  rejectedAt: timestamp("rejected_at"),
+  approvedBy: varchar("approved_by").references(() => users.id), // Admin who approved
+  rejectionReason: text("rejection_reason"),
+});
+
 // Polymarket Markets table (mirrored from Polymarket API)
 export const polymarketMarkets = pgTable("polymarket_markets", {
   slug: text("slug").primaryKey(), // Polymarket slug (e.g., "presidential-election-2024")
@@ -185,6 +206,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
   comments: many(comments),
   transactions: many(transactions),
+  pendingDeposits: many(pendingDeposits),
 }));
 
 export const marketsRelations = relations(markets, ({ many }) => ({
@@ -237,6 +259,17 @@ export const commentsRelations = relations(comments, ({ one }) => ({
 export const transactionsRelations = relations(transactions, ({ one }) => ({
   user: one(users, {
     fields: [transactions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const pendingDepositsRelations = relations(pendingDeposits, ({ one }) => ({
+  user: one(users, {
+    fields: [pendingDeposits.userId],
+    references: [users.id],
+  }),
+  approver: one(users, {
+    fields: [pendingDeposits.approvedBy],
     references: [users.id],
   }),
 }));
@@ -339,6 +372,21 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   userId: true,
 });
 
+export const insertPendingDepositSchema = createInsertSchema(pendingDeposits).omit({
+  id: true,
+  createdAt: true,
+  approvedAt: true,
+  rejectedAt: true,
+  approvedBy: true,
+  status: true,
+  userId: true,
+}).extend({
+  amount: z.union([z.string(), z.number()])
+    .transform(val => typeof val === "string" ? val : val.toFixed(2)),
+  currency: z.enum(["BRL", "USDC"]).default("BRL"),
+  proofFileUrl: z.string().url().optional(),
+});
+
 // Select types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -354,6 +402,9 @@ export type Comment = typeof comments.$inferSelect;
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
+
+export type InsertPendingDeposit = z.infer<typeof insertPendingDepositSchema>;
+export type PendingDeposit = typeof pendingDeposits.$inferSelect;
 
 export type Position = typeof positions.$inferSelect;
 

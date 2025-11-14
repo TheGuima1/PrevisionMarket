@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots } from "@shared/schema";
+import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, insertPendingDepositSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots, pendingDeposits } from "@shared/schema";
 import OpenAI from "openai";
 import { z } from "zod";
 import { db } from "./db";
@@ -812,6 +812,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send(error.message || errorMessages.INVALID_INPUT);
       }
       res.status(500).send(errorMessages.FAILED_WITHDRAWAL);
+    }
+  });
+
+  // ===== PENDING DEPOSITS ROUTES (Manual Approval Workflow) =====
+
+  // POST /api/deposits/request - User requests a deposit with proof
+  app.post("/api/deposits/request", requireAuth, async (req, res) => {
+    try {
+      const validated = insertPendingDepositSchema.parse(req.body);
+      const user = req.user!;
+
+      const pendingDeposit = await storage.createPendingDeposit(user.id, validated);
+
+      res.json({ 
+        success: true, 
+        depositId: pendingDeposit.id,
+        message: "Depósito enviado para aprovação. Aguarde a análise do comprovante." 
+      });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).send(error.message || errorMessages.INVALID_INPUT);
+      }
+      console.error("Failed to create pending deposit:", error);
+      res.status(500).send("Falha ao solicitar depósito. Tente novamente.");
+    }
+  });
+
+  // GET /api/deposits/pending - Admin lists pending deposits (with optional status filter)
+  app.get("/api/deposits/pending", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      if (!user.isAdmin) {
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const status = req.query.status as "pending" | "approved" | "rejected" | undefined;
+      const deposits = await storage.getPendingDeposits(status);
+
+      res.json(deposits);
+    } catch (error) {
+      console.error("Failed to fetch pending deposits:", error);
+      res.status(500).send("Falha ao buscar depósitos pendentes.");
+    }
+  });
+
+  // POST /api/deposits/:id/approve - Admin approves a deposit
+  app.post("/api/deposits/:id/approve", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      if (!user.isAdmin) {
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const depositId = req.params.id;
+      const deposit = await storage.getPendingDeposit(depositId);
+
+      if (!deposit) {
+        return res.status(404).send("Depósito não encontrado.");
+      }
+
+      if (deposit.status !== "pending") {
+        return res.status(400).send("Depósito já foi processado.");
+      }
+
+      // Approve the deposit
+      const approved = await storage.approvePendingDeposit(depositId, user.id);
+
+      // Get the user who made the deposit
+      const depositUser = await storage.getUser(deposit.userId);
+      if (!depositUser) {
+        return res.status(404).send("Usuário não encontrado.");
+      }
+
+      // Update user balance
+      const depositAmount = parseFloat(deposit.amount);
+      let newBalanceBrl = depositUser.balanceBrl;
+      let newBalanceUsdc = depositUser.balanceUsdc;
+
+      if (deposit.currency === "BRL") {
+        newBalanceBrl = (parseFloat(depositUser.balanceBrl) + depositAmount).toFixed(2);
+      } else if (deposit.currency === "USDC") {
+        newBalanceUsdc = (parseFloat(depositUser.balanceUsdc) + depositAmount).toFixed(6);
+      }
+
+      await storage.updateUserBalance(deposit.userId, newBalanceBrl, newBalanceUsdc);
+
+      // Create transaction record
+      await storage.createTransaction(deposit.userId, {
+        type: deposit.currency === "BRL" ? "deposit_pix" : "deposit_usdc",
+        amount: deposit.amount,
+        currency: deposit.currency,
+        description: `Depósito aprovado: ${depositAmount} ${deposit.currency}`,
+      });
+
+      // Integração com BRL3 (3BIT XChange) - apenas para depósitos em BRL via PIX
+      if (deposit.currency === "BRL") {
+        await notifyMintToBRL3({
+          externalUserId: deposit.userId,
+          amountBrl: depositAmount,
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        deposit: approved,
+        message: `Depósito de ${depositAmount} ${deposit.currency} aprovado com sucesso.`
+      });
+    } catch (error) {
+      console.error("Failed to approve deposit:", error);
+      res.status(500).send("Falha ao aprovar depósito.");
+    }
+  });
+
+  // POST /api/deposits/:id/reject - Admin rejects a deposit
+  app.post("/api/deposits/:id/reject", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      if (!user.isAdmin) {
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const depositId = req.params.id;
+      const { reason } = req.body;
+
+      const deposit = await storage.getPendingDeposit(depositId);
+
+      if (!deposit) {
+        return res.status(404).send("Depósito não encontrado.");
+      }
+
+      if (deposit.status !== "pending") {
+        return res.status(400).send("Depósito já foi processado.");
+      }
+
+      // Reject the deposit
+      const rejected = await storage.rejectPendingDeposit(depositId, user.id, reason);
+
+      res.json({ 
+        success: true, 
+        deposit: rejected,
+        message: "Depósito rejeitado."
+      });
+    } catch (error) {
+      console.error("Failed to reject deposit:", error);
+      res.status(500).send("Falha ao rejeitar depósito.");
     }
   });
 

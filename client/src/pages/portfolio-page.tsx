@@ -21,6 +21,7 @@ import { getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/o
 export default function PortfolioPage() {
   const { toast } = useToast();
   const [depositAmount, setDepositAmount] = useState("");
+  const [depositProofUrl, setDepositProofUrl] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
   const { data: positions, isLoading: positionsLoading } = useQuery<
@@ -34,17 +35,24 @@ export default function PortfolioPage() {
   });
 
   const depositMutation = useMutation({
-    mutationFn: async (data: { amount: string; currency: "BRL3"; type: string }) => {
-      const res = await apiRequest("POST", "/api/wallet/deposit", data);
+    mutationFn: async (data: { amount: string; currency: "BRL"; proofFileUrl?: string }) => {
+      const res = await apiRequest("POST", "/api/deposits/request", data);
       return await res.json();
     },
     onSuccess: () => {
       setDepositAmount("");
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+      setDepositProofUrl("");
       toast({
-        title: "Depósito realizado!",
-        description: "Saldo atualizado com sucesso",
+        title: "Solicitação enviada!",
+        description: "Seu depósito está aguardando aprovação. Você será notificado quando for processado.",
+        duration: 5000,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao solicitar depósito",
+        description: error.message || "Tente novamente mais tarde",
+        variant: "destructive",
       });
     },
   });
