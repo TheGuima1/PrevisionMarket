@@ -19,7 +19,7 @@ export default function HomePage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#f6efff]">
       {user ? <Navbar /> : <PublicNavbar />}
       <main className="container mx-auto px-4 py-6 space-y-8">
         {/* Hero Section */}
