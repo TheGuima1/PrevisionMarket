@@ -9,17 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, DollarSign } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, DollarSign, Settings } from "lucide-react";
 import type { Position, Market, Transaction } from "@shared/schema";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import { Link, useLocation } from "wouter";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 import { getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/odds";
 
 export default function PortfolioPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [depositAmount, setDepositAmount] = useState("");
   const [depositProofFile, setDepositProofFile] = useState<File | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -111,9 +114,22 @@ export default function PortfolioPage() {
       <Navbar />
       
       <main className="container mx-auto px-4 py-8 space-y-8">
-        <div>
-          <h1 className="font-accent text-4xl font-bold mb-2">Portfólio</h1>
-          <p className="text-muted-foreground">Gerencie suas posições e carteira</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-accent text-4xl font-bold mb-2">Portfólio</h1>
+            <p className="text-muted-foreground">Gerencie suas posições e carteira</p>
+          </div>
+          {user?.isAdmin && (
+            <Button 
+              variant="outline" 
+              className="gap-2 border-[var(--primary-blue)]/30 text-[var(--primary-blue)] hover:bg-[var(--glass-blue)]"
+              onClick={() => setLocation("/admin")}
+              data-testid="button-admin-access"
+            >
+              <Settings className="h-4 w-4" />
+              Painel Admin
+            </Button>
+          )}
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
