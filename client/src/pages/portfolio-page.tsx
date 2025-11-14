@@ -225,10 +225,10 @@ export default function PortfolioPage() {
                   </TabsList>
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
-                    <div className="bg-brand-500/10 border border-brand-500/20 rounded-lg p-4 text-sm">
-                      <span className="font-medium">Depósito via PIX</span>
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 text-sm">
+                      <span className="font-medium">Depósito Manual com Aprovação</span>
                       <p className="text-muted-foreground mt-1">
-                        Pague com PIX → saldo é tokenizado em BRL3 on-chain na sua conta.
+                        Envie o comprovante PIX. Seu depósito será aprovado pelo admin e o BRL3 será mintado on-chain.
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -244,17 +244,31 @@ export default function PortfolioPage() {
                         data-testid="input-deposit-pix"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deposit-proof-url">URL do Comprovante PIX (opcional)</Label>
+                      <Input
+                        id="deposit-proof-url"
+                        type="url"
+                        placeholder="https://..."
+                        value={depositProofUrl}
+                        onChange={(e) => setDepositProofUrl(e.target.value)}
+                        data-testid="input-deposit-proof-url"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Cole o link do screenshot do comprovante (ex: Imgur, Drive)
+                      </p>
+                    </div>
                     <Button
                       onClick={() => depositMutation.mutate({
                         amount: depositAmount,
-                        currency: "BRL3",
-                        type: "deposit_pix"
+                        currency: "BRL",
+                        proofFileUrl: depositProofUrl || undefined,
                       })}
                       disabled={!depositAmount || depositMutation.isPending}
                       className="w-full bg-brand-500 hover:bg-brand-400"
                       data-testid="button-deposit-pix"
                     >
-                      {depositMutation.isPending ? "Processando..." : "Depositar via PIX"}
+                      {depositMutation.isPending ? "Enviando..." : "Solicitar Depósito"}
                     </Button>
                   </TabsContent>
                 </Tabs>

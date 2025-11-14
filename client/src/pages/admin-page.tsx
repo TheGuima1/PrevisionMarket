@@ -19,7 +19,21 @@ import { Separator } from "@/components/ui/separator";
 import type { Market } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, CheckCircle, XCircle } from "lucide-react";
+import { PlusCircle, CheckCircle, XCircle, Clock, ExternalLink } from "lucide-react";
+
+interface PendingDeposit {
+  id: string;
+  userId: string;
+  amount: string;
+  currency: string;
+  proofFileUrl: string | null;
+  status: "pending" | "approved" | "rejected";
+  createdAt: Date;
+  user: {
+    username: string;
+    email: string;
+  };
+}
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -34,6 +48,11 @@ export default function AdminPage() {
 
   const { data: markets } = useQuery<Market[]>({
     queryKey: ["/api/admin/markets"],
+  });
+
+  const { data: pendingDeposits, isLoading: depositsLoading } = useQuery<PendingDeposit[]>({
+    queryKey: ["/api/deposits/pending"],
+    refetchInterval: 30000, // Refresh every 30s
   });
 
   const createMarketMutation = useMutation({
@@ -87,6 +106,49 @@ export default function AdminPage() {
     },
   });
 
+  const approveDepositMutation = useMutation({
+    mutationFn: async (depositId: string) => {
+      const res = await apiRequest("POST", `/api/deposits/${depositId}/approve`, {});
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Depósito aprovado!",
+        description: data.message || "O saldo do usuário foi atualizado e o BRL3 foi mintado.",
+        duration: 5000,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/deposits/pending"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao aprovar depósito",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectDepositMutation = useMutation({
+    mutationFn: async ({ depositId, reason }: { depositId: string; reason?: string }) => {
+      const res = await apiRequest("POST", `/api/deposits/${depositId}/reject`, { reason });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Depósito rejeitado",
+        description: "O usuário foi notificado sobre a rejeição.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/deposits/pending"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao rejeitar depósito",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateMarket = (e: React.FormEvent) => {
     e.preventDefault();
     createMarketMutation.mutate(newMarket);
@@ -111,6 +173,10 @@ export default function AdminPage() {
             <TabsTrigger value="create" data-testid="tab-create-market">
               <PlusCircle className="h-4 w-4 mr-2" />
               Criar Mercado
+            </TabsTrigger>
+            <TabsTrigger value="deposits" data-testid="tab-pending-deposits">
+              <Clock className="h-4 w-4 mr-2" />
+              Depósitos ({pendingDeposits?.filter(d => d.status === "pending").length || 0})
             </TabsTrigger>
             <TabsTrigger value="resolve" data-testid="tab-resolve-markets">
               <CheckCircle className="h-4 w-4 mr-2" />
@@ -202,6 +268,109 @@ export default function AdminPage() {
                   {createMarketMutation.isPending ? "Criando..." : "Criar Mercado"}
                 </Button>
               </form>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="deposits">
+            <Card className="p-6 space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Depósitos Pendentes</h3>
+                <p className="text-sm text-muted-foreground">
+                  Analise os comprovantes PIX e aprove ou rejeite as solicitações de depósito
+                </p>
+              </div>
+
+              {depositsLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-24 bg-muted/30 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : pendingDeposits && pendingDeposits.filter(d => d.status === "pending").length > 0 ? (
+                <div className="space-y-4">
+                  {pendingDeposits.filter(d => d.status === "pending").map((deposit) => (
+                    <Card key={deposit.id} className="p-4">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-2 flex-1">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="bg-amber-500/10 border-amber-500/20">
+                              Pendente
+                            </Badge>
+                            <span className="font-medium">
+                              {deposit.user.username || deposit.user.email}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Valor:</span>{" "}
+                              <span className="font-semibold text-primary">
+                                R$ {parseFloat(deposit.amount).toFixed(2)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Moeda:</span>{" "}
+                              <span className="font-mono">{deposit.currency}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Email:</span>{" "}
+                              <span className="text-xs">{deposit.user.email}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Data:</span>{" "}
+                              <span className="text-xs">
+                                {new Date(deposit.createdAt).toLocaleString("pt-BR")}
+                              </span>
+                            </div>
+                          </div>
+
+                          {deposit.proofFileUrl && (
+                            <a
+                              href={deposit.proofFileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              Ver Comprovante
+                            </a>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => approveDepositMutation.mutate(deposit.id)}
+                            disabled={approveDepositMutation.isPending || rejectDepositMutation.isPending}
+                            className="bg-green-600 hover:bg-green-500"
+                            data-testid={`button-approve-${deposit.id}`}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Aprovar
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => rejectDepositMutation.mutate({ depositId: deposit.id })}
+                            disabled={approveDepositMutation.isPending || rejectDepositMutation.isPending}
+                            data-testid={`button-reject-${deposit.id}`}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Rejeitar
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Nenhum depósito pendente</p>
+                  <p className="text-sm mt-1">Quando usuários solicitarem depósitos, eles aparecerão aqui</p>
+                </div>
+              )}
             </Card>
           </TabsContent>
 

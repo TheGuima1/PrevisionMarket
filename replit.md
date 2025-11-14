@@ -21,6 +21,7 @@ The platform follows a **Paleta C - Futurista/Crypto** design with deep purple b
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
 - **Authentication**: Passport.js with sessions
 - **BRL3 Token Integration (3BIT XChange)**: Hybrid on-chain/off-chain architecture where PIX deposits trigger BRL3 token mints on-chain and withdrawals trigger burns. The integration uses HTTP webhooks (`server/brl3-client.ts`) to notify the 3BIT XChange system of deposit/withdrawal events. BRL3 tokens have a guaranteed 1:1 BRL peg within the app, but no external blockchain conversion rate. The system maintains dual ledgers: Palpites.AI PostgreSQL (off-chain trading) and 3BIT blockchain ledger (token custody). Configuration via `BRL3_API_URL` and `BRL3_API_KEY` secrets.
+- **Manual Deposit Approval Workflow (MVP)**: Deposits now require admin approval before BRL3 minting. Users submit deposit requests with PIX proof URLs via Portfolio page. Admins review pending deposits in Admin Panel ("Depósitos" tab) and approve/reject each request. Upon approval, the system triggers BRL3 minting via `notifyMintToBRL3()` and updates user balance. Database table `pending_deposits` tracks lifecycle (pending/approved/rejected status). This replaces the instant mocked deposit flow, providing fraud protection and manual verification for the MVP phase.
 - **Unified Market Architecture**: Features exactly 4 Palpites.AI markets (AMM-based with CPMM + 2% spread) that mirror Polymarket odds in real-time (60s polling). An auto-reconciliation mechanism validates market count and slugs on boot, cleaning up legacy markets if discrepancies are detected.
 - **Polymarket Mirror System**: Includes a freeze protection mechanism that halts odds display when spikes ≥5% occur within 1 minute, reverting to the last stable value until stability is re-established or a 120s timeout occurs. Outcomes are identified by name (case-insensitive) for robustness. Users see pure Polymarket odds, with a transparent 2% spread applied only at trade execution.
 - **Prediction Market Core (AMM-based MVP)**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 2% spread. A public `/api/orders/preview` endpoint provides real-time share estimates before trading. The platform seeds 4 fixed markets mirroring Polymarket odds: Lula 2026, Fed rate hike 2025, US Recession 2025, and Fed emergency cut, with metadata centralized in `server/polymarket-metadata.ts`. All orders are instantly filled.
@@ -31,9 +32,9 @@ The platform follows a **Paleta C - Futurista/Crypto** design with deep purple b
 - **Public Landing Page**: Displays the 4 available markets with real-time Polymarket odds in a simplified layout.
 - **Market Detail Page**: Offers comprehensive market information, multiple odds formats, a Reddit-style discussion system, and an integrated trading panel.
 - **Trading Panel**: Features a visual YES/NO toggle, quantity input, real-time debounced preview of share estimates, and automatic calculation of cost, potential gain, and profit.
-- **Portfolio**: Provides an overview of total value, invested amount, P&L, active positions, a mocked wallet (Pix and USDC), and transaction history.
+- **Portfolio**: Provides an overview of total value, invested amount, P&L, active positions, wallet management with deposit request functionality (requires PIX proof URL submission), and transaction history.
 - **AI Assistant (Cachorro)**: A floating chat powered by GPT-5 (via Replit AI Integrations) offering context-aware responses, quick actions, and market recommendations.
-- **Admin Panel**: Facilitates the creation of new markets and the resolution of closed markets.
+- **Admin Panel**: Facilitates the creation of new markets, resolution of closed markets, and manual approval/rejection of pending deposit requests with proof verification.
 
 ### System Design Choices
 - **E2E Validation**: Extensive Playwright E2E tests cover critical user journeys and admin functions.
