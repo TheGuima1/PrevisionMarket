@@ -7,8 +7,8 @@ export function PublicNavbar() {
   const [, setLocation] = useLocation();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-glass-white border-b border-[var(--border-soft)] shadow-sm">
-      <div className="container mx-auto flex h-16 items-center justify-between px-6"></div>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-glass-white backdrop-blur-xl border-b-2 border-primary/10 shadow-lg shadow-primary/5">
+      <div className="container mx-auto flex h-16 items-center justify-between px-6">
         {/* Left Section: Logo + Como Palpitar */}
         <div className="flex items-center gap-4">
           <Link href="/" data-testid="link-home">

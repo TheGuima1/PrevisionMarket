@@ -13,19 +13,19 @@ interface MarketCardProps {
 }
 
 const categoryColors: Record<string, string> = {
-  trending: "bg-purple-50 text-primary border-primary/20",
+  trending: "bg-purple-100 text-primary border-primary/20",
   breaking: "bg-[var(--red-tech)]/10 text-[var(--red-tech)] border-[var(--red-tech)]/20",
   new: "bg-[var(--green-tech)]/10 text-[var(--green-tech)] border-[var(--green-tech)]/20",
-  elections: "bg-purple-50 text-primary border-primary/20",
-  politics: "bg-purple-50 text-primary border-primary/20",
+  elections: "bg-purple-100 text-primary border-primary/20",
+  politics: "bg-purple-100 text-primary border-primary/20",
   sports: "bg-[var(--green-tech)]/10 text-[var(--green-tech)] border-[var(--green-tech)]/20",
-  finance: "bg-purple-50 text-primary border-primary/20",
-  crypto: "bg-purple-50 text-primary border-primary/20",
-  geopolitics: "bg-purple-50 text-primary border-primary/20",
-  tech: "bg-purple-50 text-primary border-primary/20",
-  culture: "bg-purple-50 text-primary border-primary/20",
-  world: "bg-purple-50 text-primary border-primary/20",
-  economy: "bg-purple-50 text-primary border-primary/20",
+  finance: "bg-purple-100 text-primary border-primary/20",
+  crypto: "bg-purple-100 text-primary border-primary/20",
+  geopolitics: "bg-purple-100 text-primary border-primary/20",
+  tech: "bg-purple-100 text-primary border-primary/20",
+  culture: "bg-purple-100 text-primary border-primary/20",
+  world: "bg-purple-100 text-primary border-primary/20",
+  economy: "bg-purple-100 text-primary border-primary/20",
 };
 
 const categoryLabels: Record<string, string> = {
@@ -57,7 +57,7 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
   const totalShares = totalReserves > 0 ? totalReserves : 0;
 
   return (
-    <Card className="group overflow-hidden bg-white border-2 border-primary/10 shadow-card hover:shadow-lg hover:shadow-primary/20 hover:border-primary/30 hover:scale-[1.02] transition-all duration-300" data-testid={`card-market-${market.id}`}>
+    <Card className="group overflow-hidden bg-white border-2 border-primary/15 shadow-card hover:shadow-lg hover:shadow-primary/25 hover:border-primary/35 hover:scale-[1.02] transition-all duration-300" data-testid={`card-market-${market.id}`}>
       <div className="p-6 space-y-4 bg-gradient-to-br from-[#F8F6FA] via-[#F5F2F8] to-[#F0EDF5]">
         <div className="space-y-2">
           <div className="flex items-start justify-between gap-2">
@@ -83,26 +83,25 @@ export function MarketCard({ market, isPublic = false }: MarketCardProps) {
           </Link>
         </div>
 
-        {/* Mini chart placeholder com gradiente roxo */}
-        <div className="h-14 w-full rounded-lg bg-gradient-to-r from-purple-100 via-purple-50 to-purple-100 opacity-70 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent"></div>
+        <div className="h-14 w-full rounded-lg bg-gradient-to-r from-purple-200/60 via-purple-100/40 to-purple-200/60 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-t from-primary/8 to-transparent"></div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-center">
-          <div className="bg-primary/5 rounded-lg p-3 group-hover:bg-primary/10 transition-colors">
+          <div className="bg-primary/8 rounded-lg p-3 group-hover:bg-primary/12 transition-colors">
             <div className="text-[26px] font-bold tabular-nums text-primary drop-shadow-sm" data-testid={`text-yes-probability-${market.id}`}>
               {formatProbability(yesPrice)}
             </div>
           </div>
           
-          <div className="bg-red-50 rounded-lg p-3 group-hover:bg-red-100 transition-colors">
+          <div className="bg-red-100 rounded-lg p-3 group-hover:bg-red-200 transition-colors">
             <div className="text-[26px] font-bold tabular-nums text-[var(--red-tech)] drop-shadow-sm" data-testid={`text-no-probability-${market.id}`}>
               {formatProbability(noPrice)}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-4 text-xs text-[var(--text-light)]">
+        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1" data-testid={`text-volume-${market.id}`}>
             <DollarSign className="h-3 w-3" />
             <span>{formatBRLCompact(volume)}</span>

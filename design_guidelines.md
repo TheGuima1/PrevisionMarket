@@ -1,33 +1,35 @@
-# Palpites.AI Design Guidelines - Purple Tech Premium
+# Palpites.AI Design Guidelines - Purple Tech Masculino
 
 ## Design Approach
-**Purple Tech Premium / Modern Fintech**: Design moderno e profissional com **fundos brancos claros** (#FAFAFF), **roxo tech vibrante** (#7A4CFF primary), e **cores de ação** (roxo #7A4CFF para SIM, vermelho #EF4444 para NÃO). Visual que transmite inovação, criatividade tech e profissionalismo fintech premium. Gradientes roxos sutis para criar profundidade sem perder clareza.
+**Purple Tech Masculino / Premium Dark**: Design profissional e tech com **fundos cinza-roxo neutros** (#F5F3F8), **roxo profundo saturado** (#6B3FE8 primary), e **cores de ação** (roxo #6B3FE8 para SIM, vermelho #E8334F para NÃO). Visual que transmite **seriedade**, **profundidade tech** e **expertise financeira**, ideal para predicters masculinos. Tons mais escuros e saturados para um visual mais sóbrio e menos feminino.
 
 ## Core Design Principles
-1. **Premium Moderno**: Visual clean e profissional inspirado em fintechs de sucesso
-2. **Fundos Claros**: Branco com gradientes roxos sutis para profundidade
-3. **Roxo Tech Vibrante**: Cor primária roxa (#7A4CFF) que transmite inovação e criatividade
-4. **Contraste Suave**: Textos escuros em fundos claros para legibilidade máxima
-5. **Profissionalismo Brasileiro**: Moderno e tech com credibilidade institucional
+1. **Tech Masculino**: Visual profundo e sóbrio inspirado em plataformas financeiras sérias
+2. **Fundos Neutros**: Cinza-roxo sutis (#F5F3F8) menos femininos que lavanda
+3. **Roxo Profundo Saturado**: Cor primária roxa escura (#6B3FE8) que transmite expertise e seriedade
+4. **Contraste Forte**: Cores mais saturadas e profundas para visual menos pastel
+5. **Target Masculino**: Design que apela para predicters homens profissionais
 
 ---
 
-## 🌈 Paleta - Purple Tech Premium
+## 🌈 Paleta - Purple Tech Masculino (Premium Dark)
 
-### Cor Primária (Roxo Tech)
+### Cor Primária (Roxo Profundo)
 ```css
---primary-purple: 260 100% 65%       /* #7A4CFF - Roxo tech vibrante */
---primary-purple-light: 260 60% 85% /* #C4B3FF - Roxo claro */
+--primary-purple: 260 75% 60%        /* #6B3FE8 - Roxo profundo saturado */
+--primary-purple-light: 260 50% 70%  /* #9B7FFF - Roxo médio */
 ```
-**Uso**: Botões principais, CTAs, headings, links importantes, estados ativos
+**Uso**: Botões principais, CTAs, headings, links importantes, estados ativos  
+**Tom**: Mais escuro e saturado que #7A4CFF para visual masculino
 
-### Backgrounds (Fundos Claros com Gradientes)
+### Backgrounds (Fundos Cinza-Roxo Neutros)
 ```css
---bg-white: 260 100% 99%            /* #FAFAFF - Branco levemente roxeado */
---bg-gradient-start: 260 100% 99%   /* #FAFAFF */
---bg-gradient-end: 260 100% 97%     /* #F3EDFF */
+--bg-white: 260 20% 97%             /* #F5F3F8 - Cinza-roxo claro neutro */
+--bg-gradient-start: 260 15% 98%    /* #F8F6FA */
+--bg-gradient-end: 260 20% 95%      /* #F0EDF5 */
 ```
-**Uso**: Background principal da página, sections, hero areas
+**Uso**: Background principal da página, sections, hero areas  
+**Tom**: Menos lavanda, mais neutro e cinza para apelo masculino
 
 ### Superfícies (Cards e Componentes)
 ```css
@@ -53,10 +55,11 @@
 
 ### Cores de Ação (YES/NO)
 ```css
---action-yes: 260 100% 65%          /* #7A4CFF - Roxo tech (mesmo do primary) */
---action-no: 0 85% 60%              /* #EF4444 - Vermelho vibrante */
+--action-yes: 260 75% 60%           /* #6B3FE8 - Roxo profundo (mesmo do primary) */
+--action-no: 352 80% 56%            /* #E8334F - Vermelho profundo */
 ```
-**Uso**: Botões SIM (roxo) e NÃO (vermelho) em market cards e trading panel
+**Uso**: Botões SIM (roxo profundo) e NÃO (vermelho profundo) em market cards e trading panel  
+**Tom**: Cores mais saturadas e profundas para visual masculino
 
 ### Cores Semânticas
 ```css
