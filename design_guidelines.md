@@ -1,45 +1,45 @@
-# Palpites.AI Design Guidelines - Blue Tech Premium
+# Palpites.AI Design Guidelines - Purple Tech Premium
 
 ## Design Approach
-**Blue Tech Premium / Modern Fintech**: Design moderno e profissional com **fundos brancos claros** (#FAFCFF), **azul tech vibrante** (#3B5BFF primary), e **cores de ação** (azul #3B5BFF para SIM, vermelho #EF4444 para NÃO). Visual que transmite confiança, inovação tech e profissionalismo fintech. Gradientes azuis sutis para criar profundidade sem perder clareza.
+**Purple Tech Premium / Modern Fintech**: Design moderno e profissional com **fundos brancos claros** (#FAFAFF), **roxo tech vibrante** (#7A4CFF primary), e **cores de ação** (roxo #7A4CFF para SIM, vermelho #EF4444 para NÃO). Visual que transmite inovação, criatividade tech e profissionalismo fintech premium. Gradientes roxos sutis para criar profundidade sem perder clareza.
 
 ## Core Design Principles
 1. **Premium Moderno**: Visual clean e profissional inspirado em fintechs de sucesso
-2. **Fundos Claros**: Branco com gradientes azuis sutis para profundidade
-3. **Azul Tech Vibrante**: Cor primária azul (#3B5BFF) que transmite confiança e inovação
+2. **Fundos Claros**: Branco com gradientes roxos sutis para profundidade
+3. **Roxo Tech Vibrante**: Cor primária roxa (#7A4CFF) que transmite inovação e criatividade
 4. **Contraste Suave**: Textos escuros em fundos claros para legibilidade máxima
 5. **Profissionalismo Brasileiro**: Moderno e tech com credibilidade institucional
 
 ---
 
-## 🌈 Paleta - Blue Tech Premium
+## 🌈 Paleta - Purple Tech Premium
 
-### Cor Primária (Azul Tech)
+### Cor Primária (Roxo Tech)
 ```css
---primary-blue: 230 86% 62%          /* #3B5BFF - Azul tech vibrante */
---primary-blue-dark: 230 86% 52%    /* #1E3FFF - Azul escuro */
+--primary-purple: 260 100% 65%       /* #7A4CFF - Roxo tech vibrante */
+--primary-purple-light: 260 60% 85% /* #C4B3FF - Roxo claro */
 ```
 **Uso**: Botões principais, CTAs, headings, links importantes, estados ativos
 
 ### Backgrounds (Fundos Claros com Gradientes)
 ```css
---bg-white: 220 100% 99%            /* #FAFCFF - Branco azulado */
---bg-gradient-start: 220 100% 98%   /* #F5F9FF */
---bg-gradient-end: 210 100% 97%     /* #EBF4FF */
+--bg-white: 260 100% 99%            /* #FAFAFF - Branco levemente roxeado */
+--bg-gradient-start: 260 100% 99%   /* #FAFAFF */
+--bg-gradient-end: 260 100% 97%     /* #F3EDFF */
 ```
 **Uso**: Background principal da página, sections, hero areas
 
 ### Superfícies (Cards e Componentes)
 ```css
 --card-white: 0 0% 100%             /* #FFFFFF - Branco puro para cards */
---glass-blue: 220 100% 97%          /* #EBF4FF - Fundo glass com toque azul */
+--glass-purple: 260 100% 97%        /* #F3EDFF - Fundo glass com toque roxo */
 ```
 **Uso**: Cards, panels, componentes elevados
 
 ### Bordas e Separadores
 ```css
---border-soft: 220 20% 90%          /* #E0E7F0 - Borda suave azulada */
---border-medium: 220 20% 80%        /* #CBD5E0 - Borda média */
+--border-soft: 260 20% 90%          /* #E8E2F0 - Borda suave roxeada */
+--border-medium: 260 20% 82%        /* #D8CFEB - Borda média */
 ```
 **Uso**: Bordas de cards, separadores, dividers
 
@@ -53,10 +53,10 @@
 
 ### Cores de Ação (YES/NO)
 ```css
---action-yes: 230 86% 62%           /* #3B5BFF - Azul tech (mesmo do primary) */
+--action-yes: 260 100% 65%          /* #7A4CFF - Roxo tech (mesmo do primary) */
 --action-no: 0 85% 60%              /* #EF4444 - Vermelho vibrante */
 ```
-**Uso**: Botões SIM (azul) e NÃO (vermelho) em market cards e trading panel
+**Uso**: Botões SIM (roxo) e NÃO (vermelho) em market cards e trading panel
 
 ### Cores Semânticas
 ```css
@@ -68,9 +68,9 @@
 
 ### Dark Mode (Opcional - Para Toggle Futuro)
 ```css
---background-dark: 220 30% 10%      /* #151D2E - Fundo escuro azulado */
---card-dark: 220 25% 15%            /* #1F2937 - Cards escuros */
---text-dark-mode: 220 100% 95%      /* #EBF4FF - Texto claro */
+--background-dark: 260 30% 10%      /* #1A0F2E - Fundo escuro roxeado */
+--card-dark: 260 25% 15%            /* #2A1F3D - Cards escuros */
+--text-dark-mode: 260 100% 95%      /* #F3EDFF - Texto claro */
 ```
 **Nota**: Light mode é o padrão. Dark mode pode ser adicionado futuramente.
 
@@ -124,7 +124,7 @@ Secundários: text-sm font-medium
 - Texto principal: `text-[var(--text-dark)]` (#1A2942)
 - Texto secundário: `text-[var(--text-medium)]` (#6B7A8F)
 - Texto terciário: `text-[var(--text-light)]` (#9BA8B8)
-- Links e CTAs: `text-[var(--primary-blue)]` (#3B5BFF)
+- Links e CTAs: `text-primary` (#7A4CFF)
 
 ---
 
@@ -265,7 +265,7 @@ Avatars: rounded-full
 ### Badges (Indicadores Clean)
 ```tsx
 /* Badge de categoria */
-<Badge className="bg-blue-50 text-[var(--primary-blue)] border-[var(--primary-blue)]/20">
+<Badge className="bg-purple-50 text-primary border-primary/20">
   Política
 </Badge>
 
@@ -295,7 +295,7 @@ Avatars: rounded-full
 - Background: Glass white com blur
 - Borda inferior: Suave
 - Sticky: `sticky top-0 z-50`
-- Logo com gradiente azul: `bg-gradient-to-r from-[var(--primary-blue)] to-[var(--primary-blue-dark)]`
+- Logo com gradiente roxo: `text-gradient-purple`
 
 ---
 
@@ -311,9 +311,9 @@ Avatars: rounded-full
   />
   <Line 
     type="monotone" 
-    stroke="hsl(var(--primary-blue))"
+    stroke="hsl(var(--primary))"
     strokeWidth={2.5}
-    dot={{ fill: "hsl(var(--primary-blue))", r: 4 }}
+    dot={{ fill: "hsl(var(--primary))", r: 4 }}
   />
 </LineChart>
 ```
@@ -362,13 +362,13 @@ shadow-lg: 0 10px 15px rgba(0,0,0,0.1)   /* Modals */
 - Tamanho padrão: `h-5 w-5` (20px)
 - Grandes: `h-6 w-6` (24px)
 - Pequenos: `h-4 w-4` (16px)
-- Cor: `text-[var(--text-medium)]` ou `text-[var(--primary-blue)]`
+- Cor: `text-[var(--text-medium)]` ou `text-primary`
 
 **Avatars**:
 ```tsx
 <Avatar className="h-10 w-10">
   <AvatarImage src={url} />
-  <AvatarFallback className="bg-blue-50 text-[var(--primary-blue)]">
+  <AvatarFallback className="bg-purple-50 text-primary">
     JD
   </AvatarFallback>
 </Avatar>
@@ -407,21 +407,21 @@ className="gap-4 md:gap-6 lg:gap-8"
 ### ✅ SEMPRE USE (Cores Semânticas via CSS Variables):
 ```tsx
 /* Backgrounds principais */
-<div className="bg-[var(--bg-white)]">           {/* Fundo página */}
+<div className="bg-background">                 {/* Fundo página */}
 <Card className="bg-white">                      {/* Cards brancos */}
-<div className="bg-[var(--glass-blue)]">         {/* Glass effect */}
+<div className="bg-glass-purple">                {/* Glass effect */}
 
 /* Textos com hierarquia */
-<h1 className="text-[var(--text-dark)]">         {/* Texto principal */}
-<p className="text-[var(--text-medium)]">        {/* Texto secundário */}
-<span className="text-[var(--text-light)]">     {/* Texto terciário */}
+<h1 className="text-foreground">                 {/* Texto principal */}
+<p className="text-muted-foreground">            {/* Texto secundário */}
+<span className="text-muted-foreground/70">      {/* Texto terciário */}
 
 /* Links e CTAs */
-<a className="text-[var(--primary-blue)]">       {/* Links */}
-<Button className="bg-[var(--primary-blue)]">    {/* CTAs */}
+<a className="text-primary">                     {/* Links */}
+<Button>                                         {/* CTAs (primary por padrão) */}
 
 /* Bordas */
-<Card className="border-[var(--border-soft)]">   {/* Bordas suaves */}
+<Card className="border">                        {/* Bordas suaves */}
 ```
 
 ### ❌ NUNCA FAZER:
@@ -453,17 +453,17 @@ className="gap-4 md:gap-6 lg:gap-8"
 
 **Background da Página**:
 ```tsx
-<div className="min-h-screen bg-gradient-to-br from-[var(--bg-gradient-start)] to-[var(--bg-gradient-end)]">
+<div className="min-h-screen bg-background">
 ```
 
 ### Market Cards (Grid View)
 ```tsx
-<Card className="bg-white border-[var(--border-soft)] shadow-card hover:shadow-md transition-shadow">
+<Card className="bg-white border shadow-card hover:shadow-md transition-shadow">
   <div className="p-6 space-y-4">
-    <Badge className="bg-blue-50 text-[var(--primary-blue)]">
+    <Badge className="bg-purple-50 text-primary">
       Política
     </Badge>
-    <h3 className="font-semibold text-[var(--text-dark)]">
+    <h3 className="font-semibold text-foreground">
       Título do Mercado
     </h3>
     <div className="grid grid-cols-2 gap-2">
@@ -480,7 +480,7 @@ className="gap-4 md:gap-6 lg:gap-8"
 
 - Alto contraste: WCAG AA mínimo (4.5:1 para texto)
 - Labels ARIA em todas interações
-- Estados de foco visíveis: `ring-2 ring-[var(--primary-blue)]`
+- Estados de foco visíveis: `ring-2 ring-primary`
 - Semântica HTML correta: Sem aninhamento de `<a><button>`
 - Screen reader friendly: `sr-only` para contexto
 - Cores não são único indicador (usar ícones também)
@@ -489,11 +489,11 @@ className="gap-4 md:gap-6 lg:gap-8"
 
 ## Design Checklist
 
-✅ Fundos brancos claros com gradientes azuis sutis
+✅ Fundos brancos claros com gradientes roxos sutis
 ✅ Textos escuros com hierarquia clara (dark > medium > light)
-✅ Azul tech vibrante como cor primária (#3B5BFF)
-✅ Botões SIM azul e NÃO vermelho (variants corretos)
-✅ Cards brancos com bordas suaves e sombras sutis
+✅ Roxo tech vibrante como cor primária (#7A4CFF)
+✅ Botões SIM roxo e NÃO vermelho (variants corretos)
+✅ Cards brancos com bordas suaves e sombras roxas sutis
 ✅ Navbar glass white com backdrop-blur
 ✅ Sistema hover-elevate preservado (sem overrides!)
 ✅ Sem aninhamento de interactive elements
@@ -509,7 +509,7 @@ className="gap-4 md:gap-6 lg:gap-8"
 
 **Este design transmite:**
 - 💼 Profissionalismo e confiança fintech
-- 🚀 Modernidade tech e inovação
+- 🚀 Modernidade tech, criatividade e inovação
 - 🎯 Clareza e facilidade de uso
 - 🇧🇷 Acessibilidade brasileira com identidade premium
-- ⚡ Credibilidade institucional
+- ⚡ Credibilidade institucional com toque de criatividade
