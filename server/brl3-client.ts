@@ -3,15 +3,19 @@
 // Documentação: Quando Palpites.AI faz depósitos/saques PIX, notifica o 3BIT
 // para manter a contabilidade blockchain sincronizada
 
-const BRL3_API_URL = process.env.BRL3_API_URL;
+const BRL3_API_URL = process.env.BRL3_API_URL?.replace(/^xhttp/, 'http');
 const BRL3_API_KEY = process.env.BRL3_API_KEY;
 
 if (!BRL3_API_URL) {
   console.warn("⚠️ BRL3_API_URL não configurada. Integração com 3BIT ficará desativada.");
+} else {
+  console.log(`🔗 BRL3 Integration: URL configured (${BRL3_API_URL.substring(0, 40)}...)`);
 }
 
 if (!BRL3_API_KEY) {
   console.warn("⚠️ BRL3_API_KEY não configurada. Integração com 3BIT ficará desativada.");
+} else {
+  console.log(`🔑 BRL3 Integration: API Key configured (length: ${BRL3_API_KEY.length})`);
 }
 
 interface PalpitesMintPayload {
@@ -28,9 +32,17 @@ interface PalpitesMintPayload {
 export async function notifyMintToBRL3(payload: PalpitesMintPayload): Promise<void> {
   try {
     if (!BRL3_API_URL || !BRL3_API_KEY) {
-      // Integração desativada - não quebra o fluxo da Palpites
+      console.warn("⚠️ BRL3 Integration disabled - mint notification skipped");
       return;
     }
+
+    const requestBody = {
+      externalUserId: payload.externalUserId,
+      amountBrl: payload.amountBrl.toFixed(2),
+    };
+
+    console.log(`🔄 [BRL3 Mint] Calling ${BRL3_API_URL}/api/palpites/mint`);
+    console.log(`📦 [BRL3 Mint] Payload:`, requestBody);
 
     const res = await fetch(`${BRL3_API_URL}/api/palpites/mint`, {
       method: "POST",
@@ -38,20 +50,24 @@ export async function notifyMintToBRL3(payload: PalpitesMintPayload): Promise<vo
         "Content-Type": "application/json",
         "x-api-key": BRL3_API_KEY,
       },
-      body: JSON.stringify({
-        externalUserId: payload.externalUserId,
-        amountBrl: payload.amountBrl.toFixed(2),
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    const responseText = await res.text();
+    
     if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Falha ao notificar BRL3 (mint):", res.status, text);
+      console.error(`❌ [BRL3 Mint] Failed - Status ${res.status}`);
+      console.error(`❌ [BRL3 Mint] Response:`, responseText);
     } else {
-      console.log(`✅ Notificado BRL3 (mint): user=${payload.externalUserId}, amount=${payload.amountBrl}`);
+      console.log(`✅ [BRL3 Mint] Success - Status ${res.status}`);
+      console.log(`✅ [BRL3 Mint] Response:`, responseText);
+      console.log(`✅ [BRL3 Mint] Minted ${payload.amountBrl} BRL3 for user ${payload.externalUserId}`);
     }
   } catch (error) {
-    console.error("❌ Erro ao chamar BRL3 (mint):", error);
+    console.error("❌ [BRL3 Mint] Network error:", error);
+    if (error instanceof Error) {
+      console.error("❌ [BRL3 Mint] Error details:", error.message, error.stack);
+    }
   }
 }
 
@@ -69,9 +85,17 @@ interface PalpitesBurnPayload {
 export async function notifyBurnToBRL3(payload: PalpitesBurnPayload): Promise<void> {
   try {
     if (!BRL3_API_URL || !BRL3_API_KEY) {
-      // Integração desativada - não quebra o fluxo da Palpites
+      console.warn("⚠️ BRL3 Integration disabled - burn notification skipped");
       return;
     }
+
+    const requestBody = {
+      externalUserId: payload.externalUserId,
+      amountBrl: payload.amountBrl.toFixed(2),
+    };
+
+    console.log(`🔄 [BRL3 Burn] Calling ${BRL3_API_URL}/api/palpites/burn`);
+    console.log(`📦 [BRL3 Burn] Payload:`, requestBody);
 
     const res = await fetch(`${BRL3_API_URL}/api/palpites/burn`, {
       method: "POST",
@@ -79,19 +103,23 @@ export async function notifyBurnToBRL3(payload: PalpitesBurnPayload): Promise<vo
         "Content-Type": "application/json",
         "x-api-key": BRL3_API_KEY,
       },
-      body: JSON.stringify({
-        externalUserId: payload.externalUserId,
-        amountBrl: payload.amountBrl.toFixed(2),
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    const responseText = await res.text();
+    
     if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Falha ao notificar BRL3 (burn):", res.status, text);
+      console.error(`❌ [BRL3 Burn] Failed - Status ${res.status}`);
+      console.error(`❌ [BRL3 Burn] Response:`, responseText);
     } else {
-      console.log(`🔥 Notificado BRL3 (burn): user=${payload.externalUserId}, amount=${payload.amountBrl}`);
+      console.log(`✅ [BRL3 Burn] Success - Status ${res.status}`);
+      console.log(`✅ [BRL3 Burn] Response:`, responseText);
+      console.log(`🔥 [BRL3 Burn] Burned ${payload.amountBrl} BRL3 from user ${payload.externalUserId}`);
     }
   } catch (error) {
-    console.error("❌ Erro ao chamar BRL3 (burn):", error);
+    console.error("❌ [BRL3 Burn] Network error:", error);
+    if (error instanceof Error) {
+      console.error("❌ [BRL3 Burn] Error details:", error.message, error.stack);
+    }
   }
 }
