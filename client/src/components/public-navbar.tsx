@@ -8,7 +8,7 @@ export function PublicNavbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-glass-white border-b border-[var(--border-soft)] shadow-sm">
-      <div className="container mx-auto flex h-16 items-center justify-between px-6">
+      <div className="container mx-auto flex h-16 items-center justify-between px-6 bg-[#f6efff]">
         {/* Left Section: Logo + Como Palpitar */}
         <div className="flex items-center gap-4">
           <Link href="/" data-testid="link-home">
