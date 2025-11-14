@@ -1,41 +1,42 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* NOVA PALETA ROXO TECH PREMIUM - LUXO FINTECH */
+/* NOVA PALETA ROXO TECH PREMIUM - MASCULINO DARK */
 :root {
-  /* Primary Roxo Tech Premium */
-  --primary-purple: #7A4CFF;
-  --primary-purple-light: #C4B3FF;
-  --primary-purple-bg: #F3EDFF;
+  /* Primary Roxo Tech Premium - Mais profundo e saturado */
+  --primary-purple: #6B3FE8;
+  --primary-purple-light: #9B7FFF;
+  --primary-purple-bg: #F5F2F8;
 
-  /* Neutral / background */
-  --bg-white: #FAFAFF;
-  --bg-lavender: #F3EDFF;
-  --bg-gradient-top: #FAFAFF;
-  --bg-gradient-bottom: #F3EDFF;
+  /* Neutral / background - Tom neutro cinza-roxo */
+  --bg-white: #F5F2F8;
+  --bg-lavender: #F5F2F8;
+  --bg-gradient-top: #F8F6FA;
+  --bg-gradient-bottom: #F0EDF5;
 
   /* Text colors */
   --text-dark: #1E2233;
   --text-medium: #4A4F61;
   --text-light: #6B7280;
 
-  /* Border */
-  --border-soft: #E8E2F0;
+  /* Border - Cinzas mais sutis */
+  --border-soft: #D8D5DD;
 
   /* Chart colors */
-  --chart-purple: #8B5FFF;
-  --chart-purple-light: #F5F0FF;
+  --chart-purple: #7B4FFF;
+  --chart-purple-light: #F5F2F8;
 
-  /* Status */
+  /* Status - Mais saturados e profundos */
   --green-tech: #00C48C;
-  --red-tech: #FF5C5C;
+  --red-tech: #E8334F;
 
   /* Effects */
-  --glass-white: rgba(255,255,255,0.6);
-  --glass-purple: rgba(122,76,255,0.12);
-  --shadow-soft: 0 8px 24px rgba(122,76,255,0.08);
-  --shadow-card: 0px 4px 18px rgba(122,76,255,0.06);
+  --glass-white: rgba(245,242,248,0.7);
+  --glass-purple: rgba(107,63,232,0.10);
+  --shadow-soft: 0 8px 24px rgba(107,63,232,0.12);
+  --shadow-card: 0px 4px 18px rgba(107,63,232,0.08);
 
   /* Radius system */
   --radius-sm: 6px;
@@ -43,98 +44,98 @@
   --radius-lg: 20px;
   --radius-xl: 26px;
 
-  /* Shadcn UI tokens - Light Mode (Roxo) */
-  --button-outline: rgba(122, 76, 255, .15);
-  --badge-outline: rgba(122, 76, 255, .10);
+  /* Shadcn UI tokens - Light Mode (Roxo Masculino) */
+  --button-outline: rgba(107, 63, 232, .18);
+  --badge-outline: rgba(107, 63, 232, .12);
 
   --opaque-button-border-intensity: -8;
 
-  --elevate-1: rgba(122, 76, 255, .04);
-  --elevate-2: rgba(122, 76, 255, .08);
+  --elevate-1: rgba(107, 63, 232, .06);
+  --elevate-2: rgba(107, 63, 232, .10);
 
-  /* Background - Clara suave roxeada */
-  --background: 260 100% 99%;
+  /* Background - Cinza-roxo claro neutro */
+  --background: 260 20% 97%;
 
   --foreground: 225 15% 14%;
 
-  --border: 260 20% 90%;
+  --border: 260 10% 85%;
 
   --card: 0 0% 100%;
 
   --card-foreground: 225 15% 14%;
 
-  --card-border: 260 15% 92%;
+  --card-border: 260 8% 88%;
 
-  --sidebar: 260 30% 98%;
+  --sidebar: 260 15% 96%;
 
   --sidebar-foreground: 225 15% 14%;
 
-  --sidebar-border: 260 20% 91%;
+  --sidebar-border: 260 10% 87%;
 
-  --sidebar-primary: 260 100% 65%;
+  --sidebar-primary: 260 75% 60%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 260 40% 96%;
+  --sidebar-accent: 260 20% 94%;
 
-  --sidebar-accent-foreground: 260 100% 50%;
+  --sidebar-accent-foreground: 260 75% 48%;
 
-  --sidebar-ring: 260 100% 65%;
+  --sidebar-ring: 260 75% 60%;
 
   --popover: 0 0% 100%;
 
   --popover-foreground: 225 15% 14%;
 
-  --popover-border: 260 15% 90%;
+  --popover-border: 260 10% 86%;
 
-  /* Primary - Roxo tech */
-  --primary: 260 100% 65%;
+  /* Primary - Roxo profundo e saturado */
+  --primary: 260 75% 60%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 275 80% 72%;
+  --secondary: 275 70% 68%;
 
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 260 25% 96%;
+  --muted: 260 12% 94%;
 
   --muted-foreground: 225 10% 45%;
 
-  --accent: 260 100% 97%;
+  --accent: 260 80% 96%;
 
-  --accent-foreground: 260 100% 35%;
+  --accent-foreground: 260 75% 40%;
 
-  /* Action colors - YES roxo / NO vermelho */
-  --action-yes: 260 100% 65%;
-  --action-no: 352 100% 62%;
+  /* Action colors - YES roxo profundo / NO vermelho profundo */
+  --action-yes: 260 75% 60%;
+  --action-no: 352 80% 56%;
 
-  --destructive: 352 100% 62%;
+  --destructive: 352 80% 56%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 260 20% 94%;
-  --ring: 260 100% 65%;
+  --input: 260 10% 90%;
+  --ring: 260 75% 60%;
 
-  /* Chart palette */
-  --chart-1: 260 100% 68%;
-  --chart-2: 275 80% 72%;
-  --chart-3: 250 100% 65%;
-  --chart-4: 180 75% 55%;
-  --chart-5: 340 95% 65%;
+  /* Chart palette - Tons mais profundos */
+  --chart-1: 260 75% 64%;
+  --chart-2: 275 70% 68%;
+  --chart-3: 250 75% 62%;
+  --chart-4: 180 70% 52%;
+  --chart-5: 340 85% 62%;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-accent: 'Manrope', 'Inter', -apple-system, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Roboto Mono', 'SF Mono', Menlo, monospace;
   --radius: .875rem;
-  --shadow-2xs: 0px 1px 2px 0px rgba(122, 76, 255, 0.08);
-  --shadow-xs: 0px 1px 3px 0px rgba(122, 76, 255, 0.10);
-  --shadow-sm: 0px 2px 4px -1px rgba(122, 76, 255, 0.08), 0px 1px 2px -1px rgba(0, 0, 0, 0.10);
-  --shadow: 0px 4px 6px -1px rgba(122, 76, 255, 0.10), 0px 2px 4px -2px rgba(0, 0, 0, 0.12);
-  --shadow-md: 0px 6px 12px -2px rgba(122, 76, 255, 0.12), 0px 3px 6px -3px rgba(0, 0, 0, 0.15);
-  --shadow-lg: 0px 10px 20px -4px rgba(122, 76, 255, 0.14), 0px 4px 8px -4px rgba(0, 0, 0, 0.18);
-  --shadow-xl: 0px 20px 30px -6px rgba(122, 76, 255, 0.16), 0px 8px 12px -6px rgba(0, 0, 0, 0.20);
-  --shadow-2xl: 0px 30px 50px -12px rgba(122, 76, 255, 0.18);
+  --shadow-2xs: 0px 1px 2px 0px rgba(107, 63, 232, 0.10);
+  --shadow-xs: 0px 1px 3px 0px rgba(107, 63, 232, 0.12);
+  --shadow-sm: 0px 2px 4px -1px rgba(107, 63, 232, 0.10), 0px 1px 2px -1px rgba(0, 0, 0, 0.10);
+  --shadow: 0px 4px 6px -1px rgba(107, 63, 232, 0.12), 0px 2px 4px -2px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0px 6px 12px -2px rgba(107, 63, 232, 0.14), 0px 3px 6px -3px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0px 10px 20px -4px rgba(107, 63, 232, 0.16), 0px 4px 8px -4px rgba(0, 0, 0, 0.18);
+  --shadow-xl: 0px 20px 30px -6px rgba(107, 63, 232, 0.18), 0px 8px 12px -6px rgba(0, 0, 0, 0.20);
+  --shadow-2xl: 0px 30px 50px -12px rgba(107, 63, 232, 0.20);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -161,90 +162,90 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
-/* DARK MODE - Mantém a paleta futurista escura (roxo) */
+/* DARK MODE - Paleta escura masculina roxo-cinza */
 .dark {
-  --button-outline: rgba(196, 179, 255, .18);
-  --badge-outline: rgba(196, 179, 255, .12);
+  --button-outline: rgba(155, 127, 255, .20);
+  --badge-outline: rgba(155, 127, 255, .15);
 
   --opaque-button-border-intensity: 8;
 
-  --elevate-1: rgba(196, 179, 255, .08);
-  --elevate-2: rgba(196, 179, 255, .14);
+  --elevate-1: rgba(155, 127, 255, .10);
+  --elevate-2: rgba(155, 127, 255, .16);
 
-  --background: 260 40% 5%;
+  --background: 260 30% 8%;
 
-  --foreground: 260 100% 95%;
+  --foreground: 260 80% 95%;
 
-  --border: 260 25% 12%;
+  --border: 260 20% 18%;
 
-  --card: 260 30% 8%;
+  --card: 260 25% 11%;
 
-  --card-foreground: 260 100% 95%;
+  --card-foreground: 260 80% 95%;
 
-  --card-border: 260 25% 14%;
+  --card-border: 260 20% 16%;
 
-  --sidebar: 260 35% 6%;
+  --sidebar: 260 28% 9%;
 
-  --sidebar-foreground: 260 100% 95%;
+  --sidebar-foreground: 260 80% 95%;
 
-  --sidebar-border: 260 25% 11%;
+  --sidebar-border: 260 20% 16%;
 
-  --sidebar-primary: 260 100% 72%;
+  --sidebar-primary: 260 75% 68%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 260 30% 12%;
+  --sidebar-accent: 260 25% 15%;
 
-  --sidebar-accent-foreground: 275 80% 75%;
+  --sidebar-accent-foreground: 275 70% 72%;
 
-  --sidebar-ring: 260 100% 72%;
+  --sidebar-ring: 260 75% 68%;
 
-  --popover: 260 32% 7%;
+  --popover: 260 28% 10%;
 
-  --popover-foreground: 260 100% 95%;
+  --popover-foreground: 260 80% 95%;
 
-  --popover-border: 260 25% 13%;
+  --popover-border: 260 20% 17%;
 
-  --primary: 260 100% 72%;
+  --primary: 260 75% 68%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 275 80% 75%;
+  --secondary: 275 70% 72%;
 
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 260 25% 18%;
+  --muted: 260 20% 20%;
 
-  --muted-foreground: 260 15% 85%;
+  --muted-foreground: 260 15% 82%;
 
-  --accent: 260 100% 96%;
+  --accent: 260 80% 95%;
 
-  --accent-foreground: 260 100% 25%;
+  --accent-foreground: 260 75% 30%;
 
-  --action-yes: 260 100% 68%;
-  --action-no: 352 100% 65%;
+  --action-yes: 260 75% 65%;
+  --action-no: 352 80% 62%;
 
-  --destructive: 352 100% 65%;
+  --destructive: 352 80% 62%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 260 25% 14%;
-  --ring: 260 100% 72%;
+  --input: 260 20% 18%;
+  --ring: 260 75% 68%;
 
-  --chart-1: 260 100% 75%;
-  --chart-2: 275 80% 78%;
-  --chart-3: 250 100% 72%;
-  --chart-4: 180 80% 65%;
-  --chart-5: 340 95% 70%;
+  --chart-1: 260 75% 72%;
+  --chart-2: 275 70% 75%;
+  --chart-3: 250 75% 68%;
+  --chart-4: 180 70% 62%;
+  --chart-5: 340 85% 68%;
 
-  --shadow-2xs: 0px 1px 2px 0px hsl(260 100% 72% / 0.12);
-  --shadow-xs: 0px 1px 3px 0px hsl(260 100% 72% / 0.18);
-  --shadow-sm: 0px 2px 4px -1px hsl(260 100% 72% / 0.15), 0px 1px 2px -1px hsl(0 0% 0% / 0.25);
-  --shadow: 0px 4px 6px -1px hsl(260 100% 72% / 0.18), 0px 2px 4px -2px hsl(0 0% 0% / 0.30);
-  --shadow-md: 0px 6px 12px -2px hsl(260 100% 72% / 0.20), 0px 3px 6px -3px hsl(0 0% 0% / 0.35);
-  --shadow-lg: 0px 10px 20px -4px hsl(260 100% 72% / 0.22), 0px 4px 8px -4px hsl(0 0% 0% / 0.35);
-  --shadow-xl: 0px 20px 30px -6px hsl(260 100% 72% / 0.25), 0px 8px 12px -6px hsl(0 0% 0% / 0.40);
-  --shadow-2xl: 0px 30px 50px -12px hsl(260 100% 72% / 0.28);
+  --shadow-2xs: 0px 1px 2px 0px hsl(260 75% 68% / 0.14);
+  --shadow-xs: 0px 1px 3px 0px hsl(260 75% 68% / 0.20);
+  --shadow-sm: 0px 2px 4px -1px hsl(260 75% 68% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.25);
+  --shadow: 0px 4px 6px -1px hsl(260 75% 68% / 0.20), 0px 2px 4px -2px hsl(0 0% 0% / 0.30);
+  --shadow-md: 0px 6px 12px -2px hsl(260 75% 68% / 0.22), 0px 3px 6px -3px hsl(0 0% 0% / 0.35);
+  --shadow-lg: 0px 10px 20px -4px hsl(260 75% 68% / 0.24), 0px 4px 8px -4px hsl(0 0% 0% / 0.35);
+  --shadow-xl: 0px 20px 30px -6px hsl(260 75% 68% / 0.28), 0px 8px 12px -6px hsl(0 0% 0% / 0.40);
+  --shadow-2xl: 0px 30px 50px -12px hsl(260 75% 68% / 0.30);
 }
 
 @layer base {
