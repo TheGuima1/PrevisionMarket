@@ -173,17 +173,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
 
-  // Health check endpoint for Replit Autoscale
+  // Ultra-fast health check for Replit Autoscale (no DB queries at all)
+  app.get("/healthz", (_req, res) => {
+    res.status(200).send("OK");
+  });
+
+  // Health check with DB connectivity verification
   app.get("/health", async (_req, res) => {
     try {
-      // Check database connection
+      // Fast DB connectivity check (no heavy queries)
       await db.execute(sql`SELECT 1`);
-      const marketCount = await db.select({ count: sql<number>`count(*)` }).from(users);
       res.json({ 
         ok: true, 
-        time: new Date().toISOString(),
-        dbConnected: true,
-        users: Number(marketCount[0]?.count ?? 0)
+        timestamp: Date.now()
       });
     } catch (error) {
       res.status(500).json({ 
