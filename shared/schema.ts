@@ -162,7 +162,7 @@ export const pendingDeposits = pgTable("pending_deposits", {
   userId: varchar("user_id").notNull().references(() => users.id),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("BRL"), // 'BRL' or 'USDC'
-  proofFileUrl: text("proof_file_url"), // URL to uploaded PIX proof
+  proofFilePath: text("proof_file_path"), // Path to uploaded PIX proof PDF file
   status: depositStatusEnum("status").notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   approvedAt: timestamp("approved_at"),

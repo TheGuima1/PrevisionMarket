@@ -21,7 +21,7 @@ import { getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/o
 export default function PortfolioPage() {
   const { toast } = useToast();
   const [depositAmount, setDepositAmount] = useState("");
-  const [depositProofUrl, setDepositProofUrl] = useState("");
+  const [depositProofFile, setDepositProofFile] = useState<File | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
   const { data: positions, isLoading: positionsLoading } = useQuery<
@@ -35,13 +35,28 @@ export default function PortfolioPage() {
   });
 
   const depositMutation = useMutation({
-    mutationFn: async (data: { amount: string; currency: "BRL"; proofFileUrl?: string }) => {
-      const res = await apiRequest("POST", "/api/deposits/request", data);
+    mutationFn: async (data: { amount: string; currency: "BRL"; proofFile: File }) => {
+      const formData = new FormData();
+      formData.append("amount", data.amount);
+      formData.append("currency", data.currency);
+      formData.append("proofFile", data.proofFile);
+
+      const res = await fetch("/api/deposits/request", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Falha ao solicitar depósito");
+      }
+
       return await res.json();
     },
     onSuccess: () => {
       setDepositAmount("");
-      setDepositProofUrl("");
+      setDepositProofFile(null);
       toast({
         title: "Solicitação enviada!",
         description: "Seu depósito está aguardando aprovação. Você será notificado quando for processado.",
@@ -245,26 +260,63 @@ export default function PortfolioPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="deposit-proof-url">URL do Comprovante PIX (opcional)</Label>
+                      <Label htmlFor="deposit-proof-file">Comprovante PIX (PDF) *</Label>
                       <Input
-                        id="deposit-proof-url"
-                        type="url"
-                        placeholder="https://..."
-                        value={depositProofUrl}
-                        onChange={(e) => setDepositProofUrl(e.target.value)}
-                        data-testid="input-deposit-proof-url"
+                        id="deposit-proof-file"
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.type !== "application/pdf") {
+                              toast({
+                                title: "Arquivo inválido",
+                                description: "Apenas arquivos PDF são permitidos",
+                                variant: "destructive",
+                              });
+                              e.target.value = "";
+                              return;
+                            }
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast({
+                                title: "Arquivo muito grande",
+                                description: "Tamanho máximo: 5MB",
+                                variant: "destructive",
+                              });
+                              e.target.value = "";
+                              return;
+                            }
+                            setDepositProofFile(file);
+                          }
+                        }}
+                        data-testid="input-deposit-proof-file"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Cole o link do screenshot do comprovante (ex: Imgur, Drive)
+                        Envie o comprovante em PDF (máx. 5MB)
                       </p>
+                      {depositProofFile && (
+                        <p className="text-xs text-primary">
+                          ✓ {depositProofFile.name} ({(depositProofFile.size / 1024).toFixed(1)} KB)
+                        </p>
+                      )}
                     </div>
                     <Button
-                      onClick={() => depositMutation.mutate({
-                        amount: depositAmount,
-                        currency: "BRL",
-                        proofFileUrl: depositProofUrl || undefined,
-                      })}
-                      disabled={!depositAmount || depositMutation.isPending}
+                      onClick={() => {
+                        if (!depositProofFile) {
+                          toast({
+                            title: "Comprovante obrigatório",
+                            description: "Por favor, envie o comprovante em PDF",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        depositMutation.mutate({
+                          amount: depositAmount,
+                          currency: "BRL",
+                          proofFile: depositProofFile,
+                        });
+                      }}
+                      disabled={!depositAmount || !depositProofFile || depositMutation.isPending}
                       className="w-full bg-brand-500 hover:bg-brand-400"
                       data-testid="button-deposit-pix"
                     >

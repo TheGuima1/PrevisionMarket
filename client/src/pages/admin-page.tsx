@@ -26,7 +26,7 @@ interface PendingDeposit {
   userId: string;
   amount: string;
   currency: string;
-  proofFileUrl: string | null;
+  proofFilePath: string | null;
   status: "pending" | "approved" | "rejected";
   createdAt: Date;
   user: {
@@ -324,15 +324,16 @@ export default function AdminPage() {
                             </div>
                           </div>
 
-                          {deposit.proofFileUrl && (
+                          {deposit.proofFilePath && (
                             <a
-                              href={deposit.proofFileUrl}
+                              href={`/api/deposits/proof/${deposit.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                              data-testid={`link-proof-${deposit.id}`}
                             >
                               <ExternalLink className="h-4 w-4" />
-                              Ver Comprovante
+                              Baixar Comprovante PDF
                             </a>
                           )}
                         </div>

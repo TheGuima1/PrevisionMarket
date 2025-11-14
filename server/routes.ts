@@ -13,6 +13,37 @@ import { startPolymarketSnapshots } from "./polymarket-cron";
 import { getSnapshot } from "./mirror/state";
 import { startMirror } from "./mirror/worker";
 import { notifyMintToBRL3, notifyBurnToBRL3 } from "./brl3-client";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+// Configure multer for deposit proof file uploads
+const uploadDir = path.join(process.cwd(), "uploads", "deposit-proofs");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const depositProofUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+      cb(null, `proof-${uniqueSuffix}${path.extname(file.originalname)}`);
+    },
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max file size
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "application/pdf") {
+      cb(null, true);
+    } else {
+      cb(new Error("Apenas arquivos PDF são permitidos"));
+    }
+  },
+});
 
 // Error messages in Portuguese
 const errorMessages = {
@@ -45,6 +76,8 @@ const errorMessages = {
   FAILED_CREATE_MARKET: "Falha ao criar mercado.",
   INVALID_OUTCOME: "Resultado inválido. Use: yes, no ou cancelled.",
   FAILED_RESOLVE_MARKET: "Falha ao resolver mercado.",
+  INVALID_FILE_TYPE: "Tipo de arquivo inválido. Envie um arquivo PDF.",
+  FILE_TOO_LARGE: "Arquivo muito grande. Tamanho máximo: 5MB.",
 } as const;
 
 // Initialize OpenAI for AI assistant
@@ -817,25 +850,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== PENDING DEPOSITS ROUTES (Manual Approval Workflow) =====
 
-  // POST /api/deposits/request - User requests a deposit with proof
-  app.post("/api/deposits/request", requireAuth, async (req, res) => {
+  // POST /api/deposits/request - User requests a deposit with proof file (PDF)
+  app.post("/api/deposits/request", requireAuth, (req, res, next) => {
+    depositProofUpload.single("proofFile")(req, res, (err) => {
+      if (err) {
+        // Multer error handling
+        if (err instanceof multer.MulterError) {
+          if (err.code === "LIMIT_FILE_SIZE") {
+            return res.status(400).json({ error: errorMessages.FILE_TOO_LARGE });
+          }
+          return res.status(400).json({ error: "Erro no upload do arquivo" });
+        }
+        // Custom file filter error
+        if (err.message?.includes("Apenas arquivos PDF")) {
+          return res.status(400).json({ error: errorMessages.INVALID_FILE_TYPE });
+        }
+        return res.status(400).json({ error: err.message || "Erro no upload" });
+      }
+      next();
+    });
+  }, async (req, res) => {
     try {
-      const validated = insertPendingDepositSchema.parse(req.body);
       const user = req.user!;
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "Comprovante PDF é obrigatório" });
+      }
 
-      const pendingDeposit = await storage.createPendingDeposit(user.id, validated);
-
-      res.json({ 
-        success: true, 
-        depositId: pendingDeposit.id,
-        message: "Depósito enviado para aprovação. Aguarde a análise do comprovante." 
+      const depositSchema = z.object({
+        amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+          message: "Valor deve ser maior que zero"
+        }),
+        currency: z.enum(["BRL", "USDC"]).default("BRL"),
       });
+
+      const validated = depositSchema.parse(req.body);
+      
+      try {
+        const pendingDeposit = await storage.createPendingDeposit(user.id, {
+          amount: validated.amount,
+          currency: validated.currency,
+          proofFilePath: req.file.path,
+        });
+
+        res.json({ 
+          success: true, 
+          depositId: pendingDeposit.id,
+          message: "Depósito enviado para aprovação. Aguarde a análise do comprovante." 
+        });
+      } catch (storageError) {
+        // Clean up uploaded file if database operation fails
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        throw storageError;
+      }
     } catch (error: any) {
       if (error.name === "ZodError") {
-        return res.status(400).send(error.message || errorMessages.INVALID_INPUT);
+        // Clean up file on validation error
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(400).json({ error: error.message || errorMessages.INVALID_INPUT });
       }
       console.error("Failed to create pending deposit:", error);
-      res.status(500).send("Falha ao solicitar depósito. Tente novamente.");
+      res.status(500).json({ error: "Falha ao solicitar depósito. Tente novamente." });
     }
   });
 
@@ -855,6 +934,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to fetch pending deposits:", error);
       res.status(500).send("Falha ao buscar depósitos pendentes.");
+    }
+  });
+
+  // GET /api/deposits/proof/:depositId - Download deposit proof file (admin only)
+  app.get("/api/deposits/proof/:depositId", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      if (!user.isAdmin) {
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const { depositId } = req.params;
+      const deposit = await db.query.pendingDeposits.findFirst({
+        where: eq(pendingDeposits.id, depositId),
+      });
+
+      if (!deposit) {
+        return res.status(404).send("Depósito não encontrado");
+      }
+
+      if (!deposit.proofFilePath) {
+        return res.status(404).send("Comprovante não encontrado");
+      }
+
+      // Validate file path to prevent directory traversal
+      const resolvedPath = path.resolve(deposit.proofFilePath);
+      const resolvedUploadDir = path.resolve(uploadDir);
+      
+      if (!resolvedPath.startsWith(resolvedUploadDir)) {
+        console.error(`Path traversal attempt detected: ${deposit.proofFilePath}`);
+        return res.status(403).send("Acesso negado");
+      }
+
+      if (!fs.existsSync(resolvedPath)) {
+        console.error(`Proof file missing for deposit ${depositId}: ${resolvedPath}`);
+        return res.status(404).send("Arquivo de comprovante não encontrado no servidor");
+      }
+
+      // Check file permissions before attempting download
+      try {
+        fs.accessSync(resolvedPath, fs.constants.R_OK);
+      } catch (err) {
+        console.error(`Proof file unreadable for deposit ${depositId}: ${resolvedPath}`, err);
+        return res.status(500).send("Erro ao acessar arquivo de comprovante. Contate o suporte.");
+      }
+
+      res.download(resolvedPath, `comprovante-${depositId}.pdf`);
+    } catch (error) {
+      console.error("Failed to download proof file:", error);
+      res.status(500).send("Falha ao baixar comprovante.");
     }
   });
 
@@ -951,6 +1081,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Reject the deposit
       const rejected = await storage.rejectPendingDeposit(depositId, user.id, reason);
+
+      // Clean up proof file after rejection
+      if (deposit.proofFilePath && fs.existsSync(deposit.proofFilePath)) {
+        try {
+          fs.unlinkSync(deposit.proofFilePath);
+        } catch (fileError) {
+          console.error(`Failed to delete proof file for rejected deposit ${depositId}:`, fileError);
+        }
+      }
 
       res.json({ 
         success: true, 
