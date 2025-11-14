@@ -993,14 +993,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/deposits/:id/approve - Admin approves a deposit
   app.post("/api/deposits/:id/approve", requireAuth, async (req, res) => {
     try {
+      console.log(`📥 [Deposit Approve] Request received for deposit ID: ${req.params.id}`);
       const user = req.user!;
+      console.log(`👤 [Deposit Approve] User: ${user.email}, isAdmin: ${user.isAdmin}`);
       
       if (!user.isAdmin) {
+        console.log(`❌ [Deposit Approve] Forbidden - user is not admin`);
         return res.status(403).send(errorMessages.FORBIDDEN);
       }
 
       const depositId = req.params.id;
       const deposit = await storage.getPendingDeposit(depositId);
+      console.log(`💼 [Deposit Approve] Deposit found:`, deposit ? `ID ${deposit.id}, status: ${deposit.status}, amount: ${deposit.amount}` : 'NOT FOUND');
 
       if (!deposit) {
         return res.status(404).send("Depósito não encontrado.");
@@ -1042,12 +1046,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Integração com BRL3 (3BIT XChange) - apenas para depósitos em BRL via PIX
       if (deposit.currency === "BRL") {
+        console.log(`🔄 [Deposit Approve] Calling BRL3 mint for ${depositAmount} BRL`);
         await notifyMintToBRL3({
           externalUserId: deposit.userId,
           amountBrl: depositAmount,
         });
       }
 
+      console.log(`✅ [Deposit Approve] Success - returning JSON response`);
       res.json({ 
         success: true, 
         deposit: approved,
