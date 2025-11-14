@@ -61,7 +61,7 @@ export function HowToBetDialog({ trigger }: HowToBetDialogProps) {
   const defaultTrigger = (
     <Button 
       variant="outline" 
-      className="bg-secondary/10 border-secondary/20 text-secondary no-default-hover-elevate text-base h-10 px-5 font-semibold" 
+      className="bg-primary/5 border-primary/20 text-primary text-base h-10 px-5 font-semibold hover:bg-primary/10 hover:border-primary/30" 
       data-testid="button-how-to-bet"
     >
       Como Palpitar
