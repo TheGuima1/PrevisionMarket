@@ -24,14 +24,14 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-glass-white border-b border-[var(--border-soft)] shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-glass-white backdrop-blur-xl border-b-2 border-primary/10 shadow-lg shadow-primary/5">
       <div className="container mx-auto px-6">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Left Section: Logo + How to Bet */}
           <div className="flex items-center gap-3">
             <Link href="/">
-              <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home">
-                <span className="font-accent text-[22px] font-extrabold bg-gradient-to-r from-[var(--primary-blue)] to-[var(--primary-blue-light)] bg-clip-text text-transparent">
+              <div className="flex items-center gap-2 cursor-pointer group" data-testid="link-home">
+                <span className="font-accent text-[22px] font-extrabold text-gradient-purple group-hover:scale-105 transition-transform">
                   Palpites.AI
                 </span>
               </div>
@@ -48,7 +48,7 @@ export function Navbar() {
                 <Button
                   key={item.href}
                   variant={isActive ? "secondary" : "ghost"}
-                  className={`gap-2 font-medium ${isActive ? 'text-[var(--primary-blue)]' : 'text-[var(--text-medium)]'} hover:text-[var(--primary-blue)]`}
+                  className={`gap-2 font-medium transition-all ${isActive ? 'text-primary bg-primary/10 shadow-sm shadow-primary/20' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5`}
                   onClick={() => setLocation(item.href)}
                   data-testid={`link-${item.label.toLowerCase()}`}
                 >
@@ -62,11 +62,11 @@ export function Navbar() {
           {/* Search Bar */}
           <div className="flex items-center gap-2 flex-1 max-w-sm">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-light)]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Buscar mercados..."
-                className="pl-9 bg-white border-[var(--border-soft)] focus-visible:ring-[var(--primary-blue)]"
+                className="pl-9 bg-white/80 backdrop-blur-sm border-primary/20 focus-visible:ring-primary focus-visible:border-primary/40 transition-all"
                 data-testid="input-search"
               />
             </div>
@@ -77,7 +77,7 @@ export function Navbar() {
             <div className="hidden sm:flex items-center gap-2">
               <Badge 
                 variant="outline" 
-                className="bg-[var(--primary-blue-bg)] border-[var(--primary-blue)]/20 text-[var(--primary-blue)] font-mono tabular-nums px-3 py-1" 
+                className="bg-gradient-to-r from-purple-50 to-purple-100 border-primary/20 text-primary font-mono tabular-nums px-3 py-1.5 shadow-sm shadow-primary/10" 
                 data-testid="badge-balance-brl3"
               >
                 {parseFloat(user?.balanceBrl || "0").toLocaleString('pt-BR', { minimumFractionDigits: 2 })} BRL3
@@ -85,7 +85,7 @@ export function Navbar() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="border-[var(--primary-blue)]/30 text-[var(--primary-blue)] hover:bg-[var(--glass-blue)] font-medium" 
+                className="border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/50 hover:shadow-sm hover:shadow-primary/20 font-medium transition-all" 
                 onClick={() => setLocation("/wallet/deposit")}
                 data-testid="button-deposit-pix"
               >
@@ -98,20 +98,20 @@ export function Navbar() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="hover:bg-[var(--glass-blue)]"
+                  className="hover:bg-primary/5 hover:text-primary transition-all"
                   data-testid="button-user-menu"
                 >
                   <User className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-white border-[var(--border-soft)]">
+              <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-sm border-primary/20 shadow-lg shadow-primary/10">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium text-[var(--text-dark)]" data-testid="text-username">@{user?.username}</p>
-                    <p className="text-xs text-[var(--text-medium)] truncate">{user?.email}</p>
+                    <p className="text-sm font-medium text-foreground" data-testid="text-username">@{user?.username}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-[var(--border-soft)]" />
+                <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem asChild>
                   <Link href="/portfolio" className="cursor-pointer w-full">
                     <Wallet className="mr-2 h-4 w-4" />
@@ -126,7 +126,7 @@ export function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator className="bg-[var(--border-soft)]" />
+                <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem
                   onClick={() => logoutMutation.mutate()}
                   className="cursor-pointer text-[var(--red-tech)] focus:text-[var(--red-tech)]"
