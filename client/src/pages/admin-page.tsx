@@ -19,7 +19,9 @@ import { Separator } from "@/components/ui/separator";
 import type { Market } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, CheckCircle, XCircle, Clock, ExternalLink } from "lucide-react";
+import { PlusCircle, CheckCircle, XCircle, Clock, ExternalLink, Users, ArrowRight, Wallet as WalletIcon, TrendingUp } from "lucide-react";
+import type { Transaction } from "@shared/schema";
+import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 
 interface PendingDeposit {
   id: string;
@@ -35,6 +37,21 @@ interface PendingDeposit {
   };
 }
 
+interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  balanceBrl: string;
+  balanceUsdc: string;
+  isAdmin: boolean;
+  createdAt: Date;
+}
+
+interface UserDetails {
+  user: AdminUser;
+  transactions: Transaction[];
+}
+
 export default function AdminPage() {
   const { toast } = useToast();
   
@@ -46,6 +63,8 @@ export default function AdminPage() {
     endDate: "",
   });
 
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
   const { data: markets } = useQuery<Market[]>({
     queryKey: ["/api/admin/markets"],
   });
@@ -53,6 +72,16 @@ export default function AdminPage() {
   const { data: pendingDeposits, isLoading: depositsLoading } = useQuery<PendingDeposit[]>({
     queryKey: ["/api/deposits/pending"],
     refetchInterval: 30000, // Refresh every 30s
+  });
+
+  const { data: allUsers, isLoading: usersLoading } = useQuery<AdminUser[]>({
+    queryKey: ["/api/admin/users"],
+    refetchInterval: 60000, // Refresh every 60s
+  });
+
+  const { data: userDetails, isLoading: userDetailsLoading } = useQuery<UserDetails>({
+    queryKey: ["/api/admin/users", selectedUserId],
+    enabled: !!selectedUserId,
   });
 
   const createMarketMutation = useMutation({
@@ -177,6 +206,10 @@ export default function AdminPage() {
             <TabsTrigger value="deposits" data-testid="tab-pending-deposits">
               <Clock className="h-4 w-4 mr-2" />
               Depósitos ({pendingDeposits?.filter(d => d.status === "pending").length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="clients" data-testid="tab-clients">
+              <Users className="h-4 w-4 mr-2" />
+              Clientes ({allUsers?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="resolve" data-testid="tab-resolve-markets">
               <CheckCircle className="h-4 w-4 mr-2" />
@@ -444,6 +477,144 @@ export default function AdminPage() {
                   </p>
                 </Card>
               )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="clients">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <h3 className="font-accent text-xl font-semibold mb-4">
+                  Todos os Clientes ({allUsers?.length || 0})
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Atualizado a cada minuto
+                </p>
+                
+                {usersLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Carregando clientes...
+                  </div>
+                ) : allUsers && allUsers.length > 0 ? (
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                    {allUsers.map((user) => (
+                      <button
+                        key={user.id}
+                        onClick={() => setSelectedUserId(user.id)}
+                        className={`w-full text-left p-4 rounded-lg border transition-all hover-elevate active-elevate-2 ${
+                          selectedUserId === user.id
+                            ? 'bg-primary/10 border-primary'
+                            : 'border-border'
+                        }`}
+                        data-testid={`button-select-user-${user.id}`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-semibold">{user.username}</div>
+                          {user.isAdmin && (
+                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                              Admin
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          {user.email}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <WalletIcon className="h-3 w-3 text-primary" />
+                          <span className="font-mono font-semibold text-primary">
+                            {parseFloat(user.balanceBrl).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} BRL3
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">Nenhum cliente encontrado</p>
+                  </div>
+                )}
+              </Card>
+
+              <Card className="p-6">
+                {selectedUserId && userDetails ? (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-accent text-xl font-semibold mb-1">
+                        {userDetails.user.username}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {userDetails.user.email}
+                      </p>
+                    </div>
+
+                    <Separator />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <div className="text-sm text-muted-foreground">Saldo BRL3</div>
+                        <div className="text-2xl font-bold font-mono text-primary" data-testid="text-user-balance-brl">
+                          {formatBRL3(parseFloat(userDetails.user.balanceBrl))}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-sm text-muted-foreground">Cadastro</div>
+                        <div className="text-sm font-medium">
+                          {formatDateTimeBR(new Date(userDetails.user.createdAt))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h4 className="font-semibold mb-3">
+                        Transações Recentes ({userDetails.transactions.length})
+                      </h4>
+                      
+                      {userDetails.transactions.length > 0 ? (
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                          {userDetails.transactions.map((tx) => (
+                            <div
+                              key={tx.id}
+                              className="p-3 border rounded-lg text-sm"
+                              data-testid={`transaction-${tx.id}`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-medium capitalize">
+                                  {tx.type.replace('_', ' ')}
+                                </span>
+                                <span className={`font-mono font-semibold ${
+                                  parseFloat(tx.amount) >= 0 ? 'text-primary' : 'text-destructive'
+                                }`}>
+                                  {parseFloat(tx.amount) >= 0 ? '+' : ''}{formatBRL3(parseFloat(tx.amount))}
+                                </span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {formatDateTimeBR(new Date(tx.createdAt))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                          Nenhuma transação encontrada
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : selectedUserId && userDetailsLoading ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">Carregando detalhes...</p>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                    <h4 className="font-semibold mb-2">Selecione um cliente</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Escolha um cliente na lista para ver seus detalhes e transações
+                    </p>
+                  </div>
+                )}
+              </Card>
             </div>
           </TabsContent>
 
