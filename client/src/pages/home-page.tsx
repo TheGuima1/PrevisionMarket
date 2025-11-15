@@ -10,14 +10,14 @@ import type { Market } from "@shared/schema";
 
 export default function HomePage() {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   
   // Redirect admins to admin panel - they shouldn't see the public markets page
   useEffect(() => {
-    if (user?.isAdmin) {
+    if (user?.isAdmin && location === "/") {
       setLocation("/admin");
     }
-  }, [user, setLocation]);
+  }, [user, location, setLocation]);
   
   // Fetch Palpites.AI markets (exactly 4 markets mirroring Polymarket)
   const { data: markets, isLoading, error } = useQuery<Market[]>({

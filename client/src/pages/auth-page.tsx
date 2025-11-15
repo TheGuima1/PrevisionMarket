@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   
   const [loginData, setLoginData] = useState({ email: "", password: "" });
@@ -52,9 +52,12 @@ export default function AuthPage() {
   useEffect(() => {
     if (user) {
       // Redirect admin users to admin panel, regular users to home
-      setLocation(user.isAdmin ? "/admin" : "/");
+      const targetPath = user.isAdmin ? "/admin" : "/";
+      if (location !== targetPath) {
+        setLocation(targetPath);
+      }
     }
-  }, [user, setLocation]);
+  }, [user, location, setLocation]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
