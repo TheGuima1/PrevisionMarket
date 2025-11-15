@@ -1513,10 +1513,23 @@ Your role:
         });
       }
 
-      // Delete market
+      // Delete related data first (to avoid foreign key constraint violations)
+      // 1. Delete AMM snapshots
+      await db.delete(ammSnapshots).where(eq(ammSnapshots.marketId, marketId));
+      
+      // 2. Delete Polymarket snapshots if they exist
+      await db.delete(polymarketSnapshots).where(eq(polymarketSnapshots.marketId, marketId));
+      
+      // 3. Delete orders
+      await db.delete(orders).where(eq(orders.marketId, marketId));
+      
+      // 4. Delete positions
+      await db.delete(positions).where(eq(positions.marketId, marketId));
+      
+      // 5. Finally delete the market
       await db.delete(markets).where(eq(markets.id, marketId));
       
-      console.log(`[Admin] Deleted market: ${market.title} (${marketId})`);
+      console.log(`[Admin] Deleted market and related data: ${market.title} (${marketId})`);
       
       res.json({ success: true, message: "Mercado removido com sucesso" });
     } catch (error: any) {

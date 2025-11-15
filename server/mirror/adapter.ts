@@ -93,19 +93,36 @@ function extractProbYes(raw: PolymarketRawMarket): number {
 /**
  * Fetch market data by slug from Polymarket Gamma API
  * Returns pure probabilities (no spread applied - spread happens at execution time)
+ * 
+ * NOTE: Gamma API doesn't support ?slug= parameter, so we fetch active markets
+ * and filter locally. This is cached to avoid repeated API calls.
  */
+let marketsCache: PolymarketRawMarket[] = [];
+let cacheExpiry = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 export async function fetchPolyBySlug(slug: string): Promise<AdapterMarketData> {
-  const url = `${GAMMA_API}/markets?slug=${encodeURIComponent(slug)}`;
-  
   try {
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
+    // Refresh cache if expired
+    if (Date.now() > cacheExpiry || marketsCache.length === 0) {
+      const url = `${GAMMA_API}/markets?active=true&closed=false&limit=500`;
+      console.log(`[Adapter] Refreshing markets cache from Gamma API...`);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
+      }
+      
+      marketsCache = await response.json() as PolymarketRawMarket[];
+      cacheExpiry = Date.now() + CACHE_TTL_MS;
+      console.log(`[Adapter] Cached ${marketsCache.length} active markets`);
     }
     
-    const markets = await response.json() as PolymarketRawMarket[];
-    const market = markets[0];
+    // Find market by slug (case-insensitive)
+    const market = marketsCache.find(m => 
+      m.slug?.toLowerCase() === slug.toLowerCase()
+    );
     
     if (!market) {
       throw new Error(`Market not found for slug: ${slug}`);
