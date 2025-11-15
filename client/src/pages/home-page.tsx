@@ -4,10 +4,20 @@ import { Navbar } from "@/components/navbar";
 import { MarketCard } from "@/components/market-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
+import { useEffect } from "react";
 import type { Market } from "@shared/schema";
 
 export default function HomePage() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  
+  // Redirect admins to admin panel - they shouldn't see the public markets page
+  useEffect(() => {
+    if (user?.isAdmin) {
+      setLocation("/admin");
+    }
+  }, [user, setLocation]);
   
   // Fetch Palpites.AI markets (exactly 4 markets mirroring Polymarket)
   const { data: markets, isLoading, error } = useQuery<Market[]>({

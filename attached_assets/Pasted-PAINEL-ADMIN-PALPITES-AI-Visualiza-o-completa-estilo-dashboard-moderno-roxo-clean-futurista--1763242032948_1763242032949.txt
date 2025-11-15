@@ -1,0 +1,156 @@
+PAINEL ADMIN — PALPITES.AI
+Visualização completa (estilo dashboard moderno, roxo/clean/futurista)
+🟪 HEADER (TOPO FIXO)
+Palpites.AI — Painel Administrativo
+[Saldo da Carteira Admin: XX BRL3]     [Status: Conectado à 3BitX]     [Botão: Modo Manutenção]
+
+🟦 MENU LATERAL (coluna da esquerda)
+📥 Depósitos
+📤 Saques
+💳 Saldos dos Usuários
+📊 Mercados
+🧠 Polymarket Oráculo
+🏁 Resoluções
+👤 Usuários
+🧾 Histórico / Logs
+🔔 Notificações
+📄 Relatórios
+⚙️ Configurações
+
+📥 1. TELA DE DEPÓSITOS
+-------------------------------------------------------------
+|   LISTA DE DEPÓSITOS PENDENTES                             |
+-------------------------------------------------------------
+| Usuário | Valor PIX | Comprovante | Data/Hora | Status    |
+-------------------------------------------------------------
+| rafael | R$ 150,00  | [ver img]   | 15:22     | PENDENTE  |
+| joao   | R$ 650,00  | [ver img]   | 14:10     | PENDENTE  |
+-------------------------------------------------------------
+
+[Botão: APROVAR → Mint BRL3]
+[Botão: RECUSAR → Enviar motivo ao usuário]
+
+➡ Caixa lateral direita:
+Comprovante (preview grande)
+Detalhes completos
+
+📤 2. TELA DE SAQUES
+-------------------------------------------------------------
+|   SOLICITAÇÕES DE SAQUE                                    |
+-------------------------------------------------------------
+| Usuário | Valor BRL3 | Banco PIX | Data | Status           |
+-------------------------------------------------------------
+| rafael | 200 BRL3    | Nubank    | 13:20 | PENDENTE        |
+-------------------------------------------------------------
+
+[Botão: APROVAR → Burn BRL3 + liberar PIX]
+[Botão: RECUSAR]
+
+💳 3. SALDOS DOS USUÁRIOS
+-------------------------------------------------------------
+| Usuário     | Saldo Disponível | Travado Apostas | Histórico|
+-------------------------------------------------------------
+| rafael      | 480 BRL3         | 120 BRL3        | [ver]   |
+| teste123    | 0                | 0               | [ver]   |
+-------------------------------------------------------------
+
+📊 4. MERCADOS ATIVOS
+==========================
+🏆 Mercado: “Trump ganha?” 
+==========================
+Odds YES: 0.62 (Polymarket 0.61)
+Odds NO: 0.38 (Polymarket 0.39)
+Spread aplicado: 2%
+Volume total: 14.200 BRL3
+
+[PAUSAR]   [EDITAR]   [FORÇAR ATUALIZAÇÃO]
+
+
+Lista à direita:
+
+Mercados:
+• Trump 2024 — ATIVO
+• Bitcoin > $100K — ATIVO
+• Brasil Eleições — PAUSADO
+• GTA VI release — CONGELADO
+
+🧠 5. ORÁCULO POLYMARKET
+-------------------------------------------------------------
+|   STATUS DO ORÁCULO                                         |
+-------------------------------------------------------------
+| Slug: presidential-election-2024                            |
+| Última atualização: 15 segundos atrás                       |
+| Odds Polymarket: YES 0.61 / NO 0.39                         |
+| Odds Palpites:   YES 0.62 / NO 0.38                         |
+| Diferença: 1,6%                                             |
+| Spread: OK                                                  |
+-------------------------------------------------------------
+
+Alertas:
+⚠️ volatilidade > 5% no último minuto (mercados congelados)
+✔ oráculo funcionando normalmente
+
+🏁 6. RESOLVER MERCADOS
+-------------------------------------------------------------
+|   RESOLUÇÃO MANUAL                                          |
+-------------------------------------------------------------
+Mercado: “Vai chover em SP hoje?”
+Status: ENCERRADO - aguardando admin
+
+[Resolver COMO YES]
+[Resolver COMO NO]
+
+Mostra:
+• Total apostado
+• Total a pagar
+• Lista prévia de vencedores
+• Simulação de pagamentos
+
+👤 7. USUÁRIOS
+-------------------------------------------------------------
+| Usuário | E-mail | Status | Total Depósitos | Total Saques |
+-------------------------------------------------------------
+| rafael | ...     | ativo  | R$ 2.000        | R$ 600        |
+-------------------------------------------------------------
+
+[BANIR] [RESETAR SENHA] [VER MOVIMENTAÇÕES] [EDITAR SALDO*]
+
+
+*Movimentação manual exige justificativa obrigatória.
+
+🧾 8. HISTÓRICO / LOGS
+-------------------------------------------------------------
+| Tipo        | Usuário | Valor | Data/Hora | Detalhes      |
+-------------------------------------------------------------
+| MINT        | rafael  | 150    | 15:22     | Depósito PIX  |
+| APOSTA      | joao    | 80     | 14:40     | Mercado XYZ   |
+| ORÁCULO     | sistema | -      | 14:39     | Atualizou odds|
+| BURN        | maria   | 200    | 13:10     | Saque PIX     |
+-------------------------------------------------------------
+
+
+Filtros por data / tipo / usuário.
+
+🔔 9. NOTIFICAÇÕES
+
+Painel rápido:
+
+(3) Saques pendentes
+(7) Depósitos pendentes
+(1) Alerta de volatilidade Polymarket
+(0) Falhas blockchain
+
+📄 10. RELATÓRIOS
+Visual moderno com gráficos:
+📊 Volume diário
+💰 Lucro (spread)
+🧮 Total BRL3 em circulação
+🪙 Mint/Burn por período
+⚖️ Rácio Depósitos / Saques
+🧍 Top usuários por volume
+⚙️ 11. CONFIGURAÇÕES
+Spread padrão: 2%  [editar]
+Atualização das odds: 60s  [editar]
+Slugs Polymarket: [lista]  [editar]
+Modo manutenção: ON/OFF
+Taxa de saque: 0%  [editar]

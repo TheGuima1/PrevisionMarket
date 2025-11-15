@@ -51,7 +51,8 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user) {
-      setLocation("/");
+      // Redirect admin users to admin panel, regular users to home
+      setLocation(user.isAdmin ? "/admin" : "/");
     }
   }, [user, setLocation]);
 
