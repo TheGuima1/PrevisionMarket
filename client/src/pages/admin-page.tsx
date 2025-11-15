@@ -16,10 +16,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Market } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, CheckCircle, XCircle, Clock, ExternalLink, Users, ArrowRight, Wallet as WalletIcon, TrendingUp } from "lucide-react";
+import { PlusCircle, CheckCircle, XCircle, Clock, ExternalLink, Users, ArrowRight, Wallet as WalletIcon, TrendingUp, Link2, Trash2, AlertCircle } from "lucide-react";
 import type { Transaction } from "@shared/schema";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 
@@ -52,6 +53,16 @@ interface UserDetails {
   transactions: Transaction[];
 }
 
+interface PolymarketPreview {
+  valid: boolean;
+  slug?: string;
+  title?: string;
+  probYes?: number;
+  probNo?: number;
+  volumeUsd?: number;
+  error?: string;
+}
+
 export default function AdminPage() {
   const { toast } = useToast();
   
@@ -64,6 +75,11 @@ export default function AdminPage() {
   });
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  
+  // Polymarket mirror state
+  const [polySlug, setPolySlug] = useState("");
+  const [polyPreview, setPolyPreview] = useState<PolymarketPreview | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   const { data: markets } = useQuery<Market[]>({
     queryKey: ["/api/admin/markets"],
@@ -178,6 +194,82 @@ export default function AdminPage() {
     },
   });
 
+  const createMirrorMarketMutation = useMutation({
+    mutationFn: async (data: { polymarketSlug: string; title?: string; description?: string }) => {
+      const res = await apiRequest("POST", "/api/admin/markets/mirror", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Mercado espelhado criado!",
+        description: "O mercado do Polymarket foi adicionado e já está sincronizando.",
+      });
+      setPolySlug("");
+      setPolyPreview(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/markets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/markets"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao criar mercado espelhado",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMarketMutation = useMutation({
+    mutationFn: async (marketId: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/markets/${marketId}`, {});
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Mercado removido!",
+        description: "O mercado foi excluído com sucesso.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/markets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/markets"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao remover mercado",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleValidateSlug = async () => {
+    if (!polySlug.trim()) {
+      setPolyPreview(null);
+      return;
+    }
+
+    setIsValidating(true);
+    try {
+      const res = await apiRequest("POST", "/api/admin/markets/validate-slug", { slug: polySlug.trim() });
+      const data = await res.json();
+      setPolyPreview(data);
+    } catch (error: any) {
+      setPolyPreview({
+        valid: false,
+        error: error.message || "Erro ao validar slug",
+      });
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleCreateMirrorMarket = () => {
+    if (!polyPreview?.valid || !polyPreview.slug) return;
+    
+    createMirrorMarketMutation.mutate({
+      polymarketSlug: polyPreview.slug,
+      title: polyPreview.title,
+    });
+  };
+
   const handleCreateMarket = (e: React.FormEvent) => {
     e.preventDefault();
     createMarketMutation.mutate(newMarket);
@@ -202,6 +294,10 @@ export default function AdminPage() {
             <TabsTrigger value="create" data-testid="tab-create-market">
               <PlusCircle className="h-4 w-4 mr-2" />
               Criar Mercado
+            </TabsTrigger>
+            <TabsTrigger value="mirror" data-testid="tab-mirror-polymarket">
+              <Link2 className="h-4 w-4 mr-2" />
+              Espelhar Polymarket
             </TabsTrigger>
             <TabsTrigger value="deposits" data-testid="tab-pending-deposits">
               <Clock className="h-4 w-4 mr-2" />
@@ -301,6 +397,173 @@ export default function AdminPage() {
                   {createMarketMutation.isPending ? "Criando..." : "Criar Mercado"}
                 </Button>
               </form>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="mirror">
+            <Card className="p-6 space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Espelhar Mercado do Polymarket</h3>
+                <p className="text-sm text-muted-foreground">
+                  Adicione mercados do Polymarket com sincronização automática de odds
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="polySlug">Slug do Polymarket</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="polySlug"
+                      placeholder="Ex: us-recession-in-2025"
+                      value={polySlug}
+                      onChange={(e) => setPolySlug(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleValidateSlug();
+                        }
+                      }}
+                      data-testid="input-poly-slug"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleValidateSlug}
+                      disabled={isValidating || !polySlug.trim()}
+                      data-testid="button-validate-slug"
+                    >
+                      {isValidating ? "Validando..." : "Validar"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Cole o slug do mercado do Polymarket (última parte da URL)
+                  </p>
+                </div>
+
+                {polyPreview && !polyPreview.valid && (
+                  <Alert variant="destructive" data-testid="alert-invalid-slug">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {polyPreview.error || "Slug inválido ou mercado não encontrado"}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {polyPreview && polyPreview.valid && (
+                  <Card className="p-4 bg-muted/50 space-y-4" data-testid="card-poly-preview">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-muted-foreground mb-1">
+                            Título do Mercado
+                          </p>
+                          <p className="font-medium">{polyPreview.title}</p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Válido
+                        </Badge>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Odds YES</p>
+                          <p className="text-2xl font-mono font-bold text-primary">
+                            {((polyPreview.probYes || 0) * 100).toFixed(1)}%
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">Odds NO</p>
+                          <p className="text-2xl font-mono font-bold text-destructive">
+                            {((polyPreview.probNo || 0) * 100).toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+
+                      {polyPreview.volumeUsd && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Volume Polymarket</p>
+                          <p className="text-lg font-mono">
+                            ${(polyPreview.volumeUsd / 1000000).toFixed(2)}M
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      onClick={handleCreateMirrorMarket}
+                      disabled={createMirrorMarketMutation.isPending}
+                      size="lg"
+                      className="w-full"
+                      data-testid="button-create-mirror-market"
+                    >
+                      {createMirrorMarketMutation.isPending ? "Criando..." : "Criar Mercado Espelhado"}
+                    </Button>
+                  </Card>
+                )}
+
+                <Alert>
+                  <AlertDescription className="text-sm space-y-2">
+                    <p className="font-semibold">Como funciona:</p>
+                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                      <li>Mercados espelhados sincronizam odds automaticamente a cada 60s</li>
+                      <li>Você pode personalizar título e descrição em PT-BR</li>
+                      <li>Odds do Polymarket + 2% spread transparente na execução</li>
+                      <li>Resolução manual pelo admin quando o evento ocorrer</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </Card>
+
+            <Card className="p-6 mt-6">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold mb-2">Mercados Espelhados Ativos</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {markets?.filter(m => m.origin === "polymarket").length || 0} mercados sincronizando
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {markets?.filter(m => m.origin === "polymarket").map(market => (
+                    <div
+                      key={market.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover-elevate"
+                      data-testid={`market-row-${market.id}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{market.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Slug: {market.polymarketSlug}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Remover mercado "${market.title}"?`)) {
+                            deleteMarketMutation.mutate(market.id);
+                          }
+                        }}
+                        disabled={deleteMarketMutation.isPending}
+                        data-testid={`button-delete-market-${market.id}`}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+                  
+                  {markets?.filter(m => m.origin === "polymarket").length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhum mercado espelhado ainda. Adicione um acima!
+                    </div>
+                  )}
+                </div>
+              </div>
             </Card>
           </TabsContent>
 
