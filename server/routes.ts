@@ -13,6 +13,7 @@ import { startPolymarketSnapshots } from "./polymarket-cron";
 import { getSnapshot } from "./mirror/state";
 import { startMirror } from "./mirror/worker";
 import { notifyMintToBRL3, notifyBurnToBRL3 } from "./brl3-client";
+import { fetchPolyBySlug } from "./mirror/adapter";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -1388,6 +1389,139 @@ Your role:
     } catch (error) {
       console.error("Failed to fetch user details:", error);
       res.status(500).send("Falha ao buscar detalhes do usuário.");
+    }
+  });
+
+  // POST /api/admin/markets/validate-slug - Validate Polymarket slug and return preview
+  app.post("/api/admin/markets/validate-slug", requireAdmin, async (req, res) => {
+    try {
+      const { slug } = req.body;
+      
+      if (!slug || typeof slug !== 'string') {
+        return res.status(400).json({ error: "Slug é obrigatório" });
+      }
+
+      // Fetch market data from Polymarket
+      const polyData = await fetchPolyBySlug(slug);
+      
+      // Return preview data with current odds
+      res.json({
+        valid: true,
+        slug: polyData.slug,
+        title: polyData.title,
+        probYes: polyData.probYes,
+        probNo: 1 - polyData.probYes,
+        volumeUsd: polyData.volumeUsd,
+      });
+    } catch (error: any) {
+      console.error("Slug validation error:", error);
+      res.status(400).json({ 
+        valid: false, 
+        error: error.message || "Slug inválido ou mercado não encontrado no Polymarket" 
+      });
+    }
+  });
+
+  // POST /api/admin/markets/mirror - Create a mirrored Polymarket market
+  app.post("/api/admin/markets/mirror", requireAdmin, async (req, res) => {
+    try {
+      const { 
+        polymarketSlug, 
+        title, 
+        description, 
+        category, 
+        tags,
+        resolutionSource, 
+        endDate 
+      } = req.body;
+      
+      if (!polymarketSlug) {
+        return res.status(400).json({ error: "Polymarket slug é obrigatório" });
+      }
+
+      // Validate slug exists on Polymarket
+      const polyData = await fetchPolyBySlug(polymarketSlug);
+      
+      // Check if market with this slug already exists
+      const existingMarket = await db.query.markets.findFirst({
+        where: eq(markets.polymarketSlug, polymarketSlug),
+      });
+      
+      if (existingMarket) {
+        return res.status(400).json({ error: "Mercado com este slug já existe" });
+      }
+
+      // Use Polymarket title if not provided
+      const marketTitle = title || polyData.title;
+      
+      // Create mirrored market with initial reserves based on Polymarket odds
+      const seedAmount = 10000; // Default seed for mirrored markets
+      const probYes = polyData.probYes;
+      
+      // Initialize reserves to match Polymarket odds
+      // Using CPMM: yesReserve / (yesReserve + noReserve) = probYes
+      const yesReserve = seedAmount * probYes;
+      const noReserve = seedAmount * (1 - probYes);
+      const k = yesReserve * noReserve;
+
+      const market = await db.insert(markets).values({
+        title: marketTitle,
+        description: description || `Mercado espelhado do Polymarket: ${marketTitle}`,
+        category: category || "politics",
+        tags: tags || [],
+        resolutionSource: resolutionSource || "Polymarket",
+        endDate: endDate ? new Date(endDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year default
+        origin: "polymarket",
+        polymarketSlug,
+        yesReserve: yesReserve.toFixed(2),
+        noReserve: noReserve.toFixed(2),
+        k: k.toFixed(4),
+        seedLiquidity: seedAmount.toFixed(2),
+      }).returning();
+      
+      console.log(`[Admin] Created mirrored market: ${marketTitle} (slug: ${polymarketSlug})`);
+      
+      res.json(market[0]);
+    } catch (error: any) {
+      console.error("Mirror market creation error:", error);
+      res.status(400).json({ error: error.message || "Falha ao criar mercado espelhado" });
+    }
+  });
+
+  // DELETE /api/admin/markets/:id - Delete a market
+  app.delete("/api/admin/markets/:id", requireAdmin, async (req, res) => {
+    try {
+      const marketId = req.params.id;
+      
+      const market = await storage.getMarket(marketId);
+      if (!market) {
+        return res.status(404).send("Mercado não encontrado");
+      }
+
+      // Check if market has any active positions
+      const activePositions = await db.query.positions.findMany({
+        where: eq(positions.marketId, marketId),
+      });
+
+      const hasActiveShares = activePositions.some(pos => 
+        parseFloat(pos.yesShares) > 0 || parseFloat(pos.noShares) > 0
+      );
+
+      if (hasActiveShares) {
+        return res.status(400).json({ 
+          error: "Não é possível remover mercado com posições ativas. Resolva o mercado primeiro." 
+        });
+      }
+
+      // Delete market
+      await db.delete(markets).where(eq(markets.id, marketId));
+      
+      console.log(`[Admin] Deleted market: ${market.title} (${marketId})`);
+      
+      res.json({ success: true, message: "Mercado removido com sucesso" });
+    } catch (error: any) {
+      console.error("Market deletion error:", error);
+      res.status(500).json({ error: "Falha ao remover mercado" });
     }
   });
 
