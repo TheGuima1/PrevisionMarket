@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, insertPendingDepositSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots, pendingDeposits } from "@shared/schema";
+import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, insertPendingDepositSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots, pendingDeposits, transactions } from "@shared/schema";
 import OpenAI from "openai";
 import { z } from "zod";
 import { db } from "./db";
@@ -1327,6 +1327,67 @@ Your role:
       res.json({ success: true });
     } catch (error) {
       res.status(500).send(errorMessages.FAILED_RESOLVE_MARKET);
+    }
+  });
+
+  // GET /api/admin/users - List all users
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const allUsers = await db.query.users.findMany({
+        columns: {
+          id: true,
+          username: true,
+          email: true,
+          balanceBrl: true,
+          balanceUsdc: true,
+          isAdmin: true,
+          createdAt: true,
+        },
+        orderBy: (users, { desc }) => [desc(users.createdAt)],
+      });
+
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      res.status(500).send("Falha ao buscar usuários.");
+    }
+  });
+
+  // GET /api/admin/users/:id - Get user details with transactions
+  app.get("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const userId = req.params.id;
+
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+        columns: {
+          id: true,
+          username: true,
+          email: true,
+          balanceBrl: true,
+          balanceUsdc: true,
+          isAdmin: true,
+          createdAt: true,
+        },
+      });
+
+      if (!user) {
+        return res.status(404).send("Usuário não encontrado.");
+      }
+
+      const userTransactions = await db.query.transactions.findMany({
+        where: eq(transactions.userId, userId),
+        orderBy: (transactions, { desc }) => [desc(transactions.createdAt)],
+        limit: 100,
+      });
+
+      res.json({
+        user,
+        transactions: userTransactions,
+      });
+    } catch (error) {
+      console.error("Failed to fetch user details:", error);
+      res.status(500).send("Falha ao buscar detalhes do usuário.");
     }
   });
 
