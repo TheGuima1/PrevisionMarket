@@ -2,16 +2,42 @@
  * Mirror Worker
  * Polls Polymarket markets every 60s and updates mirror state with freeze logic
  * Also syncs AMM market reserves with Polymarket odds
+ * 
+ * Now uses database-driven approach: fetches markets with origin="polymarket"
  */
 
 import { fetchPolyBySlug } from './adapter';
 import { upsertMarket } from './state';
 import { syncAMMMarketsWithPolymarket } from '../amm-sync';
+import { db } from '../db';
+import { markets } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 const POLL_INTERVAL = Number(process.env.MIRROR_POLL_MS || 60000); // 60s default
 
 let intervalId: NodeJS.Timeout | null = null;
 let validatedSlugs: string[] = []; // Only contains slugs that passed validation
+
+/**
+ * Fetch active Polymarket-mirrored markets from database
+ */
+async function getActivePolymarketSlugs(): Promise<string[]> {
+  try {
+    const polymarketMarkets = await db.query.markets.findMany({
+      where: eq(markets.origin, 'polymarket'),
+      columns: {
+        polymarketSlug: true,
+      },
+    });
+    
+    return polymarketMarkets
+      .map(m => m.polymarketSlug)
+      .filter((slug): slug is string => slug !== null && slug !== '');
+  } catch (error) {
+    console.error('[Mirror Worker] Failed to fetch Polymarket slugs from database:', error);
+    return [];
+  }
+}
 
 /**
  * Validate slugs at boot - ping each slug once and auto-exclude only definitively invalid ones
@@ -92,39 +118,65 @@ export async function pollOnce(): Promise<void> {
 }
 
 /**
- * Start mirror worker (validate slugs, then poll immediately, then every POLL_INTERVAL ms)
+ * Refresh slugs from database and revalidate
+ * Called at startup and can be called periodically to detect new markets
+ */
+async function refreshSlugsFromDatabase(): Promise<void> {
+  const dbSlugs = await getActivePolymarketSlugs();
+  
+  if (dbSlugs.length === 0) {
+    console.log('[Mirror Worker] No Polymarket markets found in database');
+    validatedSlugs = [];
+    return;
+  }
+  
+  // Validate new slugs
+  const newSlugs = dbSlugs.filter(slug => !validatedSlugs.includes(slug));
+  
+  if (newSlugs.length > 0) {
+    console.log(`[Mirror Worker] 🔄 Found ${newSlugs.length} new markets to mirror`);
+    const newValidated = await validateSlugs(newSlugs);
+    validatedSlugs = [...validatedSlugs, ...newValidated];
+  }
+  
+  // Remove slugs that no longer exist in database
+  const removedSlugs = validatedSlugs.filter(slug => !dbSlugs.includes(slug));
+  if (removedSlugs.length > 0) {
+    console.log(`[Mirror Worker] 🗑️  Removing ${removedSlugs.length} markets no longer in database`);
+    validatedSlugs = validatedSlugs.filter(slug => dbSlugs.includes(slug));
+  }
+}
+
+/**
+ * Start mirror worker (fetch slugs from database, validate, poll immediately, then every POLL_INTERVAL ms)
  */
 export async function startMirror(): Promise<void> {
-  const configuredSlugs = (process.env.POLYMARKET_SLUGS || '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+  console.log(`[Mirror Worker] 🚀 Starting database-driven worker (interval: ${POLL_INTERVAL}ms)`);
   
-  if (configuredSlugs.length === 0) {
-    console.log('[Mirror Worker] No slugs configured (POLYMARKET_SLUGS is empty)');
-    return;
-  }
-  
-  console.log(`[Mirror Worker] 🚀 Starting worker (interval: ${POLL_INTERVAL}ms)`);
-  
-  // Validate slugs at boot (auto-exclude invalid ones)
-  validatedSlugs = await validateSlugs(configuredSlugs);
+  // Initial slug fetch and validation
+  await refreshSlugsFromDatabase();
   
   if (validatedSlugs.length === 0) {
-    console.error('[Mirror Worker] ❌ No valid slugs found. Worker will not start.');
-    return;
+    console.log('[Mirror Worker] ⚠️  No Polymarket markets found. Worker will start but won\'t poll.');
+    console.log('[Mirror Worker] 💡 Add markets via Admin Panel to enable mirroring');
+  } else {
+    // Poll immediately on startup
+    pollOnce().catch(err => {
+      console.error('[Mirror Worker] Initial poll failed:', err);
+    });
   }
   
-  // Poll immediately on startup
-  pollOnce().catch(err => {
-    console.error('[Mirror Worker] Initial poll failed:', err);
-  });
-  
-  // Then schedule periodic polls
-  intervalId = setInterval(() => {
-    pollOnce().catch(err => {
-      console.error('[Mirror Worker] Periodic poll failed:', err);
-    });
+  // Schedule periodic polls + slug refresh
+  intervalId = setInterval(async () => {
+    // Refresh slugs from database every interval (detects new markets)
+    await refreshSlugsFromDatabase();
+    
+    // Poll if we have valid slugs
+    if (validatedSlugs.length > 0) {
+      pollOnce().catch(err => {
+        console.error('[Mirror Worker] Periodic poll failed:', err);
+      });
+    }
   }, POLL_INTERVAL);
 }
 
