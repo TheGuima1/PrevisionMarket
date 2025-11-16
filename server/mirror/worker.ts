@@ -149,24 +149,13 @@ async function refreshSlugsFromDatabase(): Promise<void> {
 
 /**
  * Start mirror worker (fetch slugs from database, validate, poll immediately, then every POLL_INTERVAL ms)
+ * 
+ * IMPORTANT: Initial validation runs in background to avoid blocking server startup and health checks
  */
 export async function startMirror(): Promise<void> {
   console.log(`[Mirror Worker] 🚀 Starting database-driven worker (interval: ${POLL_INTERVAL}ms)`);
   
-  // Initial slug fetch and validation
-  await refreshSlugsFromDatabase();
-  
-  if (validatedSlugs.length === 0) {
-    console.log('[Mirror Worker] ⚠️  No Polymarket markets found. Worker will start but won\'t poll.');
-    console.log('[Mirror Worker] 💡 Add markets via Admin Panel to enable mirroring');
-  } else {
-    // Poll immediately on startup
-    pollOnce().catch(err => {
-      console.error('[Mirror Worker] Initial poll failed:', err);
-    });
-  }
-  
-  // Schedule periodic polls + slug refresh
+  // Schedule periodic polls + slug refresh FIRST (start immediately)
   intervalId = setInterval(async () => {
     // Refresh slugs from database every interval (detects new markets)
     await refreshSlugsFromDatabase();
@@ -178,6 +167,28 @@ export async function startMirror(): Promise<void> {
       });
     }
   }, POLL_INTERVAL);
+  
+  // Initial slug fetch and validation - run in background (non-blocking)
+  // This prevents blocking server startup and health checks during deployment
+  setImmediate(async () => {
+    try {
+      await refreshSlugsFromDatabase();
+      
+      if (validatedSlugs.length === 0) {
+        console.log('[Mirror Worker] ⚠️  No Polymarket markets found. Worker will start but won\'t poll.');
+        console.log('[Mirror Worker] 💡 Add markets via Admin Panel to enable mirroring');
+      } else {
+        console.log(`[Mirror Worker] ✅ Initial validation complete - monitoring ${validatedSlugs.length} markets`);
+        // Poll immediately after initial validation
+        pollOnce().catch(err => {
+          console.error('[Mirror Worker] Initial poll failed:', err);
+        });
+      }
+    } catch (error) {
+      console.error('[Mirror Worker] Initial validation failed:', error);
+      // Worker continues running, will retry on next interval
+    }
+  });
 }
 
 /**
