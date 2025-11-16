@@ -19,19 +19,10 @@ export interface MarketMetadata {
 }
 
 /**
- * Os 4 mercados da Palpites.AI
+ * Os 3 mercados da Palpites.AI
  * IMPORTANTE: Número de mercados = número de slugs (sempre 1:1)
  */
 export const PALPITES_MARKETS: MarketMetadata[] = [
-  {
-    polymarketSlug: "will-any-presidential-candidate-win-outright-in-the-first-round-of-the-brazil-election",
-    title: "Lula será reeleito presidente em 2026?",
-    description: "Mercado será resolvido como SIM se Luiz Inácio Lula da Silva vencer as eleições presidenciais de 2026 no Brasil. NÃO se outro candidato vencer.",
-    category: "politics",
-    tags: ["Lula", "Brasil", "Eleições"],
-    resolutionSource: "TSE - Tribunal Superior Eleitoral",
-    endDate: new Date("2026-10-30T23:59:59Z"),
-  },
   {
     polymarketSlug: "us-recession-in-2025",
     title: "Recessão nos EUA em 2025?",
