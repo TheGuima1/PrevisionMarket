@@ -24,14 +24,14 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-glass-white backdrop-blur-xl border-b-2 border-primary/10 shadow-lg shadow-primary/5">
+    <nav className="fixed top-0 left-0 right-0 z-50 glass-navbar border-b border-white/10">
       <div className="container mx-auto px-6">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Left Section: Logo + How to Bet */}
           <div className="flex items-center gap-3">
             <Link href="/">
-              <div className="flex items-center gap-2 cursor-pointer group" data-testid="link-home">
-                <span className="font-accent text-[22px] font-extrabold text-gradient-purple group-hover:scale-105 transition-transform">
+              <div className="flex items-center gap-2 cursor-pointer hover-elevate px-3 py-1 rounded-md transition-all" data-testid="link-home">
+                <span className="font-accent text-[22px] font-extrabold text-white">
                   Palpites.AI
                 </span>
               </div>
@@ -48,7 +48,7 @@ export function Navbar() {
                 <Button
                   key={item.href}
                   variant={isActive ? "secondary" : "ghost"}
-                  className={`gap-2 font-medium transition-all ${isActive ? 'text-primary bg-primary/10 shadow-sm shadow-primary/20' : 'text-muted-foreground'} hover:text-primary hover:bg-primary/5`}
+                  className={`gap-2 font-medium ${isActive ? 'text-white bg-white/10 shadow-purple' : 'text-purple-light'}`}
                   onClick={() => setLocation(item.href)}
                   data-testid={`link-${item.label.toLowerCase()}`}
                 >
@@ -62,11 +62,11 @@ export function Navbar() {
           {/* Search Bar */}
           <div className="flex items-center gap-2 flex-1 max-w-sm">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-muted" />
               <Input
                 type="search"
                 placeholder="Buscar mercados..."
-                className="pl-9 bg-white/80 backdrop-blur-sm border-primary/20 focus-visible:ring-primary focus-visible:border-primary/40 transition-all"
+                className="pl-9 bg-white/5 backdrop-blur-sm border-white/10 text-white placeholder:text-purple-muted focus-visible:ring-primary focus-visible:border-white/30 transition-all"
                 data-testid="input-search"
               />
             </div>
@@ -77,7 +77,7 @@ export function Navbar() {
             <div className="hidden sm:flex items-center gap-2">
               <Badge 
                 variant="outline" 
-                className="bg-gradient-to-r from-purple-50 to-purple-100 border-primary/20 text-primary font-mono tabular-nums px-3 py-1.5 shadow-sm shadow-primary/10" 
+                className="bg-gradient-purple/20 border-white/20 text-white font-mono tabular-nums px-3 py-1.5 shadow-purple" 
                 data-testid="badge-balance-brl3"
               >
                 {parseFloat(user?.balanceBrl || "0").toLocaleString('pt-BR', { minimumFractionDigits: 2 })} BRL3
@@ -85,7 +85,6 @@ export function Navbar() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/50 hover:shadow-sm hover:shadow-primary/20 font-medium transition-all" 
                 onClick={() => setLocation("/wallet/deposit")}
                 data-testid="button-deposit-pix"
               >
@@ -98,38 +97,37 @@ export function Navbar() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="hover:bg-primary/5 hover:text-primary transition-all"
                   data-testid="button-user-menu"
                 >
                   <User className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-sm border-primary/20 shadow-lg shadow-primary/10">
+              <DropdownMenuContent align="end" className="w-56 glass-card border-white/10">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium text-foreground" data-testid="text-username">@{user?.username}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                    <p className="text-sm font-medium text-white" data-testid="text-username">@{user?.username}</p>
+                    <p className="text-xs text-purple-light truncate">{user?.email}</p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuSeparator className="bg-white/10" />
                 <DropdownMenuItem asChild>
-                  <Link href="/portfolio" className="cursor-pointer w-full">
+                  <Link href="/portfolio" className="cursor-pointer w-full text-purple-light hover:text-white">
                     <Wallet className="mr-2 h-4 w-4" />
                     <span>Carteira</span>
                   </Link>
                 </DropdownMenuItem>
                 {user?.isAdmin && (
                   <DropdownMenuItem asChild>
-                    <Link href="/admin" className="cursor-pointer w-full">
+                    <Link href="/admin" className="cursor-pointer w-full text-purple-light hover:text-white">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Admin</span>
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuSeparator className="bg-white/10" />
                 <DropdownMenuItem
                   onClick={() => logoutMutation.mutate()}
-                  className="cursor-pointer text-[var(--red-tech)] focus:text-[var(--red-tech)]"
+                  className="cursor-pointer text-destructive focus:text-destructive"
                   data-testid="button-logout"
                 >
                   <LogOut className="mr-2 h-4 w-4" />

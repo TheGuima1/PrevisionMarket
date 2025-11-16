@@ -7,13 +7,13 @@ export function PublicNavbar() {
   const [, setLocation] = useLocation();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-glass-white backdrop-blur-xl border-b-2 border-primary/10 shadow-lg shadow-primary/5">
+    <header className="fixed top-0 left-0 right-0 z-50 glass-navbar border-b border-white/10">
       <div className="container mx-auto flex h-16 items-center justify-between px-6">
         {/* Left Section: Logo + Como Palpitar */}
         <div className="flex items-center gap-4">
           <Link href="/" data-testid="link-home">
             <span className="flex items-center gap-2 hover-elevate px-3 py-1 rounded-md transition-all cursor-pointer">
-              <span className="font-accent text-[22px] font-extrabold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              <span className="font-accent text-[22px] font-extrabold text-white">
                 Palpites.AI
               </span>
             </span>
@@ -22,11 +22,11 @@ export function PublicNavbar() {
         </div>
 
         {/* Center Navigation (hidden on mobile) */}
-        <div className="hidden md:flex items-center gap-6 text-primary font-semibold">
-          <Link href="/" className="hover:text-primary/80 transition-colors">
+        <div className="hidden md:flex items-center gap-6 text-purple-light font-semibold">
+          <Link href="/" className="hover-elevate px-3 py-1 rounded-md transition-all">
             Mercados
           </Link>
-          <Link href="/wallet/deposit" className="hover:text-primary/80 transition-colors">
+          <Link href="/wallet/deposit" className="hover-elevate px-3 py-1 rounded-md transition-all">
             Carteira
           </Link>
         </div>
@@ -36,7 +36,7 @@ export function PublicNavbar() {
           <Button 
             variant="ghost"
             onClick={() => setLocation("/auth")}
-            className="text-primary font-semibold hover:text-primary/80"
+            className="text-purple-light font-semibold"
             data-testid="button-login"
           >
             <LogIn className="h-5 w-5 mr-2" />
@@ -44,7 +44,7 @@ export function PublicNavbar() {
           </Button>
           <Button 
             onClick={() => setLocation("/auth")}
-            className="bg-primary text-white font-semibold hover:bg-primary/90"
+            className="bg-gradient-purple text-white font-semibold shadow-purple border border-primary"
             data-testid="button-signup"
           >
             <UserPlus className="h-5 w-5 mr-2" />

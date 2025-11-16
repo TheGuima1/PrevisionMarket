@@ -61,7 +61,6 @@ export function HowToBetDialog({ trigger }: HowToBetDialogProps) {
   const defaultTrigger = (
     <Button 
       variant="outline" 
-      className="bg-primary/5 border-primary/20 text-primary text-base h-10 px-5 font-semibold hover:bg-primary/10 hover:border-primary/30" 
       data-testid="button-how-to-bet"
     >
       Como Palpitar
@@ -73,24 +72,24 @@ export function HowToBetDialog({ trigger }: HowToBetDialogProps) {
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="glass-card border-white/10 sm:max-w-md">
         <DialogHeader className="relative">
-          <DialogTitle className="font-accent text-2xl">Como Palpitar</DialogTitle>
+          <DialogTitle className="font-accent text-2xl text-white">Como Palpitar</DialogTitle>
           <DialogDescription className="sr-only">
             Tutorial em 4 etapas sobre como fazer palpites na plataforma
           </DialogDescription>
-          <DialogClose className="absolute right-0 top-0" data-testid="button-close-dialog">
+          <DialogClose className="absolute right-0 top-0 text-purple-light" data-testid="button-close-dialog">
             <X className="h-4 w-4" />
             <span className="sr-only">Fechar</span>
           </DialogClose>
         </DialogHeader>
         <div className="space-y-6 py-4">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 text-primary rounded-full mb-4">
-              <span className="text-2xl font-bold">{step.number}</span>
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-purple rounded-full mb-4 shadow-purple">
+              <span className="text-3xl font-bold text-white">{step.number}</span>
             </div>
-            <h3 className="font-semibold text-xl mb-3">{step.title}</h3>
-            <p className="text-muted-foreground leading-relaxed">
+            <h3 className="font-semibold text-xl mb-3 text-white">{step.title}</h3>
+            <p className="text-purple-light leading-relaxed">
               {step.description}
             </p>
           </div>
@@ -100,7 +99,7 @@ export function HowToBetDialog({ trigger }: HowToBetDialogProps) {
               <div
                 key={idx}
                 className={`h-2 rounded-full transition-all ${
-                  idx === currentStep ? "w-8 bg-primary" : "w-2 bg-muted"
+                  idx === currentStep ? "w-8 bg-primary" : "w-2 bg-primary/30"
                 }`}
               />
             ))}

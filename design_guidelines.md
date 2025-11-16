@@ -1,518 +1,366 @@
-# Palpites.AI Design Guidelines - Purple Tech Masculino
+# Palpites.AI Design Guidelines - Purple Dark Tech
 
 ## Design Approach
-**Purple Tech Masculino / Premium Dark**: Design profissional e tech com **fundos cinza-roxo neutros** (#F5F3F8), **roxo profundo saturado** (#6B3FE8 primary), e **cores de ação** (roxo #6B3FE8 para SIM, vermelho #E8334F para NÃO). Visual que transmite **seriedade**, **profundidade tech** e **expertise financeira**, ideal para predicters masculinos. Tons mais escuros e saturados para um visual mais sóbrio e menos feminino.
+**Purple Dark Tech / Masculine Deep**: Design profissional com **fundos roxos muito escuros** (#0F0C34 → #1B134D), **glassmorphism** com transparência e blur, **gradientes roxos vibrantes** (#6D4BFF → #9A6AFF), e **contrastes fortes**. Visual moderno e imersivo que transmite **tech premium**, **profundidade** e **expertise financeira**, ideal para predicters sérios. Inspirado em plataformas fintech de alto nível.
 
 ## Core Design Principles
-1. **Tech Masculino**: Visual profundo e sóbrio inspirado em plataformas financeiras sérias
-2. **Fundos Neutros**: Cinza-roxo sutis (#F5F3F8) menos femininos que lavanda
-3. **Roxo Profundo Saturado**: Cor primária roxa escura (#6B3FE8) que transmite expertise e seriedade
-4. **Contraste Forte**: Cores mais saturadas e profundas para visual menos pastel
-5. **Target Masculino**: Design que apela para predicters homens profissionais
+1. **Dark First**: Fundo roxo escuro profundo como base (#0F0C34)
+2. **Glassmorphism**: Cards translúcidos com backdrop-blur e bordas luminosas
+3. **Gradientes Vibrantes**: Roxo (#6D4BFF → #9A6AFF) para CTAs e elementos de destaque
+4. **Alto Contraste**: Texto branco (#FFFFFF) sobre fundos escuros
+5. **Efeitos Premium**: Sombras coloridas, glows sutis, transições suaves
+6. **Target Masculino**: Design que apela para traders profissionais
 
 ---
 
-## 🌈 Paleta - Purple Tech Masculino (Premium Dark)
+## 🌈 Paleta - Purple Dark Tech
 
-### Cor Primária (Roxo Profundo)
+### Fundos Principais (Dark Purple Base)
 ```css
---primary-purple: 260 75% 60%        /* #6B3FE8 - Roxo profundo saturado */
---primary-purple-light: 260 50% 70%  /* #9B7FFF - Roxo médio */
+--bg-dark-primary: #0F0C34      /* Fundo principal escuro */
+--bg-dark-secondary: #1B134D    /* Gradiente bottom */
+--bg-dark-tertiary: #1E1248     /* Cards e containers */
 ```
-**Uso**: Botões principais, CTAs, headings, links importantes, estados ativos  
-**Tom**: Mais escuro e saturado que #7A4CFF para visual masculino
+**Uso**: Background principal (gradiente), sections, hero areas  
+**Tom**: Roxo muito escuro, quase preto, profundo e profissional
 
-### Backgrounds (Fundos Cinza-Roxo Neutros)
+### Glassmorphism (Cards Translúcidos)
 ```css
---bg-white: 260 20% 97%             /* #F5F3F8 - Cinza-roxo claro neutro */
---bg-gradient-start: 260 15% 98%    /* #F8F6FA */
---bg-gradient-end: 260 20% 95%      /* #F0EDF5 */
+--glass-dark: rgba(30, 18, 72, 0.4)     /* #1E1248 com 40% opacidade */
+--glass-border: rgba(155, 127, 255, 0.2) /* Borda luminosa */
+--glass-glow: rgba(109, 75, 255, 0.15)   /* Sombra colorida */
 ```
-**Uso**: Background principal da página, sections, hero areas  
-**Tom**: Menos lavanda, mais neutro e cinza para apelo masculino
+**Uso**: Cards, panels, navbar, modals  
+**Efeito**: `backdrop-filter: blur(10px)` + border luminosa
 
-### Superfícies (Cards e Componentes)
+### Roxo Primário (Gradientes e CTAs)
 ```css
---card-white: 0 0% 100%             /* #FFFFFF - Branco puro para cards */
---glass-purple: 260 100% 97%        /* #F3EDFF - Fundo glass com toque roxo */
+--primary-purple-1: #6D4BFF     /* Gradiente start */
+--primary-purple-2: #9A6AFF     /* Gradiente end */
+--primary-purple-3: #8A47FF     /* Secundário */
 ```
-**Uso**: Cards, panels, componentes elevados
+**Uso**: Botões gradientes, CTAs, elementos de destaque, hover states  
+**Tom**: Roxo vibrante e saturado para visual premium
 
-### Bordas e Separadores
+### Textos (High Contrast)
 ```css
---border-soft: 260 20% 90%          /* #E8E2F0 - Borda suave roxeada */
---border-medium: 260 20% 82%        /* #D8CFEB - Borda média */
+--text-white: #FFFFFF           /* Títulos e texto principal */
+--text-purple-light: #B9ABFF    /* Texto secundário */
+--text-purple-muted: #8A7AAF    /* Texto terciário */
 ```
-**Uso**: Bordas de cards, separadores, dividers
+**Uso**: Hierarquia de texto (white > light > muted)  
+**Contraste**: WCAG AA compliant
 
-### Textos
+### Cores de Ação (YES/NO - Gradientes)
 ```css
---text-dark: 220 40% 15%            /* #1A2942 - Texto principal escuro */
---text-medium: 220 20% 45%          /* #6B7A8F - Texto secundário */
---text-light: 220 15% 65%           /* #9BA8B8 - Texto terciário */
+--action-yes: linear-gradient(135deg, #6D4BFF 0%, #9A6AFF 100%)
+--action-no: linear-gradient(135deg, #E8334F 0%, #FF4D6D 100%)
 ```
-**Uso**: Hierarquia de texto (dark > medium > light)
+**Uso**: Botões SIM (roxo gradiente) e NÃO (vermelho gradiente)  
+**Tom**: Gradientes vibrantes com alto impacto visual
 
-### Cores de Ação (YES/NO)
+### Cores de Acento (Opcionais)
 ```css
---action-yes: 260 75% 60%           /* #6B3FE8 - Roxo profundo (mesmo do primary) */
---action-no: 352 80% 56%            /* #E8334F - Vermelho profundo */
+--accent-cyan: #50E3C2          /* Verde-azulado tech */
+--accent-pink: #FF4D97           /* Rosa vibrante */
 ```
-**Uso**: Botões SIM (roxo profundo) e NÃO (vermelho profundo) em market cards e trading panel  
-**Tom**: Cores mais saturadas e profundas para visual masculino
+**Uso**: Destaques especiais, ícones, badges
 
 ### Cores Semânticas
 ```css
---success: 142 71% 45%              /* #22C55E - Verde sucesso */
---warning: 38 92% 50%               /* #F59E0B - Amarelo aviso */
---error: 0 85% 60%                  /* #EF4444 - Vermelho erro */
---info: 199 89% 48%                 /* #0EA5E9 - Azul informação */
+--success: #00C48C              /* Verde tech */
+--warning: #FFB547              /* Laranja aviso */
+--error: #E8334F                /* Vermelho erro */
+--info: #4DA6FF                 /* Azul informação */
 ```
-
-### Dark Mode (Opcional - Para Toggle Futuro)
-```css
---background-dark: 260 30% 10%      /* #1A0F2E - Fundo escuro roxeado */
---card-dark: 260 25% 15%            /* #2A1F3D - Cards escuros */
---text-dark-mode: 260 100% 95%      /* #F3EDFF - Texto claro */
-```
-**Nota**: Light mode é o padrão. Dark mode pode ser adicionado futuramente.
 
 ---
 
-## 🔤 Typography - Fintech Premium
+## 🔤 Typography - Fintech Premium Dark
 
 **Font System**:
-- Primary: **Inter** - moderna, legível, perfeita para dados financeiros
-- Accent: **Manrope** - elegante e amigável para headings
-- Mono: **Roboto Mono** - valores numéricos e odds
+- Primary: **Inter** (600 para títulos, 400 para body)
+- Accent: **Poppins** ou **Manrope** para headlines grandes
+- Mono: **Roboto Mono** para valores numéricos
 
 **Hierarquia de Tamanhos**:
 ```css
 /* Headlines grandes - Landing pages */
-Hero: text-5xl md:text-6xl, font-bold (Manrope)
-      
-/* Section headers - Páginas internas */
-H1: text-3xl md:text-4xl, font-semibold (Manrope)
-H2: text-2xl md:text-3xl, font-semibold
-H3: text-xl md:text-2xl, font-medium
+Hero: text-4xl md:text-6xl, font-bold, text-white
+
+/* Section headers */
+H1: text-3xl md:text-4xl, font-semibold, text-white
+H2: text-2xl md:text-3xl, font-semibold, text-white
+H3: text-xl md:text-2xl, font-medium, text-purple-light
 
 /* Body text */
-Large: text-lg, leading-relaxed (descrições importantes)
-Base: text-base, leading-normal (texto padrão)
-Small: text-sm (labels, captions)
-XSmall: text-xs (metadata, timestamps)
+Large: text-lg, text-purple-light
+Base: text-base, text-purple-light
+Small: text-sm, text-purple-muted
 
 /* Números e odds */
-Odds grandes: text-2xl md:text-3xl, font-bold font-mono
-Valores: text-lg font-semibold font-mono
-Pequenos: text-base font-medium font-mono
-
-/* Botões */
-Primários: text-base font-semibold
-Secundários: text-sm font-medium
+Odds grandes: text-3xl md:text-4xl, font-bold, font-mono, text-white
 ```
 
-**Weight Guidelines**:
-- Headlines: 600-700 (semibold/bold)
-- Body: 400 (regular)
-- Labels: 500 (medium)
-- Emphasis: 600 (semibold)
-
-**Line Height**:
-- Headlines: `leading-tight` (1.25)
-- Body: `leading-normal` (1.5)
-- Relaxed text: `leading-relaxed` (1.625)
-
 **Cores de Texto**:
-- Texto principal: `text-[var(--text-dark)]` (#1A2942)
-- Texto secundário: `text-[var(--text-medium)]` (#6B7A8F)
-- Texto terciário: `text-[var(--text-light)]` (#9BA8B8)
-- Links e CTAs: `text-primary` (#7A4CFF)
+- Títulos principais: `text-white` (#FFFFFF)
+- Texto secundário: `text-purple-light` (#B9ABFF)
+- Texto terciário: `text-purple-muted` (#8A7AAF)
 
 ---
 
-## 📐 Layout e Espaçamento - Modern Premium
+## 📐 Layout e Espaçamento
 
-### Espaçamento Vertical (Consistente e Respirável)
+### Espaçamento Vertical
 ```css
-Seções grandes:      py-16 md:py-24 (páginas principais)
-Seções médias:       py-12 md:py-16 (blocos de conteúdo)
-Componentes:         py-6 md:py-8
-Cards internos:      p-5 md:p-6
-Elementos pequenos:  p-3 md:p-4
+Seções grandes:      py-16 md:py-24
+Seções médias:       py-12 md:py-16
+Cards internos:      p-6 md:p-8
+Elementos pequenos:  p-4
 
 Gap entre elementos:
   Grande: gap-8 md:gap-12
   Médio: gap-6 md:gap-8
   Pequeno: gap-4
-  Mínimo: gap-2
 ```
 
-### Containers
+### Border Radius (Moderno e Suave)
 ```css
-Full-width sections:  max-w-7xl mx-auto px-6 md:px-8
-Conteúdo principal:   max-w-6xl mx-auto
-Texto longo:          max-w-3xl (artigos, descrições)
-Grids de mercados:    max-w-7xl (3 colunas desktop)
-Trading interface:    max-w-5xl
-```
-
-### Grid System
-```css
-/* Homepage - Market cards */
-grid-cols-1 md:grid-cols-2 lg:grid-cols-3
-gap-6 md:gap-8
-
-/* Trading page - Two column */
-grid-cols-1 lg:grid-cols-3
-  /* Market info: lg:col-span-2 */
-  /* Trading panel: lg:col-span-1 */
-```
-
-### Border Radius
-```css
---radius: 0.75rem   /* 12px - Arredondamento suave moderno */
-
-Cards: rounded-xl (12px)
-Buttons: rounded-lg (8px)
+Cards: rounded-2xl (16px)
+Buttons: rounded-xl (12px)
 Inputs: rounded-lg (8px)
-Badges: rounded-md (6px)
-Avatars: rounded-full
+Badges: rounded-lg (8px)
+Icons: rounded-full (círculos perfeitos)
 ```
 
 ---
 
-## 🎴 Componentes Visuais - Blue Tech Premium
+## 🎴 Componentes Visuais - Purple Dark Tech
 
-### Cards (Estilo Branco Premium)
-**Padrão principal**:
+### Navbar (Glassmorphism)
 ```tsx
-<Card className="bg-white border-[var(--border-soft)] shadow-card">
-  <div className="p-5 md:p-6">
-    {/* Conteúdo */}
-  </div>
-</Card>
-```
-
-**Características**:
-- Fundo: **Branco puro** (#FFFFFF)
-- Borda: **Cinza azulada suave** (#E0E7F0), 1px sólida
-- Sombra: **Sombra suave** (0 1px 3px rgba(0,0,0,0.08))
-- Padding: `p-5` ou `p-6`
-- Radius: `rounded-xl` (12px)
-- Hover: **Sombra elevada** ou **borda azul sutil**
-
-**Variações**:
-```tsx
-/* Card de destaque - borda azul */
-<Card className="border-[var(--primary-blue)]/20">
-
-/* Card interativo - hover com sombra */
-<Card className="hover:shadow-md transition-shadow">
-
-/* Card com background glass */
-<Card className="bg-[var(--glass-blue)]">
-```
-
-### Backgrounds Gradientes
-```tsx
-/* Hero section com gradiente azul */
-<section className="bg-gradient-to-br from-[var(--bg-gradient-start)] to-[var(--bg-gradient-end)]">
-
-/* Background com glass effect */
-<div className="bg-[var(--glass-blue)] backdrop-blur-sm">
-```
-
-### Botões (Hierarquia Clara)
-**Primário** (Azul Tech):
-```tsx
-<Button variant="default" className="bg-[var(--primary-blue)] text-white">
-  Apostar Agora
-</Button>
-```
-
-**Botão SIM** (Azul):
-```tsx
-<Button variant="actionYes">
-  SIM
-</Button>
-```
-
-**Botão NÃO** (Vermelho):
-```tsx
-<Button variant="actionNo">
-  NÃO
-</Button>
-```
-
-**Secundário** (Outline):
-```tsx
-<Button variant="outline">
-  Ver Detalhes
-</Button>
-```
-
-**Ghost** (Links sutis):
-```tsx
-<Button variant="ghost">
-  Cancelar
-</Button>
-```
-
-**Características**:
-- Sistema hover-elevate automático (não sobrescrever!)
-- Usar apenas variants do Button (actionYes, actionNo, outline, ghost, default)
-- NUNCA adicionar classes de hover/padding manualmente
-- Altura padrão: variants definem automaticamente
-
-### Badges (Indicadores Clean)
-```tsx
-/* Badge de categoria */
-<Badge className="bg-purple-50 text-primary border-primary/20">
-  Política
-</Badge>
-
-/* Badge de status */
-<Badge className="bg-green-50 text-green-700 border-green-200">
-  Ao Vivo
-</Badge>
-
-/* Badge outline */
-<Badge variant="outline">
-  Polymarket
-</Badge>
-```
-
-### Navbar (Glass Effect Premium)
-```tsx
-<nav className="sticky top-0 z-50 bg-[var(--glass-white)] backdrop-blur-md border-b border-[var(--border-soft)]">
+<nav className="fixed top-0 w-full z-50 bg-[#1E1248]/60 backdrop-blur-md border-b border-white/10">
   <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-    <Logo />
-    <NavLinks />
-    <UserMenu />
+    <Logo className="text-white" />
+    <div className="flex items-center gap-4">
+      <Button variant="ghost" className="text-purple-light">Login</Button>
+      <Button className="bg-gradient-to-r from-[#6D4BFF] to-[#9A6AFF]">
+        Criar Conta
+      </Button>
+    </div>
   </div>
 </nav>
 ```
 
 **Características**:
-- Background: Glass white com blur
-- Borda inferior: Suave
-- Sticky: `sticky top-0 z-50`
-- Logo com gradiente roxo: `text-gradient-purple`
+- Background: Semi-transparente (#1E1248 60% opacity)
+- Blur: `backdrop-filter: blur(10px)`
+- Borda: Sutil branca/roxa com baixa opacidade
+- Sticky/Fixed: `fixed top-0 z-50`
 
----
-
-## 📊 Gráficos - Fintech Premium
-
-### Configuração Recharts
+### Cards (Glassmorphism)
 ```tsx
-<LineChart>
-  <CartesianGrid 
-    strokeDasharray="3 3" 
-    stroke="hsl(var(--border-soft))" 
-    opacity={0.3}
-  />
-  <Line 
-    type="monotone" 
-    stroke="hsl(var(--primary))"
-    strokeWidth={2.5}
-    dot={{ fill: "hsl(var(--primary))", r: 4 }}
-  />
-</LineChart>
+<div className="bg-[#1E1248]/40 backdrop-blur-lg border border-white/10 rounded-2xl p-6 shadow-[0_8px_32px_rgba(109,75,255,0.15)]">
+  {/* Conteúdo */}
+</div>
+```
+
+**Características**:
+- Fundo: Translúcido (#1E1248 40% opacity)
+- Blur: `backdrop-filter: blur(16px)`
+- Borda: Branca/roxa luminosa (white/10 ou purple/20)
+- Sombra: Colorida com glow roxo
+- Radius: `rounded-2xl` (16px)
+
+### Botões (Gradientes Vibrantes)
+
+**Primário (Gradiente Roxo)**:
+```tsx
+<button className="bg-gradient-to-r from-[#6D4BFF] to-[#9A6AFF] text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+  Depositar via PIX
+</button>
+```
+
+**Botão SIM**:
+```tsx
+<button className="bg-gradient-to-r from-[#6D4BFF] to-[#9A6AFF] text-white w-full py-3 rounded-xl font-semibold">
+  SIM
+</button>
+```
+
+**Botão NÃO**:
+```tsx
+<button className="bg-gradient-to-r from-[#E8334F] to-[#FF4D6D] text-white w-full py-3 rounded-xl font-semibold">
+  NÃO
+</button>
+```
+
+**Secundário (Outline)**:
+```tsx
+<button className="border-2 border-purple-500/30 text-purple-light bg-transparent px-6 py-3 rounded-xl hover:bg-purple-500/10">
+  Ver Detalhes
+</button>
+```
+
+**Estados**:
+- Hover: Aumentar sombra (`hover:shadow-xl`) e leve escurecimento
+- Transições: `transition-all duration-200`
+
+### Ícones em Círculos (Gradiente + Glow)
+```tsx
+<div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#6D4BFF] to-[#9A6AFF] flex items-center justify-center shadow-lg shadow-purple-500/50">
+  <Icon className="w-8 h-8 text-white" />
+</div>
+```
+
+**Características**:
+- Tamanho: 40-64px de diâmetro
+- Background: Gradiente roxo
+- Sombra: Glow colorido (`shadow-purple-500/50`)
+- Ícone: Branco centralizado
+
+### Market Cards (Com Gráfico)
+```tsx
+<div className="bg-[#1E1248]/40 backdrop-blur-lg border border-white/10 rounded-2xl p-6 hover:border-purple-500/30 transition-all">
+  {/* Badge categoria */}
+  <span className="bg-purple-900/50 text-purple-200 px-3 py-1 rounded-lg text-xs font-semibold">
+    Política
+  </span>
+  
+  {/* Título */}
+  <h3 className="text-xl font-bold text-white mt-4">
+    Título do Mercado
+  </h3>
+  
+  {/* Gráfico placeholder */}
+  <div className="h-24 bg-gradient-to-r from-purple-600/20 to-purple-400/20 rounded-lg mt-4">
+    {/* Mini line chart */}
+  </div>
+  
+  {/* Odds */}
+  <div className="grid grid-cols-2 gap-4 mt-4">
+    <button className="bg-gradient-to-r from-[#6D4BFF] to-[#9A6AFF] text-white py-3 rounded-xl">
+      SIM 65%
+    </button>
+    <button className="bg-gradient-to-r from-[#E8334F] to-[#FF4D6D] text-white py-3 rounded-xl">
+      NÃO 35%
+    </button>
+  </div>
+</div>
 ```
 
 ---
 
-## ✨ Efeitos Especiais - Sutil e Profissional
+## ✨ Efeitos Especiais - Tech Premium
 
-### Sistema de Elevação (Hover/Active)
-**IMPORTANTE**: Usar sistema hover-elevate do projeto (não sobrescrever!)
-
-```tsx
-/* Componentes já têm hover-elevate built-in */
-<Button>  {/* ✅ Já tem hover-elevate */}
-<Badge>   {/* ✅ Já tem hover-elevate */}
-
-/* Para outros elementos, pode adicionar */
-<Card className="hover-elevate cursor-pointer">
-```
-
-**NUNCA fazer**:
-```tsx
-<Button className="hover:bg-blue-600">  {/* ❌ Quebra sistema */}
-<Button className="px-4 py-2">         {/* ❌ Quebra altura padrão */}
-```
-
-### Transições (Rápidas e Suaves)
+### Background Gradiente (Body)
 ```css
-transition-all duration-150  /* Padrão rápido */
-transition-colors duration-200  /* Mudanças de cor */
-transition-shadow duration-150  /* Hover sombras */
+body {
+  background: linear-gradient(180deg, #0F0C34 0%, #1B134D 100%);
+  min-height: 100vh;
+}
 ```
 
-### Sombras (Sutis e Profissionais)
+### Glassmorphism Effect
 ```css
-shadow-card: 0 1px 3px rgba(0,0,0,0.08)  /* Cards padrão */
-shadow-md: 0 4px 6px rgba(0,0,0,0.1)     /* Hover elevado */
-shadow-lg: 0 10px 15px rgba(0,0,0,0.1)   /* Modals */
+.glass-card {
+  background: rgba(30, 18, 72, 0.4);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(109, 75, 255, 0.15);
+}
+```
+
+### Glow Effects
+```css
+.glow-purple {
+  box-shadow: 0 0 20px rgba(109, 75, 255, 0.5);
+}
+
+.glow-text {
+  text-shadow: 0 0 20px rgba(155, 127, 255, 0.5);
+}
+```
+
+### Transições
+```css
+transition-all duration-200  /* Padrão */
+transition-shadow duration-300  /* Glow effects */
 ```
 
 ---
 
-## 🖼️ Imagens e Ícones
+## 📱 Responsividade
 
-**Ícones**: Lucide React
-- Tamanho padrão: `h-5 w-5` (20px)
-- Grandes: `h-6 w-6` (24px)
-- Pequenos: `h-4 w-4` (16px)
-- Cor: `text-[var(--text-medium)]` ou `text-primary`
-
-**Avatars**:
+### Patterns Mobile-First
 ```tsx
-<Avatar className="h-10 w-10">
-  <AvatarImage src={url} />
-  <AvatarFallback className="bg-purple-50 text-primary">
-    JD
-  </AvatarFallback>
-</Avatar>
-```
+/* Hero text */
+className="text-3xl md:text-5xl lg:text-6xl"
 
----
-
-## 📱 Responsividade - Mobile-First
-
-### Breakpoints Tailwind
-```css
-sm:  640px   /* Tablets pequenos */
-md:  768px   /* Tablets */
-lg:  1024px  /* Desktops */
-xl:  1280px  /* Desktops grandes */
-2xl: 1536px  /* Telas muito grandes */
-```
-
-### Patterns
-```tsx
-/* Tipografia responsiva */
-className="text-2xl md:text-3xl lg:text-4xl"
-
-/* Grids responsivos */
+/* Grids */
 className="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
 
-/* Espaçamento responsivo */
-className="py-8 md:py-12 lg:py-16"
-className="gap-4 md:gap-6 lg:gap-8"
+/* Cards em lista mobile */
+className="flex flex-col md:flex-row gap-4"
 ```
 
 ---
 
-## 🎯 Padrões de Uso de Cores
-
-### ✅ SEMPRE USE (Cores Semânticas via CSS Variables):
-```tsx
-/* Backgrounds principais */
-<div className="bg-background">                 {/* Fundo página */}
-<Card className="bg-white">                      {/* Cards brancos */}
-<div className="bg-glass-purple">                {/* Glass effect */}
-
-/* Textos com hierarquia */
-<h1 className="text-foreground">                 {/* Texto principal */}
-<p className="text-muted-foreground">            {/* Texto secundário */}
-<span className="text-muted-foreground/70">      {/* Texto terciário */}
-
-/* Links e CTAs */
-<a className="text-primary">                     {/* Links */}
-<Button>                                         {/* CTAs (primary por padrão) */}
-
-/* Bordas */
-<Card className="border">                        {/* Bordas suaves */}
-```
-
-### ❌ NUNCA FAZER:
-```tsx
-/* NÃO sobrescrever Button variants */
-<Button className="px-4 py-2">                   ❌
-<Button className="hover:bg-blue-600">           ❌
-<Button className="bg-blue-500 text-white">      ❌
-
-/* NÃO aninhar interactive elements */
-<Link><Button>...</Button></Link>                ❌
-<a><button>...</button></a>                      ❌
-
-/* USE ISSO */
-<Button onClick={() => setLocation(...)}>        ✅
-<Link>Texto do Link</Link>                       ✅
-```
-
----
-
-## 📄 Key Page Layouts
+## 🎯 Key Page Layouts
 
 ### Homepage/Landing
 **Estrutura**:
-1. **Navbar**: Glass white com blur, sticky
-2. **Hero section**: Gradiente azul suave, headline grande
-3. **Market grid**: 3 colunas desktop, gap-6
-4. **Footer**: Minimalista
+1. **Navbar**: Glassmorphism fixo no topo
+2. **Hero**: Gradiente dark, headline branca grande, CTA gradiente roxo
+3. **Feature Icons**: 4 círculos com ícones em gradiente (Instantâneo, Seguro, 1:1, Transparência)
+4. **Market Grid**: Cards glassmorphism com gráficos
+5. **Como Funciona**: Steps com círculos numerados gradientes
+6. **Footer**: Minimalista escuro
 
-**Background da Página**:
+**Background**:
 ```tsx
-<div className="min-h-screen bg-background">
+<div className="min-h-screen bg-gradient-to-b from-[#0F0C34] to-[#1B134D]">
 ```
 
-### Market Cards (Grid View)
-```tsx
-<Card className="bg-white border shadow-card hover:shadow-md transition-shadow">
-  <div className="p-6 space-y-4">
-    <Badge className="bg-purple-50 text-primary">
-      Política
-    </Badge>
-    <h3 className="font-semibold text-foreground">
-      Título do Mercado
-    </h3>
-    <div className="grid grid-cols-2 gap-2">
-      <Button variant="actionYes" size="sm">SIM</Button>
-      <Button variant="actionNo" size="sm">NÃO</Button>
-    </div>
-  </div>
-</Card>
-```
+### Autenticação (Login/Cadastro)
+**Layout**:
+- Formulário em card glassmorphism centralizado
+- Inputs com fundo #241A5C, borda roxa, texto branco
+- Lado direito com bullets e ícones coloridos
+- Background gradiente escuro
 
 ---
 
 ## Accessibility
 
-- Alto contraste: WCAG AA mínimo (4.5:1 para texto)
-- Labels ARIA em todas interações
-- Estados de foco visíveis: `ring-2 ring-primary`
-- Semântica HTML correta: Sem aninhamento de `<a><button>`
-- Screen reader friendly: `sr-only` para contexto
-- Cores não são único indicador (usar ícones também)
+- **Contraste**: WCAG AA mínimo (texto branco em fundo escuro = >10:1)
+- **Focus States**: `ring-2 ring-purple-500`
+- **Labels ARIA**: Em todos os interactive elements
+- **Keyboard Navigation**: Tab order lógico
 
 ---
 
 ## Design Checklist
 
-✅ Fundos brancos claros com gradientes roxos sutis
-✅ Textos escuros com hierarquia clara (dark > medium > light)
-✅ Roxo tech vibrante como cor primária (#7A4CFF)
-✅ Botões SIM roxo e NÃO vermelho (variants corretos)
-✅ Cards brancos com bordas suaves e sombras roxas sutis
-✅ Navbar glass white com backdrop-blur
-✅ Sistema hover-elevate preservado (sem overrides!)
-✅ Sem aninhamento de interactive elements
-✅ Espaçamento consistente (gap-6, gap-8)
-✅ Tipografia Inter/Manrope
-✅ Border radius suave (rounded-xl para cards)
-✅ Transições rápidas (150-200ms)
-✅ Ícones Lucide com cores semânticas
-✅ Zero cores hardcoded (usar CSS variables)
-✅ Semântica HTML correta
+✅ Fundo gradiente roxo escuro (#0F0C34 → #1B134D)
+✅ Cards com glassmorphism (translúcidos + blur)
+✅ Bordas luminosas (white/10 ou purple/20)
+✅ Botões com gradientes vibrantes (roxo e vermelho)
+✅ Texto branco/roxo claro para alto contraste
+✅ Ícones em círculos com gradiente + glow
+✅ Navbar glass com backdrop-blur
+✅ Sombras coloridas (glow roxo)
+✅ Transições suaves (200-300ms)
+✅ Border radius moderno (16px cards, 12px buttons)
+✅ Tipografia Inter/Poppins
+✅ Responsivo mobile-first
+✅ WCAG AA contrast ratio
 
 ---
 
 **Este design transmite:**
-- 💼 Profissionalismo e confiança fintech
-- 🚀 Modernidade tech, criatividade e inovação
-- 🎯 Clareza e facilidade de uso
-- 🇧🇷 Acessibilidade brasileira com identidade premium
-- ⚡ Credibilidade institucional com toque de criatividade
+- 💎 Premium tech de alto nível
+- 🌌 Profundidade e imersão
+- ⚡ Modernidade e inovação
+- 🎯 Seriedade financeira
+- 🇧🇷 Plataforma profissional brasileira

@@ -3,288 +3,198 @@
 @tailwind components;
 @tailwind utilities;
 
-/* NOVA PALETA ROXO TECH PREMIUM - MASCULINO DARK */
+/* PALETA PURPLE DARK TECH - GLASSMORPHISM & HIGH CONTRAST */
 :root {
-  /* Primary Roxo Tech Premium - Mais profundo e saturado */
-  --primary-purple: #6B3FE8;
-  --primary-purple-light: #9B7FFF;
-  --primary-purple-bg: #F5F2F8;
-
-  /* Neutral / background - Tom neutro cinza-roxo */
-  --bg-white: #F5F2F8;
-  --bg-lavender: #F5F2F8;
-  --bg-gradient-top: #F8F6FA;
-  --bg-gradient-bottom: #F0EDF5;
-
-  /* Text colors */
-  --text-dark: #1E2233;
-  --text-medium: #4A4F61;
-  --text-light: #6B7280;
-
-  /* Border - Cinzas mais sutis */
-  --border-soft: #D8D5DD;
-
-  /* Chart colors */
-  --chart-purple: #7B4FFF;
-  --chart-purple-light: #F5F2F8;
-
-  /* Status - Mais saturados e profundos */
-  --green-tech: #00C48C;
-  --red-tech: #E8334F;
-
-  /* Effects */
-  --glass-white: rgba(245,242,248,0.7);
-  --glass-purple: rgba(107,63,232,0.10);
-  --shadow-soft: 0 8px 24px rgba(107,63,232,0.12);
-  --shadow-card: 0px 4px 18px rgba(107,63,232,0.08);
-
-  /* Radius system */
-  --radius-sm: 6px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 26px;
-
-  /* Shadcn UI tokens - Light Mode (Roxo Masculino) */
-  --button-outline: rgba(107, 63, 232, .18);
-  --badge-outline: rgba(107, 63, 232, .12);
-
-  --opaque-button-border-intensity: -8;
-
-  --elevate-1: rgba(107, 63, 232, .06);
-  --elevate-2: rgba(107, 63, 232, .10);
-
-  /* Background - Cinza-roxo claro neutro */
-  --background: 260 20% 97%;
-
-  --foreground: 225 15% 14%;
-
-  --border: 260 10% 85%;
-
-  --card: 0 0% 100%;
-
-  --card-foreground: 225 15% 14%;
-
-  --card-border: 260 8% 88%;
-
-  --sidebar: 260 15% 96%;
-
-  --sidebar-foreground: 225 15% 14%;
-
-  --sidebar-border: 260 10% 87%;
-
-  --sidebar-primary: 260 75% 60%;
-
-  --sidebar-primary-foreground: 0 0% 100%;
-
-  --sidebar-accent: 260 20% 94%;
-
-  --sidebar-accent-foreground: 260 75% 48%;
-
-  --sidebar-ring: 260 75% 60%;
-
-  --popover: 0 0% 100%;
-
-  --popover-foreground: 225 15% 14%;
-
-  --popover-border: 260 10% 86%;
-
-  /* Primary - Roxo profundo e saturado */
-  --primary: 260 75% 60%;
-
-  --primary-foreground: 0 0% 100%;
-
-  --secondary: 275 70% 68%;
-
-  --secondary-foreground: 0 0% 100%;
-
-  --muted: 260 12% 94%;
-
-  --muted-foreground: 225 10% 45%;
-
-  --accent: 260 80% 96%;
-
-  --accent-foreground: 260 75% 40%;
-
-  /* Action colors - YES roxo profundo / NO vermelho profundo */
-  --action-yes: 260 75% 60%;
-  --action-no: 352 80% 56%;
-
-  --destructive: 352 80% 56%;
-
-  --destructive-foreground: 0 0% 100%;
-
-  --input: 260 10% 90%;
-  --ring: 260 75% 60%;
-
-  /* Chart palette - Tons mais profundos */
-  --chart-1: 260 75% 64%;
-  --chart-2: 275 70% 68%;
-  --chart-3: 250 75% 62%;
-  --chart-4: 180 70% 52%;
-  --chart-5: 340 85% 62%;
-
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-accent: 'Manrope', 'Inter', -apple-system, sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: 'Roboto Mono', 'SF Mono', Menlo, monospace;
-  --radius: .875rem;
-  --shadow-2xs: 0px 1px 2px 0px rgba(107, 63, 232, 0.10);
-  --shadow-xs: 0px 1px 3px 0px rgba(107, 63, 232, 0.12);
-  --shadow-sm: 0px 2px 4px -1px rgba(107, 63, 232, 0.10), 0px 1px 2px -1px rgba(0, 0, 0, 0.10);
-  --shadow: 0px 4px 6px -1px rgba(107, 63, 232, 0.12), 0px 2px 4px -2px rgba(0, 0, 0, 0.12);
-  --shadow-md: 0px 6px 12px -2px rgba(107, 63, 232, 0.14), 0px 3px 6px -3px rgba(0, 0, 0, 0.15);
-  --shadow-lg: 0px 10px 20px -4px rgba(107, 63, 232, 0.16), 0px 4px 8px -4px rgba(0, 0, 0, 0.18);
-  --shadow-xl: 0px 20px 30px -6px rgba(107, 63, 232, 0.18), 0px 8px 12px -6px rgba(0, 0, 0, 0.20);
-  --shadow-2xl: 0px 30px 50px -12px rgba(107, 63, 232, 0.20);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
-
-  /* Automatically computed borders */
-  --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  --primary-border: hsl(var(--primary));
-  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  --muted-border: hsl(var(--muted));
-  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  --accent-border: hsl(var(--accent));
-  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-}
-
-/* DARK MODE - Paleta escura masculina roxo-cinza */
-.dark {
+  /* Dark Purple Base Colors */
+  --bg-dark-primary: #0F0C34;
+  --bg-dark-secondary: #1B134D;
+  --bg-dark-tertiary: #1E1248;
+  
+  /* Glassmorphism */
+  --glass-dark: rgba(30, 18, 72, 0.4);
+  --glass-border: rgba(155, 127, 255, 0.2);
+  --glass-glow: rgba(109, 75, 255, 0.15);
+  
+  /* Purple Gradients */
+  --primary-purple-1: #6D4BFF;
+  --primary-purple-2: #9A6AFF;
+  --primary-purple-3: #8A47FF;
+  
+  /* Text Colors - High Contrast */
+  --text-white: #FFFFFF;
+  --text-purple-light: #B9ABFF;
+  --text-purple-muted: #8A7AAF;
+  
+  /* Action Colors */
+  --action-yes-1: #6D4BFF;
+  --action-yes-2: #9A6AFF;
+  --action-no-1: #E8334F;
+  --action-no-2: #FF4D6D;
+  
+  /* Accent Colors */
+  --accent-cyan: #50E3C2;
+  --accent-pink: #FF4D97;
+  
+  /* Semantic */
+  --success: #00C48C;
+  --warning: #FFB547;
+  --error: #E8334F;
+  --info: #4DA6FF;
+  
+  /* Shadcn UI tokens - DARK MODE AS DEFAULT */
   --button-outline: rgba(155, 127, 255, .20);
   --badge-outline: rgba(155, 127, 255, .15);
-
+  
   --opaque-button-border-intensity: 8;
-
+  
   --elevate-1: rgba(155, 127, 255, .10);
   --elevate-2: rgba(155, 127, 255, .16);
-
-  --background: 260 30% 8%;
-
-  --foreground: 260 80% 95%;
-
-  --border: 260 20% 18%;
-
-  --card: 260 25% 11%;
-
-  --card-foreground: 260 80% 95%;
-
-  --card-border: 260 20% 16%;
-
-  --sidebar: 260 28% 9%;
-
-  --sidebar-foreground: 260 80% 95%;
-
-  --sidebar-border: 260 20% 16%;
-
+  
+  /* Background - Roxo escuro profundo */
+  --background: 260 50% 10%;
+  
+  --foreground: 260 15% 95%;
+  
+  --border: 260 20% 25%;
+  
+  /* Cards - Glassmorphism */
+  --card: 260 30% 12%;
+  
+  --card-foreground: 260 15% 95%;
+  
+  --card-border: 260 20% 20%;
+  
+  /* Sidebar */
+  --sidebar: 260 35% 10%;
+  
+  --sidebar-foreground: 260 15% 95%;
+  
+  --sidebar-border: 260 20% 18%;
+  
   --sidebar-primary: 260 75% 68%;
-
+  
   --sidebar-primary-foreground: 0 0% 100%;
-
+  
   --sidebar-accent: 260 25% 15%;
-
+  
   --sidebar-accent-foreground: 275 70% 72%;
-
+  
   --sidebar-ring: 260 75% 68%;
-
-  --popover: 260 28% 10%;
-
-  --popover-foreground: 260 80% 95%;
-
-  --popover-border: 260 20% 17%;
-
+  
+  /* Popover */
+  --popover: 260 35% 12%;
+  
+  --popover-foreground: 260 15% 95%;
+  
+  --popover-border: 260 20% 20%;
+  
+  /* Primary - Roxo vibrante */
   --primary: 260 75% 68%;
-
+  
   --primary-foreground: 0 0% 100%;
-
+  
   --secondary: 275 70% 72%;
-
+  
   --secondary-foreground: 0 0% 100%;
-
+  
   --muted: 260 20% 20%;
-
-  --muted-foreground: 260 15% 82%;
-
-  --accent: 260 80% 95%;
-
-  --accent-foreground: 260 75% 30%;
-
+  
+  --muted-foreground: 260 15% 75%;
+  
+  --accent: 260 75% 68%;
+  
+  --accent-foreground: 0 0% 100%;
+  
+  /* Action colors - Gradientes YES roxo / NO vermelho */
   --action-yes: 260 75% 65%;
   --action-no: 352 80% 62%;
-
+  
   --destructive: 352 80% 62%;
-
+  
   --destructive-foreground: 0 0% 100%;
-
-  --input: 260 20% 18%;
+  
+  --input: 260 25% 18%;
   --ring: 260 75% 68%;
-
+  
+  /* Chart palette - Tons vibrantes */
   --chart-1: 260 75% 72%;
   --chart-2: 275 70% 75%;
   --chart-3: 250 75% 68%;
   --chart-4: 180 70% 62%;
   --chart-5: 340 85% 68%;
-
-  --shadow-2xs: 0px 1px 2px 0px hsl(260 75% 68% / 0.14);
-  --shadow-xs: 0px 1px 3px 0px hsl(260 75% 68% / 0.20);
-  --shadow-sm: 0px 2px 4px -1px hsl(260 75% 68% / 0.18), 0px 1px 2px -1px hsl(0 0% 0% / 0.25);
-  --shadow: 0px 4px 6px -1px hsl(260 75% 68% / 0.20), 0px 2px 4px -2px hsl(0 0% 0% / 0.30);
-  --shadow-md: 0px 6px 12px -2px hsl(260 75% 68% / 0.22), 0px 3px 6px -3px hsl(0 0% 0% / 0.35);
-  --shadow-lg: 0px 10px 20px -4px hsl(260 75% 68% / 0.24), 0px 4px 8px -4px hsl(0 0% 0% / 0.35);
-  --shadow-xl: 0px 20px 30px -6px hsl(260 75% 68% / 0.28), 0px 8px 12px -6px hsl(0 0% 0% / 0.40);
-  --shadow-2xl: 0px 30px 50px -12px hsl(260 75% 68% / 0.30);
+  
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-accent: 'Poppins', 'Inter', -apple-system, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: 'Roboto Mono', 'SF Mono', Menlo, monospace;
+  --radius: .875rem;
+  
+  /* Sombras com glow roxo */
+  --shadow-2xs: 0px 1px 2px 0px rgba(109, 75, 255, 0.14);
+  --shadow-xs: 0px 1px 3px 0px rgba(109, 75, 255, 0.20);
+  --shadow-sm: 0px 2px 4px -1px rgba(109, 75, 255, 0.18), 0px 1px 2px -1px rgba(0, 0, 0, 0.25);
+  --shadow: 0px 4px 6px -1px rgba(109, 75, 255, 0.20), 0px 2px 4px -2px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0px 6px 12px -2px rgba(109, 75, 255, 0.22), 0px 3px 6px -3px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0px 10px 20px -4px rgba(109, 75, 255, 0.24), 0px 4px 8px -4px rgba(0, 0, 0, 0.35);
+  --shadow-xl: 0px 20px 30px -6px rgba(109, 75, 255, 0.28), 0px 8px 12px -6px rgba(0, 0, 0, 0.40);
+  --shadow-2xl: 0px 30px 50px -12px rgba(109, 75, 255, 0.30);
+  
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+  
+  /* Automatically computed borders */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-
+  
   body {
     @apply font-sans antialiased text-foreground;
-    background: linear-gradient(
-      180deg,
-      var(--bg-gradient-top) 0%,
-      var(--bg-gradient-bottom) 100%
-    );
+    /* Gradiente roxo escuro como background padrão */
+    background: linear-gradient(180deg, #0F0C34 0%, #1B134D 100%);
     min-height: 100vh;
-  }
-
-  .dark body {
-    background: hsl(var(--background));
   }
 }
 
-/* SISTEMA DE ELEVAÇÃO FINTECH CLEAN */
+/* SISTEMA DE ELEVAÇÃO DARK TECH */
 @layer utilities {
-
+  
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
-
+  
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
     pointer-events: none;
   }
-
+  
   .no-default-hover-elevate {}
-
+  
   .no-default-active-elevate {}
-
+  
   .toggle-elevate::before,
   .toggle-elevate-2::before {
     content: "";
@@ -294,15 +204,15 @@
     border-radius: inherit;
     z-index: -1;
   }
-
+  
   .toggle-elevate.toggle-elevated::before {
     background-color: var(--elevate-2);
   }
-
+  
   .border.toggle-elevate::before {
     inset: -1px;
   }
-
+  
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
   .hover-elevate-2:not(.no-default-hover-elevate),
@@ -310,7 +220,7 @@
     position: relative;
     z-index: 0;
   }
-
+  
   .hover-elevate:not(.no-default-hover-elevate)::after,
   .active-elevate:not(.no-default-active-elevate)::after,
   .hover-elevate-2:not(.no-default-hover-elevate)::after,
@@ -322,17 +232,17 @@
     border-radius: inherit;
     z-index: 999;
   }
-
+  
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
   .active-elevate:active:not(.no-default-active-elevate)::after {
     background-color: var(--elevate-1);
   }
-
+  
   .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
   .active-elevate-2:active:not(.no-default-active-elevate)::after {
     background-color: var(--elevate-2);
   }
-
+  
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
   .border.active-elevate:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
@@ -340,32 +250,66 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
-
-  /* Utilitários adicionais high-tech */
-  .bg-glass-white {
-    background-color: var(--glass-white);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+  
+  /* GLASSMORPHISM EFFECTS */
+  .glass-card {
+    background: rgba(30, 18, 72, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(109, 75, 255, 0.15);
   }
-
-  .bg-glass-purple {
-    background-color: var(--glass-purple);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+  
+  .glass-navbar {
+    background: rgba(30, 18, 72, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
-
-  .shadow-card {
-    box-shadow: var(--shadow-card);
+  
+  /* GRADIENT UTILITIES */
+  .bg-gradient-purple {
+    background: linear-gradient(135deg, #6D4BFF 0%, #9A6AFF 100%);
   }
-
-  .shadow-soft {
-    box-shadow: var(--shadow-soft);
+  
+  .bg-gradient-red {
+    background: linear-gradient(135deg, #E8334F 0%, #FF4D6D 100%);
   }
-
+  
+  .bg-gradient-purple-radial {
+    background: radial-gradient(circle at top right, #6D4BFF 0%, #8A47FF 50%, transparent 100%);
+  }
+  
+  /* TEXT GRADIENT */
   .text-gradient-purple {
-    background: linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-purple-light) 100%);
+    background: linear-gradient(135deg, #9A6AFF 0%, #B9ABFF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+  
+  /* GLOW EFFECTS */
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(109, 75, 255, 0.5);
+  }
+  
+  .glow-purple-lg {
+    box-shadow: 0 0 40px rgba(109, 75, 255, 0.6);
+  }
+  
+  .shadow-purple {
+    box-shadow: 0 8px 32px rgba(109, 75, 255, 0.15);
+  }
+  
+  .shadow-purple-lg {
+    box-shadow: 0 12px 48px rgba(109, 75, 255, 0.25);
+  }
+  
+  /* BORDER GLOW */
+  .border-glow {
+    border: 1px solid rgba(155, 127, 255, 0.3);
+  }
+  
+  .border-glow-bright {
+    border: 1px solid rgba(155, 127, 255, 0.5);
   }
 }
