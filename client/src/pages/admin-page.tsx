@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,7 @@ import {
   AlertCircle,
   DollarSign,
   CircleDollarSign,
+  LogOut,
 } from "lucide-react";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 
@@ -288,6 +290,30 @@ export default function AdminPage() {
     },
   });
 
+  const [, setLocation] = useLocation();
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/logout", {});
+      return res;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Logout realizado",
+        description: "Você saiu da área administrativa.",
+      });
+      queryClient.clear();
+      setLocation("/auth");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao fazer logout",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handlers
   const handleValidateSlug = async () => {
     if (!polySlug.trim()) {
@@ -399,9 +425,22 @@ export default function AdminPage() {
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-          <div className="flex items-center gap-2 text-sm text-white/60">
-            <div className="w-2 h-2 rounded-full bg-green-500" />
-            Status, Conectado 3 JBitX
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-white/60">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              Status, Conectado 3 JBitX
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+              className="text-white/80 hover:text-white gap-2"
+              data-testid="button-admin-logout"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </Button>
           </div>
         </div>
 
