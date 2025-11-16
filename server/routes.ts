@@ -2,12 +2,12 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, insertPendingDepositSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots, pendingDeposits, transactions } from "@shared/schema";
+import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, insertPendingDepositSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots, pendingDeposits, transactions, comments } from "@shared/schema";
 import OpenAI from "openai";
 import { z } from "zod";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { sql, desc, and, gte, eq } from "drizzle-orm";
+import { sql, desc, and, gte, eq, inArray } from "drizzle-orm";
 import * as AMM from "./amm-engine";
 import { startPolymarketSnapshots } from "./polymarket-cron";
 import { getSnapshot } from "./mirror/state";
@@ -1517,8 +1517,10 @@ Your role:
       // 1. Delete AMM snapshots
       await db.delete(ammSnapshots).where(eq(ammSnapshots.marketId, marketId));
       
-      // 2. Delete Polymarket snapshots if they exist
-      await db.delete(polymarketSnapshots).where(eq(polymarketSnapshots.marketId, marketId));
+      // 2. Delete Polymarket snapshots if they exist (using slug, not marketId)
+      if (market.polymarketSlug) {
+        await db.delete(polymarketSnapshots).where(eq(polymarketSnapshots.slug, market.polymarketSlug));
+      }
       
       // 3. Delete orders
       await db.delete(orders).where(eq(orders.marketId, marketId));
@@ -1535,6 +1537,127 @@ Your role:
     } catch (error: any) {
       console.error("Market deletion error:", error);
       res.status(500).json({ error: "Falha ao remover mercado" });
+    }
+  });
+
+  // POST /api/admin/reset-clients - Reset all client accounts (DANGEROUS - keeps admin only)
+  app.post("/api/admin/reset-clients", requireAdmin, async (req, res) => {
+    try {
+      const { confirm } = req.body;
+      
+      if (confirm !== "RESET_ALL_CLIENTS") {
+        return res.status(400).json({ 
+          error: "Confirmação necessária. Envie { confirm: 'RESET_ALL_CLIENTS' } para executar." 
+        });
+      }
+
+      console.log(`🚨 [RESET] Starting client reset operation...`);
+      
+      // Get all non-admin users
+      const clientUsers = await db.query.users.findMany({
+        where: sql`${users.isAdmin} = false OR ${users.isAdmin} IS NULL`,
+      });
+
+      console.log(`👥 [RESET] Found ${clientUsers.length} client users to delete`);
+      
+      let totalBRL3Burned = 0;
+      let burnErrors: string[] = [];
+
+      // Step 1: Burn BRL3 tokens for each client with balance > 0
+      for (const user of clientUsers) {
+        const balance = parseFloat(user.balanceBrl);
+        if (balance > 0) {
+          try {
+            console.log(`🔥 [RESET] Burning ${balance} BRL3 for user ${user.username} (${user.id})`);
+            await notifyBurnToBRL3({
+              externalUserId: user.id,
+              amountBrl: balance,
+            });
+            totalBRL3Burned += balance;
+          } catch (error: any) {
+            const errorMsg = `Failed to burn BRL3 for user ${user.username}: ${error.message}`;
+            console.error(`❌ [RESET] ${errorMsg}`);
+            burnErrors.push(errorMsg);
+            // Continue with deletion even if burn fails
+          }
+        }
+      }
+
+      console.log(`💰 [RESET] Total BRL3 burned: ${totalBRL3Burned}`);
+
+      const clientUserIds = clientUsers.map(u => u.id);
+
+      // Step 2: Delete related data in correct order (foreign key constraints)
+      
+      // Delete comments
+      await db.delete(comments).where(inArray(comments.userId, clientUserIds));
+      console.log(`💬 [RESET] Deleted comments from clients`);
+
+      // Delete positions
+      await db.delete(positions).where(inArray(positions.userId, clientUserIds));
+      console.log(`📊 [RESET] Deleted positions from clients`);
+
+      // Delete orders
+      await db.delete(orders).where(inArray(orders.userId, clientUserIds));
+      console.log(`📝 [RESET] Deleted orders from clients`);
+
+      // Delete transactions
+      await db.delete(transactions).where(inArray(transactions.userId, clientUserIds));
+      console.log(`💸 [RESET] Deleted transactions from clients`);
+
+      // Delete pending deposits and cleanup proof files
+      const clientDeposits = await db.query.pendingDeposits.findMany({
+        where: inArray(pendingDeposits.userId, clientUserIds)
+      });
+
+      for (const deposit of clientDeposits) {
+        if (deposit.proofFilePath && fs.existsSync(deposit.proofFilePath)) {
+          try {
+            fs.unlinkSync(deposit.proofFilePath);
+            console.log(`🗑️  [RESET] Deleted proof file: ${deposit.proofFilePath}`);
+          } catch (error: any) {
+            console.error(`Failed to delete proof file ${deposit.proofFilePath}:`, error);
+          }
+        }
+      }
+
+      await db.delete(pendingDeposits).where(inArray(pendingDeposits.userId, clientUserIds));
+      console.log(`💳 [RESET] Deleted pending deposits from clients`);
+
+      // Step 3: Finally delete the users
+      await db.delete(users).where(inArray(users.id, clientUserIds));
+      console.log(`👤 [RESET] Deleted ${clientUsers.length} client users`);
+
+      // Verify admin still exists
+      const adminCheck = await db.query.users.findFirst({
+        where: eq(users.isAdmin, true)
+      });
+
+      if (!adminCheck) {
+        console.error(`🚨 [RESET] ERROR: Admin user was deleted! This should not happen!`);
+        return res.status(500).json({ 
+          error: "CRITICAL ERROR: Admin was deleted during reset!" 
+        });
+      }
+
+      console.log(`✅ [RESET] Admin preserved: ${adminCheck.username} (balance: ${adminCheck.balanceBrl})`);
+
+      res.json({
+        success: true,
+        summary: {
+          clientsDeleted: clientUsers.length,
+          totalBRL3Burned,
+          burnErrors: burnErrors.length > 0 ? burnErrors : undefined,
+          adminPreserved: {
+            username: adminCheck.username,
+            balance: adminCheck.balanceBrl,
+          },
+        },
+      });
+
+    } catch (error: any) {
+      console.error("❌ [RESET] Fatal error during client reset:", error);
+      res.status(500).json({ error: "Falha ao resetar clientes: " + error.message });
     }
   });
 
