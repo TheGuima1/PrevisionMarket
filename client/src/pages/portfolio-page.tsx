@@ -112,61 +112,61 @@ export default function PortfolioPage() {
   const totalValue = availableBalance + positionsValue;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0F0C34]">
       <Navbar />
       
       <main className="container mx-auto px-4 py-8 space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-accent text-4xl font-bold mb-2">Portfólio</h1>
-            <p className="text-muted-foreground">Gerencie suas posições e carteira</p>
+            <h1 className="font-accent text-4xl font-bold mb-2 text-white">Portfólio</h1>
+            <p className="text-purple-light">Gerencie suas posições e carteira</p>
           </div>
           {user?.isAdmin && (
             <Button 
               variant="outline" 
-              className="gap-2 border-[var(--primary-blue)]/30 text-[var(--primary-blue)] hover:bg-[var(--glass-blue)]"
+              size="sm"
               onClick={() => setLocation("/admin")}
               data-testid="button-admin-access"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4 mr-2" />
               Painel Admin
             </Button>
           )}
         </div>
 
         <div className="grid md:grid-cols-4 gap-6">
-          <Card className="p-6 space-y-2">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+          <Card className="glass-card p-6 space-y-2">
+            <div className="flex items-center gap-2 text-purple-light text-sm">
               <Wallet className="h-4 w-4" />
               <span>Valor Total</span>
             </div>
-            <div className="text-3xl font-bold tabular-nums" data-testid="text-total-value">
+            <div className="text-3xl font-bold tabular-nums text-white" data-testid="text-total-value">
               {formatBRL3(totalValue)}
             </div>
           </Card>
 
-          <Card className="p-6 space-y-2">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+          <Card className="glass-card p-6 space-y-2">
+            <div className="flex items-center gap-2 text-purple-light text-sm">
               <DollarSign className="h-4 w-4" />
               <span>Disponível</span>
             </div>
-            <div className="text-3xl font-bold tabular-nums" data-testid="text-available-balance">
+            <div className="text-3xl font-bold tabular-nums text-white" data-testid="text-available-balance">
               {formatBRL3(availableBalance)}
             </div>
           </Card>
 
-          <Card className="p-6 space-y-2">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+          <Card className="glass-card p-6 space-y-2">
+            <div className="flex items-center gap-2 text-purple-light text-sm">
               <TrendingUp className="h-4 w-4" />
               <span>Em Posições</span>
             </div>
-            <div className="text-3xl font-bold tabular-nums" data-testid="text-positions-value">
+            <div className="text-3xl font-bold tabular-nums text-white" data-testid="text-positions-value">
               {formatBRL3(positionsValue)}
             </div>
           </Card>
 
-          <Card className="p-6 space-y-2">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+          <Card className="glass-card p-6 space-y-2">
+            <div className="flex items-center gap-2 text-purple-light text-sm">
               <TrendingUp className="h-4 w-4" />
               <span>P&L Total</span>
             </div>
@@ -177,7 +177,7 @@ export default function PortfolioPage() {
         </div>
 
         <Tabs defaultValue="positions" className="space-y-6">
-          <TabsList>
+          <TabsList className="glass-card border-white/10">
             <TabsTrigger value="positions" data-testid="tab-positions">Posições</TabsTrigger>
             <TabsTrigger value="orders" data-testid="tab-orders">Ordens</TabsTrigger>
             <TabsTrigger value="wallet" data-testid="tab-wallet">Carteira</TabsTrigger>
@@ -188,7 +188,7 @@ export default function PortfolioPage() {
             {positionsLoading ? (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-32" />
+                  <Skeleton key={i} className="h-32 glass-card" />
                 ))}
               </div>
             ) : positions && positions.length > 0 ? (
@@ -199,22 +199,22 @@ export default function PortfolioPage() {
                   const noShares = parseFloat(position.noShares);
 
                   return (
-                    <Card key={position.id} className="p-6" data-testid={`position-${position.id}`}>
+                    <Card key={position.id} className="glass-card p-6 hover-elevate" data-testid={`position-${position.id}`}>
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-2 flex-1">
                           <Link href={`/market/${position.market.id}`}>
-                            <h3 className="font-semibold hover:text-primary transition-colors">
+                            <h3 className="font-semibold text-white hover:text-primary transition-colors">
                               {position.market.title}
                             </h3>
                           </Link>
                           <div className="flex flex-wrap gap-2 text-sm">
                             {yesShares > 0 && (
-                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                              <Badge variant="outline" className="bg-primary/20 text-primary-foreground border-primary/30">
                                 {yesShares.toFixed(2)} SIM
                               </Badge>
                             )}
                             {noShares > 0 && (
-                              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+                              <Badge variant="outline" className="bg-destructive/20 text-destructive-foreground border-destructive/30">
                                 {noShares.toFixed(2)} NÃO
                               </Badge>
                             )}
@@ -223,13 +223,13 @@ export default function PortfolioPage() {
 
                         <div className="flex gap-6 text-sm">
                           <div>
-                            <div className="text-muted-foreground mb-1">Valor Atual</div>
-                            <div className="font-semibold tabular-nums">
+                            <div className="text-purple-light mb-1">Valor Atual</div>
+                            <div className="font-semibold tabular-nums text-white">
                               {formatBRL3(currentValue)}
                             </div>
                           </div>
                           <div>
-                            <div className="text-muted-foreground mb-1">P&L</div>
+                            <div className="text-purple-light mb-1">P&L</div>
                             <div className={`font-semibold tabular-nums flex items-center gap-1 ${pnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
                               {pnl >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
                               {pnl >= 0 ? '+' : ''}{formatBRL3(pnl)} ({pnlPercent.toFixed(1)}%)
@@ -242,13 +242,15 @@ export default function PortfolioPage() {
                 })}
               </div>
             ) : (
-              <Card className="p-12 text-center">
-                <h3 className="text-xl font-semibold mb-2">Nenhuma posição ativa</h3>
-                <p className="text-muted-foreground mb-6">
+              <Card className="glass-card p-12 text-center">
+                <h3 className="text-xl font-semibold mb-2 text-white">Nenhuma posição ativa</h3>
+                <p className="text-purple-light mb-6">
                   Comece a negociar para ver suas posições aqui
                 </p>
                 <Link href="/">
-                  <Button>Explorar Mercados</Button>
+                  <Button className="gradient-purple border border-primary shadow-purple">
+                    Explorar Mercados
+                  </Button>
                 </Link>
               </Card>
             )}
@@ -260,22 +262,22 @@ export default function PortfolioPage() {
 
           <TabsContent value="wallet" className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
-              <Card className="p-6 space-y-4">
-                <h3 className="font-accent text-xl font-semibold">Depositar</h3>
+              <Card className="glass-card p-6 space-y-4">
+                <h3 className="font-accent text-xl font-semibold text-white">Depositar</h3>
                 <Tabs defaultValue="pix">
-                  <TabsList className="grid w-full grid-cols-1">
+                  <TabsList className="grid w-full grid-cols-1 glass-card border-white/10">
                     <TabsTrigger value="pix" data-testid="tab-deposit-pix">Depositar via PIX</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 text-sm">
-                      <span className="font-medium">Depósito Manual com Aprovação</span>
-                      <p className="text-muted-foreground mt-1">
+                    <div className="bg-accent/20 border border-accent/30 rounded-lg p-4 text-sm backdrop-blur-sm">
+                      <span className="font-medium text-white">Depósito Manual com Aprovação</span>
+                      <p className="text-purple-light mt-1">
                         Envie o comprovante PIX. Seu depósito será aprovado pelo admin e o BRL3 será mintado on-chain.
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="deposit-pix">Valor em R$</Label>
+                      <Label htmlFor="deposit-pix" className="text-white">Valor em R$</Label>
                       <Input
                         id="deposit-pix"
                         type="number"
@@ -284,15 +286,17 @@ export default function PortfolioPage() {
                         onChange={(e) => setDepositAmount(e.target.value)}
                         min="0"
                         step="0.01"
+                        className="bg-white/5 backdrop-blur-sm border-white/10 text-white placeholder:text-purple-muted focus-visible:ring-primary focus-visible:border-white/30"
                         data-testid="input-deposit-pix"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="deposit-proof-file">Comprovante PIX (PDF) *</Label>
+                      <Label htmlFor="deposit-proof-file" className="text-white">Comprovante PIX (PDF) *</Label>
                       <Input
                         id="deposit-proof-file"
                         type="file"
                         accept=".pdf,application/pdf"
+                        className="bg-white/5 backdrop-blur-sm border-white/10 text-white file:text-white"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
@@ -319,7 +323,7 @@ export default function PortfolioPage() {
                         }}
                         data-testid="input-deposit-proof-file"
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-purple-muted">
                         Envie o comprovante em PDF (máx. 5MB)
                       </p>
                       {depositProofFile && (
@@ -345,7 +349,7 @@ export default function PortfolioPage() {
                         });
                       }}
                       disabled={!depositAmount || !depositProofFile || depositMutation.isPending}
-                      className="w-full bg-brand-500 hover:bg-brand-400"
+                      className="w-full gradient-purple border border-primary shadow-purple"
                       data-testid="button-deposit-pix"
                     >
                       {depositMutation.isPending ? "Enviando..." : "Solicitar Depósito"}
@@ -354,22 +358,22 @@ export default function PortfolioPage() {
                 </Tabs>
               </Card>
 
-              <Card className="p-6 space-y-4">
-                <h3 className="font-accent text-xl font-semibold">Sacar</h3>
+              <Card className="glass-card p-6 space-y-4">
+                <h3 className="font-accent text-xl font-semibold text-white">Sacar</h3>
                 <Tabs defaultValue="pix">
-                  <TabsList className="grid w-full grid-cols-1">
+                  <TabsList className="grid w-full grid-cols-1 glass-card border-white/10">
                     <TabsTrigger value="pix" data-testid="tab-withdraw-pix">Sacar via PIX</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
-                    <div className="bg-brand-500/10 border border-brand-500/20 rounded-lg p-4 text-sm">
-                      <span className="font-medium">Saque via PIX</span>
-                      <p className="text-muted-foreground mt-1">
+                    <div className="bg-primary/20 border border-primary/30 rounded-lg p-4 text-sm backdrop-blur-sm">
+                      <span className="font-medium text-white">Saque via PIX</span>
+                      <p className="text-purple-light mt-1">
                         Converta BRL3 → PIX e receba na sua conta bancária.
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="withdraw-pix">Valor em R$</Label>
+                      <Label htmlFor="withdraw-pix" className="text-white">Valor em R$</Label>
                       <Input
                         id="withdraw-pix"
                         type="number"
@@ -378,6 +382,7 @@ export default function PortfolioPage() {
                         onChange={(e) => setWithdrawAmount(e.target.value)}
                         min="0"
                         step="0.01"
+                        className="bg-white/5 backdrop-blur-sm border-white/10 text-white placeholder:text-purple-muted focus-visible:ring-primary focus-visible:border-white/30"
                         data-testid="input-withdraw-pix"
                       />
                     </div>
@@ -401,15 +406,15 @@ export default function PortfolioPage() {
           </TabsContent>
 
           <TabsContent value="history">
-            <Card className="p-6">
-              <h3 className="font-accent text-xl font-semibold mb-4">Transações Recentes</h3>
+            <Card className="glass-card p-6">
+              <h3 className="font-accent text-xl font-semibold mb-4 text-white">Transações Recentes</h3>
               {transactions && transactions.length > 0 ? (
                 <div className="space-y-2">
                   {transactions.slice(0, 20).map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between py-3 border-b last:border-0" data-testid={`transaction-${tx.id}`}>
+                    <div key={tx.id} className="flex items-center justify-between py-3 border-b border-white/10 last:border-0" data-testid={`transaction-${tx.id}`}>
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${
-                          tx.type.includes('deposit') ? 'bg-primary/10' : 'bg-destructive/10'
+                        <div className={`p-2 rounded-lg backdrop-blur-sm ${
+                          tx.type.includes('deposit') ? 'bg-primary/20' : 'bg-destructive/20'
                         }`}>
                           {tx.type.includes('deposit') ? (
                             <ArrowDownRight className={`h-4 w-4 ${tx.type.includes('deposit') ? 'text-primary' : 'text-destructive'}`} />
@@ -418,16 +423,16 @@ export default function PortfolioPage() {
                           )}
                         </div>
                         <div>
-                          <div className="font-medium capitalize">
+                          <div className="font-medium capitalize text-white">
                             {tx.type.replace('_', ' ')}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-purple-muted">
                             {formatDateTimeBR(tx.createdAt)}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold tabular-nums">
+                        <div className="font-semibold tabular-nums text-white">
                           {formatBRL3(parseFloat(tx.amount))}
                         </div>
                       </div>
@@ -435,7 +440,7 @@ export default function PortfolioPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
+                <div className="text-center py-12 text-purple-light">
                   Nenhuma transação ainda
                 </div>
               )}
