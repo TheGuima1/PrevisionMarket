@@ -43,7 +43,9 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Public Landing Page**: Displays available markets with real-time Polymarket odds.
 - **Market Detail Page**: Comprehensive market information, multiple odds formats, discussion system, and integrated trading panel.
 - **Trading Panel**: Visual YES/NO toggle, quantity input, real-time share estimate preview, cost, potential gain, and profit calculation.
-- **Portfolio**: Overview of total value, invested amount, P&L, active positions, wallet management (deposit requests), and transaction history.
+- **Portfolio**: Overview of total value, invested amount, P&L, active positions, wallet management (deposit/withdrawal requests), and transaction history. Withdrawal flow includes MetaMask integration for EIP-2612 permit signatures.
+- **Profile Page**: User profile management with wallet address configuration. Users configure their Polygon wallet address (required for BRL withdrawals). Includes validation, format checking, and helpful instructions.
+- **MetaMask Integration**: Complete user-facing wallet integration with network verification (Polygon chainId 137), automatic network switching, gasless EIP-2612 permit signatures for withdrawals, error handling for missing MetaMask or wrong network, and comprehensive loading states.
 - **AI Assistant (Cachorro)**: Floating chat powered by GPT-5 (via Replit AI Integrations) offering context-aware responses and market recommendations.
 - **Admin Panel**: Redesigned dark-themed interface for managing deposits, withdrawals, markets (manual and Polymarket mirrors), and users. Includes secure logout.
 
