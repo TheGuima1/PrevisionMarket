@@ -20,13 +20,17 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Backend**: Node.js, Express
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
 - **Authentication**: Passport.js with sessions
-- **BRL3 Token Integration (X-CHANGE)**: A hybrid on-chain/off-chain architecture where PIX deposits trigger BRL3 token mints on-chain and withdrawals trigger burns. Integration uses HTTP API calls with `X-CHANGE` (currently `https://x-change-palpites-ai-TheGuima1.replit.app` on Polygon network).
-  - **Direct Execution**: X-CHANGE executes mint/burn operations immediately on Polygon blockchain when called by Palpites.AI
-  - **Mint Endpoint**: `POST /mint` with payload `{amount: "100.50", user_id: "userId", deposit_id: "depositId"}`
-  - **Burn Endpoint**: `POST /burn` with payload `{amount: "100.50", user_id: "userId", withdrawal_id: "withdrawalId"}`
-  - **Dual Mint/Burn**: Both user and admin wallets receive/burn equal token amounts. System sends 2 separate requests with unique deposit/withdrawal IDs (`depositId_user`, `depositId_admin`)
-  - **Admin Wallet**: 0xcd83c3f36396bcb3569240a3cb34f037ba310926 (configured via `BRL3_ADMIN_EXTERNAL_ID`)
-  - **Authentication**: All requests require `x-api-key` header with BRL3_API_KEY value
+- **BRL3 Token Integration (Polygon Direct)**: Direct on-chain integration with BRL3 ERC-20 token using ethers.js and meta-transactions (EIP-2612).
+  - **Architecture**: Direct blockchain interaction (no intermediary service)
+  - **Mint Operations**: Admin wallet mints tokens directly to user + admin wallets (dual mint)
+  - **Burn Operations**: Gasless burns using EIP-2612 permit signatures (user doesn't pay gas)
+  - **Admin Wallet**: Configured via `ADMIN_PRIVATE_KEY` environment variable
+  - **Contract**: ERC-20 with Permit and Burnable extensions (address in `TOKEN_CONTRACT_ADDRESS`)
+  - **RPC Provider**: Polygon Mainnet via `POLYGON_RPC_URL` (Alchemy/Infura recommended)
+  - **User Wallets**: Each user must configure `walletAddress` (Polygon address) in profile
+  - **Permit Flow**: User signs off-chain permit → Admin executes permit + transferFrom + burn (all gas paid by admin)
+  - **Implementation**: `server/polygonClient.ts`, `server/brl3-client.ts`, `client/src/lib/polygonUtils.ts`
+  - **Documentation**: See `POLYGON_INTEGRATION_SETUP.md` for complete setup guide
 - **Manual Deposit Approval Workflow**: Deposits require admin approval. Users upload PDF proofs, which admins review and approve/reject. Approval triggers dual mint via X-CHANGE API, executing on-chain immediately and updating local balance.
 - **Manual Withdrawal Approval Workflow**: Withdrawals require admin approval. Users submit requests with PIX keys, which admins review and approve/reject. Approval triggers dual burn via X-CHANGE API, executing on-chain immediately and updating local balance.
 - **Dynamic Market Management**: An admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. A mirror worker automatically syncs odds from Polymarket.

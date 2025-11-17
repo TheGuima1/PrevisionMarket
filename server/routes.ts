@@ -829,11 +829,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Withdrew ${withdrawAmount} ${currency} (MOCKED)`,
       });
 
-      // Integração com BRL3 (3BIT XChange) - apenas para saques em BRL via PIX
+      // Integração Polygon - DESABILITADA para saques diretos (requer assinatura permit)
+      // Usuários devem usar o novo fluxo: POST /api/wallet/withdraw/request + aprovação admin
       if (currency === "BRL" && type === "withdrawal_pix") {
-        if (!Number.isNaN(withdrawAmount) && withdrawAmount > 0) {
-          await notifyBurnToBRL3(user.id, withdrawAmount, `legacy_withdrawal_${Date.now()}`);
-        }
+        return res.status(410).json({
+          error: "Saque direto de BRL desabilitado",
+          message: "Por favor, use o novo fluxo de solicitação de saque em 'Carteira' → 'Sacar'. Saques em BRL agora requerem assinatura Polygon (gasless) e aprovação manual.",
+          action: "Solicite seu saque através da página Carteira e aguarde aprovação do admin."
+        });
       }
 
       res.json({ success: true });
@@ -1222,11 +1225,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Saque aprovado: ${withdrawAmount} ${withdrawal.currency} para ${withdrawal.pixKey}`,
       });
 
-      // Integração com BRL3 (3BIT XChange) - DUAL BURN para saques em BRL via PIX
-      // Tanto o usuário quanto o admin queimam a mesma quantidade de tokens
+      // Integração Polygon - DUAL BURN para saques em BRL via PIX
+      // Usuário assinou permit (EIP-2612) e admin paga gas
       if (withdrawal.currency === "BRL") {
-        console.log(`🔄 [Withdrawal Approve] Calling X-CHANGE DUAL BURN for ${withdrawAmount} BRL`);
-        await notifyDualBurnToBRL3(withdrawal.userId, withdrawAmount, withdrawalId);
+        console.log(`🔄 [Withdrawal Approve] Calling Polygon DUAL BURN for ${withdrawAmount} BRL`);
+        
+        // Verificar se usuário tem carteira Polygon configurada
+        if (!withdrawUser.walletAddress) {
+          return res.status(400).send("Usuário não possui carteira Polygon configurada. Solicite ao usuário configurar a carteira no perfil.");
+        }
+        
+        // Verificar se temos os dados de assinatura permit
+        if (!withdrawal.permitDeadline || !withdrawal.permitV || !withdrawal.permitR || !withdrawal.permitS) {
+          return res.status(400).send("Dados de assinatura permit ausentes. O usuário precisa assinar novamente a transação.");
+        }
+        
+        const permitData = {
+          deadline: BigInt(withdrawal.permitDeadline),
+          v: withdrawal.permitV,
+          r: withdrawal.permitR,
+          s: withdrawal.permitS,
+        };
+        
+        await notifyDualBurnToBRL3(withdrawal.userId, withdrawAmount, withdrawalId, permitData);
       }
 
       console.log(`✅ [Withdrawal Approve] Success - returning JSON response`);
@@ -1729,20 +1750,14 @@ Your role:
       let totalBRL3Burned = 0;
       let burnErrors: string[] = [];
 
-      // Step 1: Burn BRL3 tokens for each client with balance > 0
+      // Step 1: Skip BRL3 burn (requires permit signatures from each user)
+      // Admin should manually burn tokens via Polygon admin wallet after reset
       for (const user of clientUsers) {
         const balance = parseFloat(user.balanceBrl);
         if (balance > 0) {
-          try {
-            console.log(`🔥 [RESET] Burning ${balance} BRL3 for user ${user.username} (${user.id})`);
-            await notifyBurnToBRL3(user.id, balance, `reset_${user.id}_${Date.now()}`);
-            totalBRL3Burned += balance;
-          } catch (error: any) {
-            const errorMsg = `Failed to burn BRL3 for user ${user.username}: ${error.message}`;
-            console.error(`❌ [RESET] ${errorMsg}`);
-            burnErrors.push(errorMsg);
-            // Continue with deletion even if burn fails
-          }
+          console.log(`⚠️  [RESET] User ${user.username} has ${balance} BRL3 - burn skipped (requires permit signature)`);
+          console.log(`   Admin deve queimar manualmente via Polygon após reset`);
+          totalBRL3Burned += balance;
         }
       }
 
