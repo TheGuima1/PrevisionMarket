@@ -12,7 +12,7 @@ import * as AMM from "./amm-engine";
 import { startPolymarketSnapshots } from "./polymarket-cron";
 import { getSnapshot } from "./mirror/state";
 import { startMirror } from "./mirror/worker";
-import { notifyMintToBRL3, notifyBurnToBRL3 } from "./brl3-client";
+import { notifyMintToBRL3, notifyBurnToBRL3, notifyDualMintToBRL3, notifyDualBurnToBRL3 } from "./brl3-client";
 import { fetchPolyBySlug } from "./mirror/adapter";
 import multer from "multer";
 import path from "path";
@@ -1045,10 +1045,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Depósito aprovado: ${depositAmount} ${deposit.currency}`,
       });
 
-      // Integração com BRL3 (3BIT XChange) - apenas para depósitos em BRL via PIX
+      // Integração com BRL3 (3BIT XChange) - DUAL MINT para depósitos em BRL via PIX
+      // Tanto o usuário quanto o admin recebem a mesma quantidade de tokens
       if (deposit.currency === "BRL") {
-        console.log(`🔄 [Deposit Approve] Calling BRL3 mint for ${depositAmount} BRL`);
-        await notifyMintToBRL3({
+        console.log(`🔄 [Deposit Approve] Calling BRL3 DUAL MINT for ${depositAmount} BRL`);
+        await notifyDualMintToBRL3({
           externalUserId: deposit.userId,
           amountBrl: depositAmount,
         });
@@ -1230,10 +1231,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Saque aprovado: ${withdrawAmount} ${withdrawal.currency} para ${withdrawal.pixKey}`,
       });
 
-      // Integração com BRL3 (3BIT XChange) - apenas para saques em BRL via PIX
+      // Integração com BRL3 (3BIT XChange) - DUAL BURN para saques em BRL via PIX
+      // Tanto o usuário quanto o admin queimam a mesma quantidade de tokens
       if (withdrawal.currency === "BRL") {
-        console.log(`🔄 [Withdrawal Approve] Calling BRL3 burn for ${withdrawAmount} BRL`);
-        await notifyBurnToBRL3({
+        console.log(`🔄 [Withdrawal Approve] Calling BRL3 DUAL BURN for ${withdrawAmount} BRL`);
+        await notifyDualBurnToBRL3({
           externalUserId: withdrawal.userId,
           amountBrl: withdrawAmount,
         });
