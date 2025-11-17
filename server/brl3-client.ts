@@ -1,7 +1,6 @@
 // server/brl3-client.ts
 // Cliente HTTP para integração com X-CHANGE (sistema de mint/burn BRL3 via blockchain)
-// Documentação: Quando Palpites.AI aprova depósitos/saques, envia webhook para X-CHANGE
-// criando operação pendente que deve ser aprovada manualmente no dashboard X-CHANGE
+// X-CHANGE executa operações on-chain na Polygon após receber webhooks do Palpites.AI
 
 const BRL3_API_URL = process.env.BRL3_API_URL?.replace(/^xhttp/, 'http');
 const BRL3_API_KEY = process.env.BRL3_API_KEY;
@@ -25,49 +24,47 @@ if (!BRL3_ADMIN_EXTERNAL_ID) {
   console.log(`👤 X-CHANGE Integration: Admin wallet configured (${BRL3_ADMIN_EXTERNAL_ID.substring(0, 10)}...)`);
 }
 
-interface XChangeWebhookPayload {
-  type: "mint" | "burn";
+interface XChangeMintPayload {
   amount: string;
   user_id: string;
-  reference_id: string;
-  metadata: Record<string, any>;
+  deposit_id: string;
+}
+
+interface XChangeBurnPayload {
+  amount: string;
+  user_id: string;
+  withdrawal_id: string;
 }
 
 /**
- * Envia webhook para X-CHANGE criar operação pendente de MINT
- * Após chamar esta função, admin deve aprovar manualmente no dashboard X-CHANGE
+ * Envia requisição para X-CHANGE executar MINT on-chain
+ * X-CHANGE minta tokens BRL3 imediatamente na blockchain Polygon
  * 
  * @param userId - ID do usuário no Palpites.AI
  * @param amount - Valor em BRL a ser mintado
- * @param referenceId - ID único da operação (depositId)
+ * @param depositId - ID único do depósito
  */
 export async function notifyMintToBRL3(
   userId: string,
   amount: number,
-  referenceId: string
+  depositId: string
 ): Promise<void> {
   try {
     if (!BRL3_API_URL || !BRL3_API_KEY) {
-      console.warn("⚠️  X-CHANGE Integration disabled - mint webhook skipped");
+      console.warn("⚠️  X-CHANGE Integration disabled - mint request skipped");
       return;
     }
 
-    const requestBody: XChangeWebhookPayload = {
-      type: "mint",
+    const requestBody: XChangeMintPayload = {
       amount: amount.toFixed(2),
       user_id: userId,
-      reference_id: referenceId,
-      metadata: {
-        platform: "palpites.ai",
-        operation: "deposit_approval",
-        timestamp: new Date().toISOString(),
-      },
+      deposit_id: depositId,
     };
 
-    console.log(`🔄 [X-CHANGE Mint] Calling ${BRL3_API_URL}/api/operations/webhook`);
+    console.log(`🔄 [X-CHANGE Mint] Calling ${BRL3_API_URL}/mint`);
     console.log(`📦 [X-CHANGE Mint] Payload:`, JSON.stringify(requestBody, null, 2));
 
-    const res = await fetch(`${BRL3_API_URL}/api/operations/webhook`, {
+    const res = await fetch(`${BRL3_API_URL}/mint`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -88,19 +85,19 @@ export async function notifyMintToBRL3(
     if (!res.ok) {
       console.error(`❌ [X-CHANGE Mint] Failed - Status ${res.status}`);
       console.error(`❌ [X-CHANGE Mint] Response:`, responseData);
-      throw new Error(`X-CHANGE mint webhook failed with status ${res.status}`);
+      throw new Error(`X-CHANGE mint failed with status ${res.status}: ${JSON.stringify(responseData)}`);
     }
 
-    console.log(`✅ [X-CHANGE Mint] Webhook sent - Status ${res.status}`);
+    console.log(`✅ [X-CHANGE Mint] Success - Status ${res.status}`);
     console.log(`✅ [X-CHANGE Mint] Response:`, responseData);
-    console.log(`🎯 [X-CHANGE Mint] Operation pending in X-CHANGE dashboard`);
-    console.log(`📋 [X-CHANGE Mint] Amount: ${amount} BRL | User: ${userId} | Ref: ${referenceId}`);
+    console.log(`🔥 [X-CHANGE Mint] Minted ${amount} BRL3 on-chain`);
+    console.log(`📋 [X-CHANGE Mint] Amount: ${amount} BRL | User: ${userId} | Deposit: ${depositId}`);
     
-    if (responseData && responseData.operation_id) {
-      console.log(`🆔 [X-CHANGE Mint] Operation ID: ${responseData.operation_id}`);
+    if (responseData && responseData.txHash) {
+      console.log(`🔗 [X-CHANGE Mint] Transaction: ${responseData.txHash}`);
     }
   } catch (error) {
-    console.error("❌ [X-CHANGE Mint] Network error:", error);
+    console.error("❌ [X-CHANGE Mint] Error:", error);
     if (error instanceof Error) {
       console.error("❌ [X-CHANGE Mint] Error details:", error.message);
     }
@@ -109,40 +106,34 @@ export async function notifyMintToBRL3(
 }
 
 /**
- * Envia webhook para X-CHANGE criar operação pendente de BURN
- * Após chamar esta função, admin deve aprovar manualmente no dashboard X-CHANGE
+ * Envia requisição para X-CHANGE executar BURN on-chain
+ * X-CHANGE queima tokens BRL3 imediatamente na blockchain Polygon
  * 
  * @param userId - ID do usuário no Palpites.AI
  * @param amount - Valor em BRL a ser queimado
- * @param referenceId - ID único da operação (withdrawalId)
+ * @param withdrawalId - ID único do saque
  */
 export async function notifyBurnToBRL3(
   userId: string,
   amount: number,
-  referenceId: string
+  withdrawalId: string
 ): Promise<void> {
   try {
     if (!BRL3_API_URL || !BRL3_API_KEY) {
-      console.warn("⚠️  X-CHANGE Integration disabled - burn webhook skipped");
+      console.warn("⚠️  X-CHANGE Integration disabled - burn request skipped");
       return;
     }
 
-    const requestBody: XChangeWebhookPayload = {
-      type: "burn",
+    const requestBody: XChangeBurnPayload = {
       amount: amount.toFixed(2),
       user_id: userId,
-      reference_id: referenceId,
-      metadata: {
-        platform: "palpites.ai",
-        operation: "withdrawal_approval",
-        timestamp: new Date().toISOString(),
-      },
+      withdrawal_id: withdrawalId,
     };
 
-    console.log(`🔄 [X-CHANGE Burn] Calling ${BRL3_API_URL}/api/operations/webhook`);
+    console.log(`🔄 [X-CHANGE Burn] Calling ${BRL3_API_URL}/burn`);
     console.log(`📦 [X-CHANGE Burn] Payload:`, JSON.stringify(requestBody, null, 2));
 
-    const res = await fetch(`${BRL3_API_URL}/api/operations/webhook`, {
+    const res = await fetch(`${BRL3_API_URL}/burn`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -163,19 +154,19 @@ export async function notifyBurnToBRL3(
     if (!res.ok) {
       console.error(`❌ [X-CHANGE Burn] Failed - Status ${res.status}`);
       console.error(`❌ [X-CHANGE Burn] Response:`, responseData);
-      throw new Error(`X-CHANGE burn webhook failed with status ${res.status}`);
+      throw new Error(`X-CHANGE burn failed with status ${res.status}: ${JSON.stringify(responseData)}`);
     }
 
-    console.log(`✅ [X-CHANGE Burn] Webhook sent - Status ${res.status}`);
+    console.log(`✅ [X-CHANGE Burn] Success - Status ${res.status}`);
     console.log(`✅ [X-CHANGE Burn] Response:`, responseData);
-    console.log(`🎯 [X-CHANGE Burn] Operation pending in X-CHANGE dashboard`);
-    console.log(`📋 [X-CHANGE Burn] Amount: ${amount} BRL | User: ${userId} | Ref: ${referenceId}`);
+    console.log(`🔥 [X-CHANGE Burn] Burned ${amount} BRL3 on-chain`);
+    console.log(`📋 [X-CHANGE Burn] Amount: ${amount} BRL | User: ${userId} | Withdrawal: ${withdrawalId}`);
     
-    if (responseData && responseData.operation_id) {
-      console.log(`🆔 [X-CHANGE Burn] Operation ID: ${responseData.operation_id}`);
+    if (responseData && responseData.txHash) {
+      console.log(`🔗 [X-CHANGE Burn] Transaction: ${responseData.txHash}`);
     }
   } catch (error) {
-    console.error("❌ [X-CHANGE Burn] Network error:", error);
+    console.error("❌ [X-CHANGE Burn] Error:", error);
     if (error instanceof Error) {
       console.error("❌ [X-CHANGE Burn] Error details:", error.message);
     }
@@ -184,21 +175,21 @@ export async function notifyBurnToBRL3(
 }
 
 /**
- * Envia DUAL MINT webhooks para X-CHANGE (usuário + admin)
- * Cria duas operações pendentes que devem ser aprovadas no dashboard X-CHANGE
+ * Executa DUAL MINT (usuário + admin) via X-CHANGE
+ * Minta tokens para ambas as wallets na blockchain Polygon
  * 
  * @param userId - ID do usuário depositante
  * @param amount - Valor em BRL a ser mintado para cada wallet
- * @param referenceId - ID único do depósito original
+ * @param depositId - ID único do depósito original
  */
 export async function notifyDualMintToBRL3(
   userId: string,
   amount: number,
-  referenceId: string
+  depositId: string
 ): Promise<void> {
   if (!BRL3_ADMIN_EXTERNAL_ID) {
     console.warn("⚠️  BRL3_ADMIN_EXTERNAL_ID not configured - falling back to single mint");
-    await notifyMintToBRL3(userId, amount, referenceId);
+    await notifyMintToBRL3(userId, amount, depositId);
     return;
   }
 
@@ -208,43 +199,43 @@ export async function notifyDualMintToBRL3(
 
   // Mint para o usuário
   try {
-    await notifyMintToBRL3(userId, amount, `${referenceId}_user`);
-    console.log(`✅ [X-CHANGE Dual Mint] User webhook sent successfully`);
+    await notifyMintToBRL3(userId, amount, `${depositId}_user`);
+    console.log(`✅ [X-CHANGE Dual Mint] User mint completed`);
   } catch (error) {
-    console.error(`❌ [X-CHANGE Dual Mint] User webhook failed`);
+    console.error(`❌ [X-CHANGE Dual Mint] User mint failed`);
     throw error;
   }
 
   // Mint para o admin
   try {
-    await notifyMintToBRL3(BRL3_ADMIN_EXTERNAL_ID, amount, `${referenceId}_admin`);
-    console.log(`✅ [X-CHANGE Dual Mint] Admin webhook sent successfully`);
+    await notifyMintToBRL3(BRL3_ADMIN_EXTERNAL_ID, amount, `${depositId}_admin`);
+    console.log(`✅ [X-CHANGE Dual Mint] Admin mint completed`);
   } catch (error) {
-    console.error(`❌ [X-CHANGE Dual Mint] Admin webhook failed - user webhook already sent!`);
-    console.error(`⚠️  [X-CHANGE Dual Mint] Manual intervention: approve both operations in X-CHANGE dashboard`);
+    console.error(`❌ [X-CHANGE Dual Mint] Admin mint failed - user mint already completed!`);
+    console.error(`⚠️  [X-CHANGE Dual Mint] Manual check required: verify user mint succeeded`);
     throw error;
   }
 
-  console.log(`✅ [X-CHANGE Dual Mint] Both webhooks sent - ${amount} BRL to each wallet`);
-  console.log(`🎯 [X-CHANGE Dual Mint] Approve both operations in X-CHANGE dashboard to complete minting`);
+  console.log(`✅ [X-CHANGE Dual Mint] Both mints completed - ${amount} BRL3 to each wallet`);
+  console.log(`🔥 [X-CHANGE Dual Mint] Total minted on-chain: ${amount * 2} BRL3`);
 }
 
 /**
- * Envia DUAL BURN webhooks para X-CHANGE (usuário + admin)
- * Cria duas operações pendentes que devem ser aprovadas no dashboard X-CHANGE
+ * Executa DUAL BURN (usuário + admin) via X-CHANGE
+ * Queima tokens de ambas as wallets na blockchain Polygon
  * 
  * @param userId - ID do usuário solicitante do saque
  * @param amount - Valor em BRL a ser queimado de cada wallet
- * @param referenceId - ID único do saque original
+ * @param withdrawalId - ID único do saque original
  */
 export async function notifyDualBurnToBRL3(
   userId: string,
   amount: number,
-  referenceId: string
+  withdrawalId: string
 ): Promise<void> {
   if (!BRL3_ADMIN_EXTERNAL_ID) {
     console.warn("⚠️  BRL3_ADMIN_EXTERNAL_ID not configured - falling back to single burn");
-    await notifyBurnToBRL3(userId, amount, referenceId);
+    await notifyBurnToBRL3(userId, amount, withdrawalId);
     return;
   }
 
@@ -254,23 +245,23 @@ export async function notifyDualBurnToBRL3(
 
   // Burn do usuário
   try {
-    await notifyBurnToBRL3(userId, amount, `${referenceId}_user`);
-    console.log(`✅ [X-CHANGE Dual Burn] User webhook sent successfully`);
+    await notifyBurnToBRL3(userId, amount, `${withdrawalId}_user`);
+    console.log(`✅ [X-CHANGE Dual Burn] User burn completed`);
   } catch (error) {
-    console.error(`❌ [X-CHANGE Dual Burn] User webhook failed`);
+    console.error(`❌ [X-CHANGE Dual Burn] User burn failed`);
     throw error;
   }
 
   // Burn do admin
   try {
-    await notifyBurnToBRL3(BRL3_ADMIN_EXTERNAL_ID, amount, `${referenceId}_admin`);
-    console.log(`✅ [X-CHANGE Dual Burn] Admin webhook sent successfully`);
+    await notifyBurnToBRL3(BRL3_ADMIN_EXTERNAL_ID, amount, `${withdrawalId}_admin`);
+    console.log(`✅ [X-CHANGE Dual Burn] Admin burn completed`);
   } catch (error) {
-    console.error(`❌ [X-CHANGE Dual Burn] Admin webhook failed - user webhook already sent!`);
-    console.error(`⚠️  [X-CHANGE Dual Burn] Manual intervention: approve both operations in X-CHANGE dashboard`);
+    console.error(`❌ [X-CHANGE Dual Burn] Admin burn failed - user burn already completed!`);
+    console.error(`⚠️  [X-CHANGE Dual Burn] Manual check required: verify user burn succeeded`);
     throw error;
   }
 
-  console.log(`✅ [X-CHANGE Dual Burn] Both webhooks sent - ${amount} BRL from each wallet`);
-  console.log(`🎯 [X-CHANGE Dual Burn] Approve both operations in X-CHANGE dashboard to complete burning`);
+  console.log(`✅ [X-CHANGE Dual Burn] Both burns completed - ${amount} BRL3 from each wallet`);
+  console.log(`🔥 [X-CHANGE Dual Burn] Total burned on-chain: ${amount * 2} BRL3`);
 }
