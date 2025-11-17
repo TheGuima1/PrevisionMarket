@@ -774,10 +774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Integração com BRL3 (3BIT XChange) - apenas para depósitos em BRL via PIX
       if (currency === "BRL" && type === "deposit_pix") {
         if (!Number.isNaN(depositAmount) && depositAmount > 0) {
-          await notifyMintToBRL3({
-            externalUserId: user.id,
-            amountBrl: depositAmount,
-          });
+          await notifyMintToBRL3(user.id, depositAmount, `legacy_deposit_${Date.now()}`);
         }
       }
 
@@ -835,10 +832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Integração com BRL3 (3BIT XChange) - apenas para saques em BRL via PIX
       if (currency === "BRL" && type === "withdrawal_pix") {
         if (!Number.isNaN(withdrawAmount) && withdrawAmount > 0) {
-          await notifyBurnToBRL3({
-            externalUserId: user.id,
-            amountBrl: withdrawAmount,
-          });
+          await notifyBurnToBRL3(user.id, withdrawAmount, `legacy_withdrawal_${Date.now()}`);
         }
       }
 
@@ -1048,11 +1042,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Integração com BRL3 (3BIT XChange) - DUAL MINT para depósitos em BRL via PIX
       // Tanto o usuário quanto o admin recebem a mesma quantidade de tokens
       if (deposit.currency === "BRL") {
-        console.log(`🔄 [Deposit Approve] Calling BRL3 DUAL MINT for ${depositAmount} BRL`);
-        await notifyDualMintToBRL3({
-          externalUserId: deposit.userId,
-          amountBrl: depositAmount,
-        });
+        console.log(`🔄 [Deposit Approve] Calling X-CHANGE DUAL MINT for ${depositAmount} BRL`);
+        await notifyDualMintToBRL3(deposit.userId, depositAmount, depositId);
       }
 
       console.log(`✅ [Deposit Approve] Success - returning JSON response`);
@@ -1234,11 +1225,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Integração com BRL3 (3BIT XChange) - DUAL BURN para saques em BRL via PIX
       // Tanto o usuário quanto o admin queimam a mesma quantidade de tokens
       if (withdrawal.currency === "BRL") {
-        console.log(`🔄 [Withdrawal Approve] Calling BRL3 DUAL BURN for ${withdrawAmount} BRL`);
-        await notifyDualBurnToBRL3({
-          externalUserId: withdrawal.userId,
-          amountBrl: withdrawAmount,
-        });
+        console.log(`🔄 [Withdrawal Approve] Calling X-CHANGE DUAL BURN for ${withdrawAmount} BRL`);
+        await notifyDualBurnToBRL3(withdrawal.userId, withdrawAmount, withdrawalId);
       }
 
       console.log(`✅ [Withdrawal Approve] Success - returning JSON response`);
@@ -1747,10 +1735,7 @@ Your role:
         if (balance > 0) {
           try {
             console.log(`🔥 [RESET] Burning ${balance} BRL3 for user ${user.username} (${user.id})`);
-            await notifyBurnToBRL3({
-              externalUserId: user.id,
-              amountBrl: balance,
-            });
+            await notifyBurnToBRL3(user.id, balance, `reset_${user.id}_${Date.now()}`);
             totalBRL3Burned += balance;
           } catch (error: any) {
             const errorMsg = `Failed to burn BRL3 for user ${user.username}: ${error.message}`;
