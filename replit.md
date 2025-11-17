@@ -20,9 +20,17 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Backend**: Node.js, Express
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
 - **Authentication**: Passport.js with sessions
-- **BRL3 Token Integration (3BIT XChange)**: A hybrid on-chain/off-chain architecture where PIX deposits trigger BRL3 token mints on-chain and withdrawals trigger burns. Integration uses HTTP webhooks with `3BIT XChange` (currently `https://x-change-palpites-ai-TheGuima1.replit.app` on Polygon network).
-- **Manual Deposit Approval Workflow**: Deposits require admin approval. Users upload PDF proofs, which admins review and approve/reject, triggering BRL3 minting on approval.
-- **Manual Withdrawal Approval Workflow**: Withdrawals require admin approval. Users submit requests with PIX keys, which admins review and approve/reject, triggering BRL3 burning and balance updates on approval.
+- **BRL3 Token Integration (X-CHANGE)**: A hybrid on-chain/off-chain architecture where PIX deposits trigger BRL3 token mints on-chain and withdrawals trigger burns. Integration uses HTTP webhooks with `X-CHANGE` (currently `https://x-change-palpites-ai-TheGuima1.replit.app` on Polygon network).
+  - **Two-Step Approval Workflow**: 
+    1. Palpites.AI sends webhook to X-CHANGE creating pending operation
+    2. Admin manually approves operation in X-CHANGE dashboard
+    3. X-CHANGE executes mint/burn on Polygon blockchain
+  - **Webhook Endpoint**: `POST /api/operations/webhook` (unified for mint and burn)
+  - **Payload Format**: `{type: "mint"|"burn", amount: "100.50", user_id: "userId", reference_id: "uniqueId", metadata: {}}`
+  - **Dual Mint/Burn**: Both user and admin wallets receive/burn equal token amounts. Each webhook creates separate operation with unique reference_id (`depositId_user`, `depositId_admin`)
+  - **Admin Wallet**: 0xcd83c3f36396bcb3569240a3cb34f037ba310926 (configured via `BRL3_ADMIN_EXTERNAL_ID`)
+- **Manual Deposit Approval Workflow**: Deposits require admin approval. Users upload PDF proofs, which admins review and approve/reject. Approval triggers dual mint webhook to X-CHANGE, updating local balance immediately while blockchain execution happens after X-CHANGE admin approval.
+- **Manual Withdrawal Approval Workflow**: Withdrawals require admin approval. Users submit requests with PIX keys, which admins review and approve/reject. Approval triggers dual burn webhook to X-CHANGE, updating local balance immediately while blockchain execution happens after X-CHANGE admin approval.
 - **Dynamic Market Management**: An admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. A mirror worker automatically syncs odds from Polymarket.
 - **Polymarket Adapter**: Fetches market data from Polymarket's Gamma API with a 5-minute cache, extracting YES probabilities for pricing.
 - **Prediction Market Core**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 2% spread. Orders are instantly filled with real-time share estimates.
