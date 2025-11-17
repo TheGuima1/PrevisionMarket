@@ -1181,39 +1181,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertPendingWithdrawalSchema.parse(withdrawalData);
       const withdrawAmount = parseFloat(validated.amount);
       
-      // For BRL withdrawals, verify user has wallet configured
-      if (validated.currency === "BRL" && !user.walletAddress) {
+      // For BRL withdrawals with permit signature, verify user has wallet configured
+      // If no permit signature, approval will be manual (admin handles burn)
+      if (validated.currency === "BRL" && permitDeadline && !user.walletAddress) {
         return res.status(400).json({
           error: "Carteira Polygon não configurada",
-          message: "Configure sua carteira Polygon no perfil antes de solicitar saque em BRL.",
+          message: "Configure sua carteira Polygon no perfil antes de solicitar saque em BRL com assinatura.",
           action: "Vá em 'Perfil' e adicione seu endereço de carteira Polygon."
         });
       }
       
-      // For BRL withdrawals, permit signature is required
-      if (validated.currency === "BRL") {
-        if (!permitDeadline || !permitV || !permitR || !permitS) {
-          return res.status(400).json({
-            error: "Assinatura necessária",
-            message: "Saques em BRL requerem assinatura MetaMask (gasless). Por favor, assine a transação quando solicitado.",
-            missingFields: {
-              permitDeadline: !permitDeadline,
-              permitV: !permitV,
-              permitR: !permitR,
-              permitS: !permitS
-            }
-          });
-        }
-      }
-      
-      // Check if user has sufficient balance
-      const currentBalance = validated.currency === "BRL" 
-        ? parseFloat(user.balanceBrl) 
-        : parseFloat(user.balanceUsdc);
-      
-      if (currentBalance < withdrawAmount) {
-        return res.status(400).send(`Saldo insuficiente. Seu saldo atual é ${currentBalance.toFixed(2)} ${validated.currency}.`);
-      }
+      // Note: Balance check removed - pending withdrawals are created before balance verification
+      // Admin will verify balance before approving the withdrawal
+      // This allows users to request withdrawals before deposits are approved
 
       // Create pending withdrawal with permit data
       const withdrawalWithPermit = {

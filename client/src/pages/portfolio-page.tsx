@@ -141,78 +141,62 @@ export default function PortfolioPage() {
         return;
       }
 
-      // Validação 2: MetaMask instalado
-      if (!window.ethereum) {
-        toast({
-          title: "MetaMask não detectado",
-          description: "Instale a extensão MetaMask para continuar.",
-          variant: "destructive",
-        });
-        return;
+      // Tentar coletar assinatura MetaMask se disponível
+      let signature: { deadline: string; v: number; r: string; s: string } | undefined;
+
+      // Verificar se MetaMask está disponível
+      if (window.ethereum) {
+        // Verificar se está na rede Polygon
+        const onPolygon = await isPolygonNetwork();
+        
+        if (onPolygon && user?.walletAddress) {
+          // Obter variáveis de ambiente
+          const tokenAddress = import.meta.env.VITE_TOKEN_CONTRACT_ADDRESS;
+          const adminAddress = import.meta.env.VITE_ADMIN_ADDRESS;
+          const tokenDecimals = parseInt(import.meta.env.VITE_TOKEN_DECIMALS || "18");
+
+          if (tokenAddress && adminAddress) {
+            try {
+              // Tentar assinar permit via MetaMask
+              setIsSigningPermit(true);
+              toast({
+                title: "Aguardando assinatura...",
+                description: "Confirme a assinatura no MetaMask (sem custo de gas)",
+              });
+
+              signature = await signPermit(
+                parseFloat(withdrawAmount),
+                tokenDecimals,
+                tokenAddress,
+                adminAddress
+              );
+
+              setIsSigningPermit(false);
+            } catch (signError: any) {
+              setIsSigningPermit(false);
+              
+              // Se usuário cancelou assinatura, parar aqui
+              if (signError.message?.includes("User denied") || signError.message?.includes("cancelada")) {
+                toast({
+                  title: "Assinatura cancelada",
+                  description: "Você pode tentar novamente ou enviar sem assinatura (aprovação manual do admin).",
+                  variant: "destructive",
+                });
+                return;
+              }
+              
+              // Para outros erros de assinatura, continuar sem assinatura
+              console.warn("Erro ao assinar permit, enviando sem assinatura:", signError);
+              toast({
+                title: "Aviso",
+                description: "Enviando solicitação sem assinatura (aprovação manual necessária).",
+              });
+            }
+          }
+        }
       }
 
-      // Validação 3: Carteira configurada no perfil
-      if (!user?.walletAddress) {
-        toast({
-          title: "Carteira não configurada",
-          description: "Configure sua carteira Polygon no perfil antes de sacar.",
-          variant: "destructive",
-          action: (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setLocation("/profile")}
-              data-testid="button-go-to-profile"
-            >
-              Ir para Perfil
-            </Button>
-          ),
-        });
-        return;
-      }
-
-      // Validação 4: Verificar se está na rede Polygon
-      const onPolygon = await isPolygonNetwork();
-      if (!onPolygon) {
-        toast({
-          title: "Rede incorreta",
-          description: "Você precisa estar na rede Polygon. Clique no botão para trocar.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Obter variáveis de ambiente
-      const tokenAddress = import.meta.env.VITE_TOKEN_CONTRACT_ADDRESS;
-      const adminAddress = import.meta.env.VITE_ADMIN_ADDRESS;
-      const tokenDecimals = parseInt(import.meta.env.VITE_TOKEN_DECIMALS || "18");
-
-      if (!tokenAddress || !adminAddress) {
-        toast({
-          title: "Configuração incompleta",
-          description: "Variáveis de ambiente não configuradas. Contate o suporte.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validação 5: Assinar permit via MetaMask
-      setIsSigningPermit(true);
-      toast({
-        title: "Aguardando assinatura...",
-        description: "Confirme a assinatura no MetaMask (sem custo de gas)",
-      });
-
-      const signature = await signPermit(
-        parseFloat(withdrawAmount),
-        tokenDecimals,
-        tokenAddress,
-        adminAddress
-      );
-
-      setIsSigningPermit(false);
-
-      // Enviar request com assinatura
+      // Enviar request (com ou sem assinatura)
       await withdrawMutation.mutateAsync({
         amount: withdrawAmount,
         pixKey: pixKey,
@@ -222,26 +206,12 @@ export default function PortfolioPage() {
     } catch (error: any) {
       setIsSigningPermit(false);
       
-      // Tratamento de erros específicos
-      if (error.message?.includes("User denied") || error.message?.includes("cancelada")) {
-        toast({
-          title: "Assinatura cancelada",
-          description: "Tente novamente quando estiver pronto.",
-          variant: "destructive",
-        });
-      } else if (error.message?.includes("MetaMask")) {
-        toast({
-          title: "Erro no MetaMask",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Erro ao assinar transação",
-          description: error.message || "Tente novamente mais tarde",
-          variant: "destructive",
-        });
-      }
+      // Tratamento de erros de submissão
+      toast({
+        title: "Erro ao solicitar saque",
+        description: error.message || "Tente novamente mais tarde",
+        variant: "destructive",
+      });
     }
   };
 
@@ -632,8 +602,7 @@ export default function PortfolioPage() {
                         !withdrawAmount || 
                         !pixKey || 
                         isSigningPermit || 
-                        withdrawMutation.isPending ||
-                        !user?.walletAddress
+                        withdrawMutation.isPending
                       }
                       className="w-full gradient-purple border border-primary shadow-purple"
                       data-testid="button-withdraw-pix"
@@ -646,9 +615,14 @@ export default function PortfolioPage() {
                     </Button>
 
                     {!user?.walletAddress && (
-                      <p className="text-xs text-center text-purple-muted">
-                        Configure sua carteira Polygon no perfil para sacar
-                      </p>
+                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-xs backdrop-blur-sm flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-yellow-100">
+                          <span className="font-medium block">Carteira Polygon não configurada.</span>
+                          Você pode solicitar o saque, mas precisará configurar sua carteira no perfil para 
+                          que o admin possa processar a queima de tokens. Configure antes para agilizar o processo.
+                        </p>
+                      </div>
                     )}
                   </TabsContent>
                 </Tabs>
