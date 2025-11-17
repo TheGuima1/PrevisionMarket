@@ -68,6 +68,7 @@ export const users = pgTable("users", {
   username: text("username").unique(), // Nullable - set after first login
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  walletAddress: text("wallet_address"), // Polygon wallet address for BRL3 tokens
   balanceBrl: decimal("balance_brl", { precision: 12, scale: 2 }).notNull().default("0.00"),
   balanceUsdc: decimal("balance_usdc", { precision: 12, scale: 6 }).notNull().default("0.000000"),
   isAdmin: boolean("is_admin").notNull().default(false),
@@ -185,6 +186,11 @@ export const pendingWithdrawals = pgTable("pending_withdrawals", {
   currency: text("currency").notNull().default("BRL"), // 'BRL' or 'USDC'
   pixKey: text("pix_key").notNull(), // PIX key provided by user (CPF, email, phone, random)
   status: withdrawalStatusEnum("status").notNull().default("pending"),
+  // EIP-2612 permit signature data (for gasless BRL token burns)
+  permitDeadline: text("permit_deadline"), // BigInt stored as string
+  permitV: integer("permit_v"),
+  permitR: text("permit_r"),
+  permitS: text("permit_s"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   approvedAt: timestamp("approved_at"),
   rejectedAt: timestamp("rejected_at"),
@@ -422,6 +428,10 @@ export const insertPendingWithdrawalSchema = createInsertSchema(pendingWithdrawa
     .transform(val => typeof val === "string" ? val : val.toFixed(2)),
   currency: z.enum(["BRL", "USDC"]).default("BRL"),
   pixKey: z.string().min(1, "Chave PIX obrigatória"),
+  permitDeadline: z.string().optional(),
+  permitV: z.number().optional(),
+  permitR: z.string().optional(),
+  permitS: z.string().optional(),
 });
 
 // Select types
