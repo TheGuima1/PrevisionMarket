@@ -231,6 +231,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[Server] Legacy Polymarket cron disabled (set ENABLE_POLYMARKET_CRON=true to enable)');
   }
 
+  // ===== USER PROFILE ROUTES =====
+
+  // PUT /api/user/wallet - Update user's Polygon wallet address
+  app.put("/api/user/wallet", requireAuth, async (req, res) => {
+    try {
+      const { walletAddress } = req.body;
+      
+      // Validate Ethereum address format (0x followed by 40 hex characters)
+      const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+      if (!walletAddress || !ethAddressRegex.test(walletAddress)) {
+        return res.status(400).json({ 
+          error: "Endereço de carteira inválido. Use o formato Ethereum (0x...)" 
+        });
+      }
+      
+      // Update user's wallet address
+      await db.update(users)
+        .set({ walletAddress })
+        .where(eq(users.id, req.user!.id));
+      
+      // Return updated user
+      const updatedUser = await db.query.users.findFirst({
+        where: eq(users.id, req.user!.id),
+      });
+      
+      res.json({ 
+        success: true, 
+        walletAddress: updatedUser?.walletAddress 
+      });
+    } catch (error) {
+      console.error("Failed to update wallet address:", error);
+      res.status(500).json({ error: "Falha ao atualizar endereço da carteira" });
+    }
+  });
+
+  // GET /api/user/profile - Get current user profile
+  app.get("/api/user/profile", requireAuth, async (req, res) => {
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, req.user!.id),
+      });
+      
+      if (!user) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+      
+      // Return safe user data (no password hash)
+      res.json({
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        walletAddress: user.walletAddress,
+        balanceBrl: user.balanceBrl,
+        balanceUsdc: user.balanceUsdc,
+        isAdmin: user.isAdmin,
+      });
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+      res.status(500).json({ error: "Falha ao buscar perfil do usuário" });
+    }
+  });
+
   // ===== MARKET ROUTES =====
   
   // GET /api/markets - List all markets (optionally filtered by category) - Public endpoint
@@ -1112,9 +1174,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/wallet/withdraw/request", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
-      const validated = insertPendingWithdrawalSchema.parse(req.body);
       
+      // Extract permit data if provided (required for BRL withdrawals)
+      const { permitDeadline, permitV, permitR, permitS, ...withdrawalData } = req.body;
+      
+      const validated = insertPendingWithdrawalSchema.parse(withdrawalData);
       const withdrawAmount = parseFloat(validated.amount);
+      
+      // For BRL withdrawals, verify user has wallet configured
+      if (validated.currency === "BRL" && !user.walletAddress) {
+        return res.status(400).json({
+          error: "Carteira Polygon não configurada",
+          message: "Configure sua carteira Polygon no perfil antes de solicitar saque em BRL.",
+          action: "Vá em 'Perfil' e adicione seu endereço de carteira Polygon."
+        });
+      }
+      
+      // For BRL withdrawals, permit signature is required
+      if (validated.currency === "BRL") {
+        if (!permitDeadline || !permitV || !permitR || !permitS) {
+          return res.status(400).json({
+            error: "Assinatura necessária",
+            message: "Saques em BRL requerem assinatura MetaMask (gasless). Por favor, assine a transação quando solicitado.",
+            missingFields: {
+              permitDeadline: !permitDeadline,
+              permitV: !permitV,
+              permitR: !permitR,
+              permitS: !permitS
+            }
+          });
+        }
+      }
       
       // Check if user has sufficient balance
       const currentBalance = validated.currency === "BRL" 
@@ -1125,8 +1215,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send(`Saldo insuficiente. Seu saldo atual é ${currentBalance.toFixed(2)} ${validated.currency}.`);
       }
 
-      // Create pending withdrawal
-      const withdrawal = await storage.createPendingWithdrawal(user.id, validated);
+      // Create pending withdrawal with permit data
+      const withdrawalWithPermit = {
+        ...validated,
+        permitDeadline,
+        permitV,
+        permitR,
+        permitS,
+      };
+      
+      const withdrawal = await storage.createPendingWithdrawal(user.id, withdrawalWithPermit);
 
       res.json({ 
         success: true, 

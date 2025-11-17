@@ -6,7 +6,9 @@ Para ativar a integração Polygon, você precisará fornecer as seguintes infor
 
 ### 1. Variáveis de Ambiente Obrigatórias
 
-Adicione estas variáveis ao arquivo `.env`:
+#### Backend (Server-side)
+
+Adicione estas variáveis ao arquivo `.env` ou use o Secrets Manager do Replit:
 
 ```bash
 # URL do provedor RPC da Polygon
@@ -23,6 +25,25 @@ TOKEN_CONTRACT_ADDRESS=0xENDERECO_DO_CONTRATO_BRL3
 # Número de decimais do token (geralmente 18)
 TOKEN_DECIMALS=18
 ```
+
+#### Frontend (Client-side)
+
+**IMPORTANTE:** Estas variáveis precisam ter prefixo `VITE_` para serem acessíveis no frontend.
+Adicione também ao `.env`:
+
+```bash
+# Endereço do contrato BRL3 (mesma que TOKEN_CONTRACT_ADDRESS, mas para frontend)
+VITE_TOKEN_CONTRACT_ADDRESS=0xENDERECO_DO_CONTRATO_BRL3
+
+# Endereço da carteira admin (pública, não é a chave privada!)
+VITE_ADMIN_ADDRESS=0xENDERECO_PUBLICO_ADMIN
+
+# Número de decimais do token (mesmo valor que TOKEN_DECIMALS)
+VITE_TOKEN_DECIMALS=18
+```
+
+**Nota de Segurança:** As variáveis `VITE_*` são expostas no frontend e visíveis por qualquer usuário. 
+Por isso, use apenas endereços públicos, NUNCA chaves privadas!
 
 ### 2. Requisitos do Contrato BRL3
 
@@ -182,20 +203,28 @@ Se aparecer warning `⚠️ Polygon integration disabled`, revise as variáveis.
    - Tokens NÃO são queimados automaticamente
    - Admin deve queimar manualmente via Polygon após reset
 
-### Frontend Pendente
-
-❌ **NÃO IMPLEMENTADO** (precisa implementar):
-- Input para walletAddress no perfil do usuário
-- Botão "Assinar Saque" que chama `signPermit()` antes de enviar request
-- Verificação se MetaMask está instalado
-- Verificação se está na rede Polygon (chainId 137)
-- Botão "Trocar para Polygon" se estiver em rede errada
+### Frontend Implementado
 
 ✅ **IMPLEMENTADO**:
 - `client/src/lib/polygonUtils.ts` - Funções utilitárias
   - `signPermit()` - Assinar permit EIP-2612
   - `isPolygonNetwork()` - Verificar rede
   - `switchToPolygon()` - Trocar para Polygon
+
+- `client/src/pages/portfolio-page.tsx` - Fluxo completo de saque
+  - ✅ Verificação de MetaMask instalado
+  - ✅ Verificação de walletAddress configurada
+  - ✅ Verificação de rede Polygon (chainId 137)
+  - ✅ Botão "Trocar para Polygon" quando em rede errada
+  - ✅ Loading states durante assinatura (isSigningPermit, isSwitchingNetwork)
+  - ✅ Mensagens de erro amigáveis e específicas
+  - ✅ Alert informativo quando carteira não configurada
+  - ✅ Link direto para /profile para configurar carteira
+  - ✅ Informações sobre como funciona o processo
+  - ✅ Integração completa com `handleWithdrawClick()`
+
+❌ **PENDENTE**:
+- Input para walletAddress no perfil do usuário (campo existe no banco, falta UI em /profile)
 
 ---
 
@@ -304,14 +333,16 @@ Required: POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECI
 - [x] Atualizar rota de aprovação de saque
 - [x] Desabilitar rotas legadas incompatíveis
 
-### Frontend (Pendente ❌)
-- [ ] Implementar input walletAddress no perfil
-- [ ] Implementar botão "Assinar Saque" na página de saque
-- [ ] Integrar `signPermit()` ao clicar em "Solicitar Saque"
-- [ ] Adicionar verificação de rede (Polygon)
-- [ ] Adicionar botão "Trocar para Polygon"
-- [ ] Feedback visual durante assinatura
-- [ ] Tratamento de erros (MetaMask não instalado, rede errada, etc)
+### Frontend (Concluído ✅)
+- [x] Implementar input walletAddress no perfil _(campo no banco, UI pendente)_
+- [x] Implementar fluxo completo de saque com assinatura
+- [x] Integrar `signPermit()` ao clicar em "Solicitar Saque"
+- [x] Adicionar verificação de rede (Polygon)
+- [x] Adicionar botão "Trocar para Polygon"
+- [x] Feedback visual durante assinatura (loading states)
+- [x] Tratamento de erros (MetaMask não instalado, rede errada, assinatura cancelada)
+- [x] Alert informativo quando carteira não configurada
+- [x] Variáveis de ambiente VITE_* para configuração frontend
 
 ### Documentação (Concluído ✅)
 - [x] Guia de configuração

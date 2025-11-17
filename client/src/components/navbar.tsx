@@ -116,6 +116,12 @@ export function Navbar() {
                     <span>Carteira</span>
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="cursor-pointer w-full text-purple-light hover:text-white" data-testid="link-profile">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Perfil</span>
+                  </Link>
+                </DropdownMenuItem>
                 {user?.isAdmin && (
                   <DropdownMenuItem asChild>
                     <Link href="/admin" className="cursor-pointer w-full text-purple-light hover:text-white">

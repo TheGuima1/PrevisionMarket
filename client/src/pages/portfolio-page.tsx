@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, DollarSign, Settings } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, DollarSign, Settings, AlertCircle, Info } from "lucide-react";
 import type { Position, Market, Transaction } from "@shared/schema";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -18,6 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 import { getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/odds";
+import { signPermit, isPolygonNetwork, switchToPolygon } from "@/lib/polygonUtils";
 
 export default function PortfolioPage() {
   const { toast } = useToast();
@@ -27,6 +29,10 @@ export default function PortfolioPage() {
   const [depositProofFile, setDepositProofFile] = useState<File | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [pixKey, setPixKey] = useState("");
+  
+  // Loading states para MetaMask/Polygon
+  const [isSigningPermit, setIsSigningPermit] = useState(false);
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
 
   const { data: positions, isLoading: positionsLoading } = useQuery<
     (Position & { market: Market })[]
@@ -77,8 +83,29 @@ export default function PortfolioPage() {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: async (data: { amount: string; pixKey: string }) => {
-      const res = await apiRequest("POST", "/api/wallet/withdraw/request", data);
+    mutationFn: async (data: { 
+      amount: string; 
+      pixKey: string;
+      permitSignature?: {
+        deadline: string;
+        v: number;
+        r: string;
+        s: string;
+      }
+    }) => {
+      // Flatten permitSignature into separate fields for backend
+      const { permitSignature, ...rest } = data;
+      const payload = permitSignature 
+        ? {
+            ...rest,
+            permitDeadline: permitSignature.deadline,
+            permitV: permitSignature.v,
+            permitR: permitSignature.r,
+            permitS: permitSignature.s,
+          }
+        : rest;
+      
+      const res = await apiRequest("POST", "/api/wallet/withdraw/request", payload);
       return await res.json();
     },
     onSuccess: () => {
@@ -100,6 +127,143 @@ export default function PortfolioPage() {
       });
     },
   });
+
+  // Função completa para processar saque com MetaMask/Polygon
+  const handleWithdrawClick = async () => {
+    try {
+      // Validação 1: Valores preenchidos
+      if (!withdrawAmount || !pixKey) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Por favor, preencha o valor e a chave PIX",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validação 2: MetaMask instalado
+      if (!window.ethereum) {
+        toast({
+          title: "MetaMask não detectado",
+          description: "Instale a extensão MetaMask para continuar.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validação 3: Carteira configurada no perfil
+      if (!user?.walletAddress) {
+        toast({
+          title: "Carteira não configurada",
+          description: "Configure sua carteira Polygon no perfil antes de sacar.",
+          variant: "destructive",
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setLocation("/profile")}
+              data-testid="button-go-to-profile"
+            >
+              Ir para Perfil
+            </Button>
+          ),
+        });
+        return;
+      }
+
+      // Validação 4: Verificar se está na rede Polygon
+      const onPolygon = await isPolygonNetwork();
+      if (!onPolygon) {
+        toast({
+          title: "Rede incorreta",
+          description: "Você precisa estar na rede Polygon. Clique no botão para trocar.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Obter variáveis de ambiente
+      const tokenAddress = import.meta.env.VITE_TOKEN_CONTRACT_ADDRESS;
+      const adminAddress = import.meta.env.VITE_ADMIN_ADDRESS;
+      const tokenDecimals = parseInt(import.meta.env.VITE_TOKEN_DECIMALS || "18");
+
+      if (!tokenAddress || !adminAddress) {
+        toast({
+          title: "Configuração incompleta",
+          description: "Variáveis de ambiente não configuradas. Contate o suporte.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validação 5: Assinar permit via MetaMask
+      setIsSigningPermit(true);
+      toast({
+        title: "Aguardando assinatura...",
+        description: "Confirme a assinatura no MetaMask (sem custo de gas)",
+      });
+
+      const signature = await signPermit(
+        parseFloat(withdrawAmount),
+        tokenDecimals,
+        tokenAddress,
+        adminAddress
+      );
+
+      setIsSigningPermit(false);
+
+      // Enviar request com assinatura
+      await withdrawMutation.mutateAsync({
+        amount: withdrawAmount,
+        pixKey: pixKey,
+        permitSignature: signature,
+      });
+
+    } catch (error: any) {
+      setIsSigningPermit(false);
+      
+      // Tratamento de erros específicos
+      if (error.message?.includes("User denied") || error.message?.includes("cancelada")) {
+        toast({
+          title: "Assinatura cancelada",
+          description: "Tente novamente quando estiver pronto.",
+          variant: "destructive",
+        });
+      } else if (error.message?.includes("MetaMask")) {
+        toast({
+          title: "Erro no MetaMask",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro ao assinar transação",
+          description: error.message || "Tente novamente mais tarde",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // Função para trocar para Polygon
+  const handleSwitchToPolygon = async () => {
+    try {
+      setIsSwitchingNetwork(true);
+      await switchToPolygon();
+      toast({
+        title: "Rede alterada!",
+        description: "Você está agora na rede Polygon.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao trocar rede",
+        description: error.message || "Tente trocar manualmente no MetaMask",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSwitchingNetwork(false);
+    }
+  };
 
   const calculatePnL = (position: Position & { market: Market }) => {
     const yesShares = parseFloat(position.yesShares);
@@ -271,6 +435,30 @@ export default function PortfolioPage() {
           </TabsContent>
 
           <TabsContent value="wallet" className="space-y-6">
+            {!user?.walletAddress && (
+              <Alert className="bg-primary/20 border-primary/30 backdrop-blur-sm" data-testid="alert-wallet-missing">
+                <AlertCircle className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-white">
+                  <div className="flex flex-col gap-2">
+                    <span className="font-semibold">Carteira Polygon não configurada</span>
+                    <span className="text-purple-light">
+                      Para sacar fundos, você precisa configurar sua carteira Polygon no perfil. 
+                      Esta carteira será usada para receber tokens BRL3 que são queimados automaticamente durante o saque.
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLocation("/profile")}
+                      className="w-fit mt-2 border-primary/50 hover:bg-primary/10"
+                      data-testid="button-configure-wallet"
+                    >
+                      Configurar Carteira no Perfil
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="glass-card p-6 space-y-4">
                 <h3 className="font-accent text-xl font-semibold text-white">Depositar</h3>
@@ -377,11 +565,25 @@ export default function PortfolioPage() {
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
                     <div className="bg-primary/20 border border-primary/30 rounded-lg p-4 text-sm backdrop-blur-sm">
-                      <span className="font-medium text-white">Saque Manual com Aprovação</span>
+                      <span className="font-medium text-white">Saque via Assinatura Polygon</span>
                       <p className="text-purple-light mt-1">
-                        Solicite saque via PIX. Seu pedido será aprovado pelo admin e o BRL3 será queimado on-chain.
+                        Solicite saque via PIX. Você assinará uma autorização no MetaMask (sem custo de gas) 
+                        para permitir que o admin queime seus tokens BRL3 on-chain. O pagamento PIX será processado após aprovação.
                       </p>
                     </div>
+
+                    {window.ethereum && user?.walletAddress && (
+                      <div className="bg-accent/20 border border-accent/30 rounded-lg p-3 text-xs backdrop-blur-sm flex items-start gap-2">
+                        <Info className="h-4 w-4 text-accent flex-shrink-0 mt-0.5" />
+                        <div className="text-purple-light">
+                          <span className="font-medium text-white block mb-1">Como funciona:</span>
+                          1. Você assina uma autorização no MetaMask (gratuito, sem gas)<br />
+                          2. Admin queima seus tokens BRL3 automaticamente<br />
+                          3. Você recebe o PIX após aprovação
+                        </div>
+                      </div>
+                    )}
+
                     <div className="space-y-2">
                       <Label htmlFor="withdraw-pix" className="text-white">Valor em R$</Label>
                       <Input
@@ -411,27 +613,43 @@ export default function PortfolioPage() {
                         Digite sua chave PIX para receber o valor
                       </p>
                     </div>
+
+                    {window.ethereum && user?.walletAddress && (
+                      <Button
+                        onClick={handleSwitchToPolygon}
+                        disabled={isSwitchingNetwork}
+                        variant="outline"
+                        className="w-full border-accent/50 text-accent hover:bg-accent/10"
+                        data-testid="button-switch-polygon"
+                      >
+                        {isSwitchingNetwork ? "Trocando rede..." : "🔄 Trocar para Polygon"}
+                      </Button>
+                    )}
+
                     <Button
-                      onClick={() => {
-                        if (!pixKey) {
-                          toast({
-                            title: "Chave PIX obrigatória",
-                            description: "Por favor, informe sua chave PIX",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        withdrawMutation.mutate({
-                          amount: withdrawAmount,
-                          pixKey: pixKey,
-                        });
-                      }}
-                      disabled={!withdrawAmount || !pixKey || withdrawMutation.isPending}
+                      onClick={handleWithdrawClick}
+                      disabled={
+                        !withdrawAmount || 
+                        !pixKey || 
+                        isSigningPermit || 
+                        withdrawMutation.isPending ||
+                        !user?.walletAddress
+                      }
                       className="w-full gradient-purple border border-primary shadow-purple"
                       data-testid="button-withdraw-pix"
                     >
-                      {withdrawMutation.isPending ? "Enviando..." : "Solicitar Saque"}
+                      {isSigningPermit 
+                        ? "Aguardando assinatura..." 
+                        : withdrawMutation.isPending 
+                        ? "Enviando..." 
+                        : "Solicitar Saque"}
                     </Button>
+
+                    {!user?.walletAddress && (
+                      <p className="text-xs text-center text-purple-muted">
+                        Configure sua carteira Polygon no perfil para sacar
+                      </p>
+                    )}
                   </TabsContent>
                 </Tabs>
               </Card>

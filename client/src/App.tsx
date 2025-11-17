@@ -12,6 +12,7 @@ import HomePage from "@/pages/home-page";
 import MarketDetailPage from "@/pages/market-detail-page";
 import PolymarketDetailPage from "@/pages/polymarket-detail-page";
 import PortfolioPage from "@/pages/portfolio-page";
+import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
 import AuthPage from "@/pages/auth-page";
 import DepositPage from "@/pages/deposit-page";
@@ -56,6 +57,7 @@ function Router() {
       
       {/* Protected Routes */}
       <ProtectedRoute path="/portfolio" component={PortfolioPage} />
+      <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
       
       <Route component={NotFound} />
