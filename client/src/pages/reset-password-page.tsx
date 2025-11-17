@@ -17,7 +17,6 @@ export default function ResetPasswordPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Extract token from URL query params
     const params = new URLSearchParams(window.location.search);
     const tokenParam = params.get("token");
     
@@ -76,7 +75,6 @@ export default function ResetPasswordPage() {
         description: data.message,
       });
 
-      // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate("/auth");
       }, 3000);
@@ -96,11 +94,11 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md p-8 space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0F0C34]">
+      <Card className="glass-card w-full max-w-md p-8 space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold font-accent">Redefinir senha</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-3xl font-bold font-accent text-white">Redefinir senha</h1>
+          <p className="text-sm text-purple-light">
             Digite sua nova senha abaixo.
           </p>
         </div>
@@ -108,16 +106,16 @@ export default function ResetPasswordPage() {
         {!isSuccess ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="newPassword">Nova senha</Label>
+              <Label htmlFor="newPassword" className="text-white">Nova senha</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-muted" />
                 <Input
                   id="newPassword"
                   type="password"
                   placeholder="Digite sua nova senha"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white/5 backdrop-blur-sm border-white/10 text-white placeholder:text-purple-muted focus-visible:ring-primary focus-visible:border-white/30"
                   data-testid="input-new-password"
                   disabled={isLoading}
                   required
@@ -127,16 +125,16 @@ export default function ResetPasswordPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar senha</Label>
+              <Label htmlFor="confirmPassword" className="text-white">Confirmar senha</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-muted" />
                 <Input
                   id="confirmPassword"
                   type="password"
                   placeholder="Digite novamente a senha"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white/5 backdrop-blur-sm border-white/10 text-white placeholder:text-purple-muted focus-visible:ring-primary focus-visible:border-white/30"
                   data-testid="input-confirm-password"
                   disabled={isLoading}
                   required
@@ -147,7 +145,7 @@ export default function ResetPasswordPage() {
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full gradient-purple border border-primary shadow-purple"
               disabled={isLoading}
               data-testid="button-submit"
             >
@@ -159,11 +157,11 @@ export default function ResetPasswordPage() {
             <div className="flex justify-center">
               <CheckCircle2 className="h-16 w-16 text-primary" />
             </div>
-            <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-              <p className="text-sm font-medium">
+            <div className="bg-primary/20 border border-primary/30 rounded-lg p-4 backdrop-blur-sm">
+              <p className="text-sm font-medium text-white">
                 ✅ Senha atualizada com sucesso!
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-purple-light mt-2">
                 Redirecionando para o login...
               </p>
             </div>

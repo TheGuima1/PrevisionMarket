@@ -241,14 +241,14 @@ export function setupAuth(app: Express) {
         { expiresIn: "1h" }
       );
 
-      // In production, send email with reset link
-      // For now, log to console (simulated email)
+      // MVP: Return reset link directly in response (no email configured yet)
       const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${token}`;
       console.log("📧 LINK DE RESET:", resetUrl);
 
       res.json({
         success: true,
-        message: "Um link de redefinição de senha foi enviado para o seu email.",
+        message: "Link de redefinição gerado com sucesso!",
+        resetLink: resetUrl,
       });
     } catch (error: any) {
       console.error("Error in request-reset:", error);

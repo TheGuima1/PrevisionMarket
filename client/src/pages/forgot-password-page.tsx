@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft, Mail, Copy, CheckCircle } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [resetLink, setResetLink] = useState("");
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,10 +41,13 @@ export default function ForgotPasswordPage() {
         throw new Error(data.error || "Falha ao solicitar reset de senha");
       }
 
-      setIsSuccess(true);
+      if (data.resetLink) {
+        setResetLink(data.resetLink);
+      }
+      
       toast({
-        title: "Email enviado!",
-        description: data.message,
+        title: "Link gerado!",
+        description: data.message || "Use o link abaixo para redefinir sua senha.",
       });
     } catch (error: any) {
       toast({
@@ -56,29 +60,41 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  async function handleCopyLink() {
+    if (resetLink) {
+      await navigator.clipboard.writeText(resetLink);
+      setCopied(true);
+      toast({
+        title: "Link copiado!",
+        description: "Cole o link no navegador para redefinir sua senha.",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md p-8 space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0F0C34]">
+      <Card className="glass-card w-full max-w-md p-8 space-y-6">
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold font-accent">Esqueci minha senha</h1>
-          <p className="text-sm text-muted-foreground">
-            Digite seu email e enviaremos um link para redefinir sua senha.
+          <h1 className="text-3xl font-bold font-accent text-white">Esqueci minha senha</h1>
+          <p className="text-sm text-purple-light">
+            Digite seu email e você receberá um link para redefinir sua senha.
           </p>
         </div>
 
-        {!isSuccess ? (
+        {!resetLink ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-white">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-muted" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white/5 backdrop-blur-sm border-white/10 text-white placeholder:text-purple-muted focus-visible:ring-primary focus-visible:border-white/30"
                   data-testid="input-email"
                   disabled={isLoading}
                   required
@@ -88,7 +104,7 @@ export default function ForgotPasswordPage() {
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full gradient-purple border border-primary shadow-purple"
               disabled={isLoading}
               data-testid="button-submit"
             >
@@ -96,19 +112,60 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
         ) : (
-          <div className="text-center space-y-4">
-            <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-              <p className="text-sm">
-                📧 Email enviado com sucesso! Verifique sua caixa de entrada e spam.
+          <div className="space-y-4">
+            <div className="bg-primary/20 border border-primary/30 rounded-lg p-4 backdrop-blur-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="h-5 w-5 text-primary" />
+                <p className="text-sm font-medium text-white">
+                  Link de reset gerado!
+                </p>
+              </div>
+              <p className="text-xs text-purple-light mb-3">
+                Copie e cole o link abaixo no navegador para redefinir sua senha:
               </p>
+              <div className="bg-[#1F1B2E] border border-white/10 rounded-lg p-3 mb-3">
+                <p className="text-xs text-white font-mono break-all">
+                  {resetLink}
+                </p>
+              </div>
+              <Button
+                onClick={handleCopyLink}
+                variant="outline"
+                size="sm"
+                className="w-full"
+                data-testid="button-copy-link"
+              >
+                {copied ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copiar Link
+                  </>
+                )}
+              </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Não recebeu o email? Verifique sua caixa de spam ou tente novamente.
+            <p className="text-xs text-purple-muted text-center">
+              O link expira em 1 hora.
             </p>
+            <Button
+              onClick={() => {
+                setResetLink("");
+                setEmail("");
+              }}
+              variant="outline"
+              className="w-full"
+              data-testid="button-generate-another"
+            >
+              Gerar outro link
+            </Button>
           </div>
         )}
 
-        <div className="pt-4 border-t">
+        <div className="pt-4 border-t border-white/10">
           <Link href="/auth">
             <Button variant="ghost" className="w-full" data-testid="button-back-to-login">
               <ArrowLeft className="h-4 w-4 mr-2" />
