@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, insertPendingDepositSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots, pendingDeposits, transactions, comments } from "@shared/schema";
+import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, insertPendingDepositSchema, insertPendingWithdrawalSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots, pendingDeposits, pendingWithdrawals, transactions, comments } from "@shared/schema";
 import OpenAI from "openai";
 import { z } from "zod";
 import { db } from "./db";
@@ -1108,6 +1108,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to reject deposit:", error);
       res.status(500).send("Falha ao rejeitar depósito.");
+    }
+  });
+
+  // ===== WITHDRAWAL ROUTES =====
+  
+  // POST /api/wallet/withdraw/request - User requests withdrawal
+  app.post("/api/wallet/withdraw/request", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const validated = insertPendingWithdrawalSchema.parse(req.body);
+      
+      const withdrawAmount = parseFloat(validated.amount);
+      
+      // Check if user has sufficient balance
+      const currentBalance = validated.currency === "BRL" 
+        ? parseFloat(user.balanceBrl) 
+        : parseFloat(user.balanceUsdc);
+      
+      if (currentBalance < withdrawAmount) {
+        return res.status(400).send(`Saldo insuficiente. Seu saldo atual é ${currentBalance.toFixed(2)} ${validated.currency}.`);
+      }
+
+      // Create pending withdrawal
+      const withdrawal = await storage.createPendingWithdrawal(user.id, validated);
+
+      res.json({ 
+        success: true, 
+        withdrawal,
+        message: `Solicitação de saque de ${withdrawAmount} ${validated.currency} criada com sucesso. Aguarde aprovação do admin.`
+      });
+    } catch (error: any) {
+      console.error("Failed to create withdrawal request:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Validação falhou", issues: error.issues });
+      }
+      res.status(500).send("Falha ao criar solicitação de saque.");
+    }
+  });
+
+  // GET /api/withdrawals/pending - Admin lists pending withdrawals
+  app.get("/api/withdrawals/pending", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      if (!user.isAdmin) {
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const status = req.query.status as "pending" | "approved" | "rejected" | undefined;
+      const withdrawals = await storage.getPendingWithdrawals(status);
+
+      res.json(withdrawals);
+    } catch (error) {
+      console.error("Failed to fetch pending withdrawals:", error);
+      res.status(500).send("Falha ao buscar saques pendentes.");
+    }
+  });
+
+  // POST /api/withdrawals/:id/approve - Admin approves withdrawal
+  app.post("/api/withdrawals/:id/approve", requireAuth, async (req, res) => {
+    try {
+      console.log(`💸 [Withdrawal Approve] Request received for withdrawal ID: ${req.params.id}`);
+      const user = req.user!;
+      console.log(`👤 [Withdrawal Approve] User: ${user.email}, isAdmin: ${user.isAdmin}`);
+      
+      if (!user.isAdmin) {
+        console.log(`❌ [Withdrawal Approve] Forbidden - user is not admin`);
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const withdrawalId = req.params.id;
+      const withdrawal = await storage.getPendingWithdrawal(withdrawalId);
+      console.log(`💼 [Withdrawal Approve] Withdrawal found:`, withdrawal ? `ID ${withdrawal.id}, status: ${withdrawal.status}, amount: ${withdrawal.amount}` : 'NOT FOUND');
+
+      if (!withdrawal) {
+        return res.status(404).send("Saque não encontrado.");
+      }
+
+      if (withdrawal.status !== "pending") {
+        return res.status(400).send("Saque já foi processado.");
+      }
+
+      // Get the user who made the withdrawal
+      const withdrawUser = await storage.getUser(withdrawal.userId);
+      if (!withdrawUser) {
+        return res.status(404).send("Usuário não encontrado.");
+      }
+
+      const withdrawAmount = parseFloat(withdrawal.amount);
+
+      // Double check balance before processing
+      const currentBalance = withdrawal.currency === "BRL" 
+        ? parseFloat(withdrawUser.balanceBrl) 
+        : parseFloat(withdrawUser.balanceUsdc);
+      
+      if (currentBalance < withdrawAmount) {
+        return res.status(400).send(`Saldo insuficiente no momento da aprovação. Saldo atual: ${currentBalance.toFixed(2)} ${withdrawal.currency}.`);
+      }
+
+      // Approve the withdrawal
+      const approved = await storage.approvePendingWithdrawal(withdrawalId, user.id);
+
+      // Update user balance (deduct amount)
+      let newBalanceBrl = withdrawUser.balanceBrl;
+      let newBalanceUsdc = withdrawUser.balanceUsdc;
+
+      if (withdrawal.currency === "BRL") {
+        newBalanceBrl = (parseFloat(withdrawUser.balanceBrl) - withdrawAmount).toFixed(2);
+      } else if (withdrawal.currency === "USDC") {
+        newBalanceUsdc = (parseFloat(withdrawUser.balanceUsdc) - withdrawAmount).toFixed(6);
+      }
+
+      await storage.updateUserBalance(withdrawal.userId, newBalanceBrl, newBalanceUsdc);
+
+      // Create transaction record
+      await storage.createTransaction(withdrawal.userId, {
+        type: withdrawal.currency === "BRL" ? "withdrawal_pix" : "withdrawal_usdc",
+        amount: withdrawal.amount,
+        currency: withdrawal.currency,
+        description: `Saque aprovado: ${withdrawAmount} ${withdrawal.currency} para ${withdrawal.pixKey}`,
+      });
+
+      // Integração com BRL3 (3BIT XChange) - apenas para saques em BRL via PIX
+      if (withdrawal.currency === "BRL") {
+        console.log(`🔄 [Withdrawal Approve] Calling BRL3 burn for ${withdrawAmount} BRL`);
+        await notifyBurnToBRL3({
+          externalUserId: withdrawal.userId,
+          amountBrl: withdrawAmount,
+        });
+      }
+
+      console.log(`✅ [Withdrawal Approve] Success - returning JSON response`);
+      res.json({ 
+        success: true, 
+        withdrawal: approved,
+        message: `Saque de ${withdrawAmount} ${withdrawal.currency} aprovado com sucesso.`
+      });
+    } catch (error) {
+      console.error("Failed to approve withdrawal:", error);
+      res.status(500).send("Falha ao aprovar saque.");
+    }
+  });
+
+  // POST /api/withdrawals/:id/reject - Admin rejects withdrawal
+  app.post("/api/withdrawals/:id/reject", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      if (!user.isAdmin) {
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const withdrawalId = req.params.id;
+      const { reason } = req.body;
+
+      const withdrawal = await storage.getPendingWithdrawal(withdrawalId);
+
+      if (!withdrawal) {
+        return res.status(404).send("Saque não encontrado.");
+      }
+
+      if (withdrawal.status !== "pending") {
+        return res.status(400).send("Saque já foi processado.");
+      }
+
+      // Reject the withdrawal
+      const rejected = await storage.rejectPendingWithdrawal(withdrawalId, user.id, reason);
+
+      res.json({ 
+        success: true, 
+        withdrawal: rejected,
+        message: "Saque rejeitado."
+      });
+    } catch (error) {
+      console.error("Failed to reject withdrawal:", error);
+      res.status(500).send("Falha ao rejeitar saque.");
     }
   });
 

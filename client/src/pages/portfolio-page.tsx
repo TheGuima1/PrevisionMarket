@@ -26,6 +26,7 @@ export default function PortfolioPage() {
   const [depositAmount, setDepositAmount] = useState("");
   const [depositProofFile, setDepositProofFile] = useState<File | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [pixKey, setPixKey] = useState("");
 
   const { data: positions, isLoading: positionsLoading } = useQuery<
     (Position & { market: Market })[]
@@ -76,17 +77,26 @@ export default function PortfolioPage() {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: async (data: { amount: string; currency: "BRL3"; type: string }) => {
-      const res = await apiRequest("POST", "/api/wallet/withdraw", data);
+    mutationFn: async (data: { amount: string; pixKey: string }) => {
+      const res = await apiRequest("POST", "/api/wallet/withdraw/request", data);
       return await res.json();
     },
     onSuccess: () => {
       setWithdrawAmount("");
+      setPixKey("");
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
       toast({
-        title: "Saque realizado!",
-        description: "Fundos retirados com sucesso",
+        title: "Solicitação enviada!",
+        description: "Seu saque está aguardando aprovação. Você será notificado quando for processado.",
+        duration: 5000,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao solicitar saque",
+        description: error.message || "Tente novamente mais tarde",
+        variant: "destructive",
       });
     },
   });
@@ -367,9 +377,9 @@ export default function PortfolioPage() {
 
                   <TabsContent value="pix" className="space-y-4 mt-4">
                     <div className="bg-primary/20 border border-primary/30 rounded-lg p-4 text-sm backdrop-blur-sm">
-                      <span className="font-medium text-white">Saque via PIX</span>
+                      <span className="font-medium text-white">Saque Manual com Aprovação</span>
                       <p className="text-purple-light mt-1">
-                        Converta BRL3 → PIX e receba na sua conta bancária.
+                        Solicite saque via PIX. Seu pedido será aprovado pelo admin e o BRL3 será queimado on-chain.
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -386,18 +396,41 @@ export default function PortfolioPage() {
                         data-testid="input-withdraw-pix"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pix-key" className="text-white">Chave PIX *</Label>
+                      <Input
+                        id="pix-key"
+                        type="text"
+                        placeholder="CPF, e-mail, telefone ou chave aleatória"
+                        value={pixKey}
+                        onChange={(e) => setPixKey(e.target.value)}
+                        className="bg-white/5 backdrop-blur-sm border-white/10 text-white placeholder:text-purple-muted focus-visible:ring-primary focus-visible:border-white/30"
+                        data-testid="input-pix-key"
+                      />
+                      <p className="text-xs text-purple-muted">
+                        Digite sua chave PIX para receber o valor
+                      </p>
+                    </div>
                     <Button
-                      onClick={() => withdrawMutation.mutate({
-                        amount: withdrawAmount,
-                        currency: "BRL3",
-                        type: "withdrawal_pix"
-                      })}
-                      disabled={!withdrawAmount || withdrawMutation.isPending}
-                      className="w-full"
-                      variant="outline"
+                      onClick={() => {
+                        if (!pixKey) {
+                          toast({
+                            title: "Chave PIX obrigatória",
+                            description: "Por favor, informe sua chave PIX",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        withdrawMutation.mutate({
+                          amount: withdrawAmount,
+                          pixKey: pixKey,
+                        });
+                      }}
+                      disabled={!withdrawAmount || !pixKey || withdrawMutation.isPending}
+                      className="w-full gradient-purple border border-primary shadow-purple"
                       data-testid="button-withdraw-pix"
                     >
-                      {withdrawMutation.isPending ? "Processando..." : "Sacar via PIX"}
+                      {withdrawMutation.isPending ? "Enviando..." : "Solicitar Saque"}
                     </Button>
                   </TabsContent>
                 </Tabs>

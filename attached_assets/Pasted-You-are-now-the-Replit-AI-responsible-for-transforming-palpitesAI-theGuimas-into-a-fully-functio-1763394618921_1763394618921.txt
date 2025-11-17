@@ -1,0 +1,112 @@
+You are now the Replit AI responsible for transforming 
+"palpitesAI-theGuimas" into a fully functional prediction market
+integrated with the BRL3 token and the x-change backend.
+
+Follow EVERY step EXACTLY:
+
+=============================================================
+STEP 1 — DELETE UNUSED CODE
+=============================================================
+Remove:
+- Recent Activity sidebar
+- old UI pages
+- unused APIs
+- old DB tables
+- old blockchain code
+
+=============================================================
+STEP 2 — DATABASE CREATION
+=============================================================
+
+Create the following tables if not exist:
+
+TABLE deposits:
+(id, user_id, amount, pix_txid, status, created_at)
+
+TABLE withdrawals:
+(id, user_id, amount, pix_key, status, created_at)
+
+TABLE wallet_balances:
+(user_id PRIMARY KEY, balance)
+
+TABLE odds_freeze:
+(market_id PRIMARY KEY, frozen_until)
+
+=============================================================
+STEP 3 — CREATE BACKEND ROUTES
+=============================================================
+
+POST /deposit/start
+- creates deposit entry with status "pending"
+
+POST /deposit/webhook
+- PIX gateway sends payment confirmation
+- update deposit to "awaiting_approval"
+
+POST /deposit/approve
+- ADMIN ONLY
+- after approving:
+    send POST to x-change:
+        /mint { amount, operationId }
+- update user internal balance
+- mark deposit as "completed"
+
+POST /withdraw/start
+- create withdrawal entry pending admin
+
+POST /withdraw/approve
+- ADMIN ONLY
+- send POST to x-change:
+        /burn { amount, operationId }
+- after success:
+    call PIX payout API to send money to user
+- update user internal balance
+- mark withdrawal completed
+
+=============================================================
+STEP 4 — INTEGRATE X-CHANGE
+=============================================================
+All calls made using:
+
+POST https://x-change-palpites-ai-TheGuima1.replit.app/mint
+POST https://x-change-palpites-ai-TheGuima1.replit.app/burn
+
+Headers:
+x-api-key: process.env.XCHANGE_API_KEY
+
+=============================================================
+STEP 5 — FIX ODDS SYSTEM
+=============================================================
+
+- Fetch Polymarket odds every 60s
+- If price moves ≥ 5%, freeze market for 60s
+- Apply 2% spread: price = price * 0.98
+- Fix inverted SIM/NAO prices
+- Store odds in DB
+- NEVER display Polymarket values to users
+
+=============================================================
+STEP 6 — ADMIN DASHBOARD
+=============================================================
+
+Admin must see:
+
+- pending deposits
+- pending withdrawals
+- approve / reject buttons
+- total internal user balances
+- logs of mint/burn operations
+
+=============================================================
+STEP 7 — SECURITY
+=============================================================
+
+- Admin authentication required
+- Validate inputs
+- Prevent double approval
+- Disable client-side manipulation of balances
+- All balances updated ONLY server-side
+
+=============================================================
+When complete:
+Print: "PALPITESAI FULLY UPDATED".

@@ -99,6 +99,7 @@ export default function AdminPage() {
   const { toast } = useToast();
   const [currentView, setCurrentView] = useState<AdminView>("depositos");
   const [selectedDeposit, setSelectedDeposit] = useState<PendingDeposit | null>(null);
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<any | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   
   // Market creation state
@@ -126,6 +127,11 @@ export default function AdminPage() {
 
   const { data: pendingDeposits } = useQuery<PendingDeposit[]>({
     queryKey: ["/api/deposits/pending"],
+    refetchInterval: 30000,
+  });
+
+  const { data: pendingWithdrawals } = useQuery<any[]>({
+    queryKey: ["/api/withdrawals/pending"],
     refetchInterval: 30000,
   });
 
@@ -179,6 +185,51 @@ export default function AdminPage() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao rejeitar depósito",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const approveWithdrawalMutation = useMutation({
+    mutationFn: async (withdrawalId: string) => {
+      const res = await apiRequest("POST", `/api/withdrawals/${withdrawalId}/approve`, {});
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Saque aprovado!",
+        description: "BRL3 foi queimado e saldo atualizado.",
+      });
+      setSelectedWithdrawal(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/withdrawals/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao aprovar saque",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectWithdrawalMutation = useMutation({
+    mutationFn: async ({ withdrawalId, reason }: { withdrawalId: string; reason?: string }) => {
+      const res = await apiRequest("POST", `/api/withdrawals/${withdrawalId}/reject`, { reason });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Saque rejeitado",
+        description: "O usuário foi notificado sobre a rejeição.",
+      });
+      setSelectedWithdrawal(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/withdrawals/pending"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao rejeitar saque",
         description: error.message,
         variant: "destructive",
       });
@@ -606,6 +657,173 @@ export default function AdminPage() {
                     }}
                     disabled={rejectDepositMutation.isPending}
                     data-testid="button-reject-deposit"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    RECUSAR
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* View: Saques */}
+          {currentView === "saques" && (
+            <div className="space-y-6">
+              <h1 className="text-white text-3xl font-bold">Saques Pendentes</h1>
+
+              <Card className="bg-[#2A2640] border-white/10 overflow-hidden">
+                <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                  <h3 className="text-white font-semibold text-lg">Saques Pendentes</h3>
+                  <ChevronRight className="w-5 h-5 text-white/40" />
+                </div>
+
+                {/* Tabela */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-[#1F1B2E]/50">
+                      <tr className="text-white/60 text-sm">
+                        <th className="px-6 py-4 text-left font-medium">Usuário</th>
+                        <th className="px-6 py-4 text-left font-medium">Valor</th>
+                        <th className="px-6 py-4 text-left font-medium">Chave PIX</th>
+                        <th className="px-6 py-4 text-left font-medium">Data/Hora</th>
+                        <th className="px-6 py-4 text-left font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {pendingWithdrawals?.filter(w => w.status === "pending").map((withdrawal) => (
+                        <tr
+                          key={withdrawal.id}
+                          onClick={() => setSelectedWithdrawal(withdrawal)}
+                          className={`
+                            cursor-pointer transition-colors
+                            ${selectedWithdrawal?.id === withdrawal.id 
+                              ? "bg-primary/10" 
+                              : "hover:bg-white/5"
+                            }
+                          `}
+                          data-testid={`withdrawal-row-${withdrawal.id}`}
+                        >
+                          <td className="px-6 py-4 text-white">{withdrawal.user.username}</td>
+                          <td className="px-6 py-4 text-white font-mono">
+                            {formatBRL3(withdrawal.amount)}
+                          </td>
+                          <td className="px-6 py-4 text-white/60 text-sm font-mono">
+                            {withdrawal.pixKey}
+                          </td>
+                          <td className="px-6 py-4 text-white/60 text-sm">
+                            {new Date(withdrawal.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/20">
+                              PENDENTE
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                      {!pendingWithdrawals || pendingWithdrawals.filter(w => w.status === "pending").length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-white/40">
+                            Nenhum saque pendente
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+
+              {/* Detalhes do Saque */}
+              {selectedWithdrawal && (
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Informações do Saque */}
+                  <Card className="bg-[#2A2640] border-white/10 p-6">
+                    <h3 className="text-white font-semibold mb-6">Informações do Saque</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-white text-2xl font-bold">{selectedWithdrawal.user.username}</p>
+                        <p className="text-white/60 text-sm">{selectedWithdrawal.user.email}</p>
+                      </div>
+                      
+                      <Separator className="bg-white/10" />
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/60">Valor</span>
+                        <span className="text-white font-mono text-xl font-bold">
+                          {formatBRL3(selectedWithdrawal.amount)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/60">Data</span>
+                        <span className="text-white">
+                          {formatDateTimeBR(new Date(selectedWithdrawal.createdAt))}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <span className="text-white/60">Chave PIX</span>
+                        <div className="bg-[#1F1B2E] border border-white/10 rounded-lg p-3">
+                          <p className="text-white font-mono text-sm break-all">
+                            {selectedWithdrawal.pixKey}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Preview */}
+                  <Card className="bg-white border-white/10 p-6">
+                    <h3 className="text-gray-900 font-semibold mb-4">Resumo do Saque</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-gray-900 font-semibold text-lg">
+                          {selectedWithdrawal.user.username}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-900 font-mono text-2xl font-bold">
+                          {formatBRL3(selectedWithdrawal.amount)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 text-sm">
+                          {formatDateTimeBR(new Date(selectedWithdrawal.createdAt))}
+                        </p>
+                      </div>
+                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-xs text-yellow-800">
+                          ⚠️ Ao aprovar, BRL3 será queimado e o saldo do usuário será reduzido.
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Botões de ação */}
+              {selectedWithdrawal && (
+                <div className="flex gap-4">
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-primary hover:bg-primary/90 text-white gap-2"
+                    onClick={() => approveWithdrawalMutation.mutate(selectedWithdrawal.id)}
+                    disabled={approveWithdrawalMutation.isPending}
+                    data-testid="button-approve-withdrawal"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                    APROVAR → Burn BRL3
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="flex-1 border-white/20 text-white hover:bg-white/5"
+                    onClick={() => {
+                      if (confirm("Tem certeza que deseja recusar este saque?")) {
+                        rejectWithdrawalMutation.mutate({ withdrawalId: selectedWithdrawal.id });
+                      }
+                    }}
+                    disabled={rejectWithdrawalMutation.isPending}
+                    data-testid="button-reject-withdrawal"
                   >
                     <XCircle className="w-5 h-5" />
                     RECUSAR
