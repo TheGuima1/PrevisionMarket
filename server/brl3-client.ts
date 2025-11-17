@@ -1,255 +1,122 @@
 // server/brl3-client.ts
-// Cliente HTTP para integração com X-CHANGE (sistema de mint/burn BRL3 via blockchain)
-// X-CHANGE executa operações on-chain na Polygon após receber webhooks do Palpites.AI
+// Integração on-chain com o token BRL3 na Polygon
+// Agora usa polygonClient para mint/burn direto na blockchain (EIP-2612)
 
-const BRL3_API_URL = process.env.BRL3_API_URL?.replace(/^xhttp/, 'http');
-const BRL3_API_KEY = process.env.BRL3_API_KEY;
-const BRL3_ADMIN_EXTERNAL_ID = process.env.BRL3_ADMIN_EXTERNAL_ID;
+import { mintTo, burnWithPermit, mintDual, burnDual, isPolygonEnabled } from './polygonClient';
+import { db } from './db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
-if (BRL3_API_URL && BRL3_API_KEY && BRL3_ADMIN_EXTERNAL_ID) {
-  console.log(`✓ X-CHANGE Integration enabled`);
-} else {
-  console.warn("⚠️  X-CHANGE Integration disabled - missing configuration");
-}
-
-interface XChangeMintPayload {
-  amount: string;
-  user_id: string;
-  deposit_id: string;
-}
-
-interface XChangeBurnPayload {
-  amount: string;
-  user_id: string;
-  withdrawal_id: string;
+/**
+ * Recupera o endereço da carteira Polygon de um usuário a partir de seu ID.
+ * Retorna erro se usuário não tiver carteira configurada.
+ */
+async function getUserWalletAddress(userId: string): Promise<string> {
+  const result = await db
+    .select({ address: users.walletAddress })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  
+  const addr = result?.[0]?.address;
+  if (!addr) {
+    throw new Error(`Usuário ${userId} não possui carteira Polygon configurada. Configure em Perfil.`);
+  }
+  return addr;
 }
 
 /**
- * Envia requisição para X-CHANGE executar MINT on-chain
- * X-CHANGE minta tokens BRL3 imediatamente na blockchain Polygon
- * 
- * @param userId - ID do usuário no Palpites.AI
- * @param amount - Valor em BRL a ser mintado
- * @param depositId - ID único do depósito
+ * Mintar tokens somente para o usuário (versão simples).
+ * A quantidade recebida deve ser um número em BRL; a função converte internamente para unidades do token.
  */
 export async function notifyMintToBRL3(
-  userId: string,
-  amount: number,
+  userId: string, 
+  amount: number, 
   depositId: string
 ): Promise<void> {
-  try {
-    if (!BRL3_API_URL || !BRL3_API_KEY) {
-      console.warn("⚠️  X-CHANGE Integration disabled - mint request skipped");
-      return;
-    }
-
-    const requestBody: XChangeMintPayload = {
-      amount: amount.toFixed(2),
-      user_id: userId,
-      deposit_id: depositId,
-    };
-
-    console.log(`🔄 [X-CHANGE Mint] Calling ${BRL3_API_URL}/mint`);
-    console.log(`📦 [X-CHANGE Mint] Payload:`, JSON.stringify(requestBody, null, 2));
-
-    const res = await fetch(`${BRL3_API_URL}/mint`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": BRL3_API_KEY,
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    const responseText = await res.text();
-    let responseData;
-    
-    try {
-      responseData = JSON.parse(responseText);
-    } catch {
-      responseData = responseText;
-    }
-
-    if (!res.ok) {
-      console.error(`❌ [X-CHANGE Mint] Failed - Status ${res.status}`);
-      console.error(`❌ [X-CHANGE Mint] Response:`, responseData);
-      throw new Error(`X-CHANGE mint failed with status ${res.status}: ${JSON.stringify(responseData)}`);
-    }
-
-    console.log(`✅ [X-CHANGE Mint] Success - Status ${res.status}`);
-    console.log(`✅ [X-CHANGE Mint] Response:`, responseData);
-    console.log(`🔥 [X-CHANGE Mint] Minted ${amount} BRL3 on-chain`);
-    console.log(`📋 [X-CHANGE Mint] Amount: ${amount} BRL | User: ${userId} | Deposit: ${depositId}`);
-    
-    if (responseData && responseData.txHash) {
-      console.log(`🔗 [X-CHANGE Mint] Transaction: ${responseData.txHash}`);
-    }
-  } catch (error) {
-    console.error("❌ [X-CHANGE Mint] Error:", error);
-    if (error instanceof Error) {
-      console.error("❌ [X-CHANGE Mint] Error details:", error.message);
-    }
-    throw error;
+  if (!isPolygonEnabled()) {
+    throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
   }
+
+  const wallet = await getUserWalletAddress(userId);
+  const amountStr = amount.toFixed(2);
+  const txHash = await mintTo(wallet, amountStr);
+  console.log(`✅ [MINT] Depósito ${depositId}: mintado ${amount} tokens para ${wallet}. Tx: ${txHash}`);
 }
 
 /**
- * Envia requisição para X-CHANGE executar BURN on-chain
- * X-CHANGE queima tokens BRL3 imediatamente na blockchain Polygon
- * 
- * @param userId - ID do usuário no Palpites.AI
- * @param amount - Valor em BRL a ser queimado
- * @param withdrawalId - ID único do saque
+ * Burn com permit (usuário paga zero gas). É necessário que, ao solicitar o saque,
+ * o frontend envie a assinatura (v,r,s) e o deadline obtidos do usuário. Para
+ * simplificação, esta função recebe esses dados através do objeto `permitData`.
  */
 export async function notifyBurnToBRL3(
-  userId: string,
-  amount: number,
-  withdrawalId: string
+  userId: string, 
+  amount: number, 
+  withdrawalId: string, 
+  permitData: {deadline: bigint; v: number; r: string; s: string}
 ): Promise<void> {
-  try {
-    if (!BRL3_API_URL || !BRL3_API_KEY) {
-      console.warn("⚠️  X-CHANGE Integration disabled - burn request skipped");
-      return;
-    }
-
-    const requestBody: XChangeBurnPayload = {
-      amount: amount.toFixed(2),
-      user_id: userId,
-      withdrawal_id: withdrawalId,
-    };
-
-    console.log(`🔄 [X-CHANGE Burn] Calling ${BRL3_API_URL}/burn`);
-    console.log(`📦 [X-CHANGE Burn] Payload:`, JSON.stringify(requestBody, null, 2));
-
-    const res = await fetch(`${BRL3_API_URL}/burn`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": BRL3_API_KEY,
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    const responseText = await res.text();
-    let responseData;
-    
-    try {
-      responseData = JSON.parse(responseText);
-    } catch {
-      responseData = responseText;
-    }
-
-    if (!res.ok) {
-      console.error(`❌ [X-CHANGE Burn] Failed - Status ${res.status}`);
-      console.error(`❌ [X-CHANGE Burn] Response:`, responseData);
-      throw new Error(`X-CHANGE burn failed with status ${res.status}: ${JSON.stringify(responseData)}`);
-    }
-
-    console.log(`✅ [X-CHANGE Burn] Success - Status ${res.status}`);
-    console.log(`✅ [X-CHANGE Burn] Response:`, responseData);
-    console.log(`🔥 [X-CHANGE Burn] Burned ${amount} BRL3 on-chain`);
-    console.log(`📋 [X-CHANGE Burn] Amount: ${amount} BRL | User: ${userId} | Withdrawal: ${withdrawalId}`);
-    
-    if (responseData && responseData.txHash) {
-      console.log(`🔗 [X-CHANGE Burn] Transaction: ${responseData.txHash}`);
-    }
-  } catch (error) {
-    console.error("❌ [X-CHANGE Burn] Error:", error);
-    if (error instanceof Error) {
-      console.error("❌ [X-CHANGE Burn] Error details:", error.message);
-    }
-    throw error;
+  if (!isPolygonEnabled()) {
+    throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
   }
+
+  const wallet = await getUserWalletAddress(userId);
+  const amountStr = amount.toFixed(2);
+  const { permitTx, transferTx, burnTx } = await burnWithPermit(
+    wallet, 
+    amountStr, 
+    permitData.deadline, 
+    permitData.v, 
+    permitData.r, 
+    permitData.s
+  );
+  console.log(`✅ [BURN] Saque ${withdrawalId}: burned ${amount} tokens do usuário ${wallet}`);
+  console.log(`   PermitTx: ${permitTx}, TransferTx: ${transferTx}, BurnTx: ${burnTx}`);
 }
 
 /**
- * Executa DUAL MINT (usuário + admin) via X-CHANGE
- * Minta tokens para ambas as wallets na blockchain Polygon
- * 
- * @param userId - ID do usuário depositante
- * @param amount - Valor em BRL a ser mintado para cada wallet
- * @param depositId - ID único do depósito original
+ * DUAL MINT: mintar quantidade `amount` para o usuário e a mesma quantidade para
+ * a carteira do admin. O front-end envia apenas o valor depositado, e esta
+ * função lida com as transações.
  */
 export async function notifyDualMintToBRL3(
-  userId: string,
-  amount: number,
+  userId: string, 
+  amount: number, 
   depositId: string
 ): Promise<void> {
-  if (!BRL3_ADMIN_EXTERNAL_ID) {
-    console.warn("⚠️  BRL3_ADMIN_EXTERNAL_ID not configured - falling back to single mint");
-    await notifyMintToBRL3(userId, amount, depositId);
-    return;
+  if (!isPolygonEnabled()) {
+    throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
   }
 
-  console.log(`🔄 [X-CHANGE Dual Mint] Starting dual mint for ${amount} BRL`);
-  console.log(`👤 [X-CHANGE Dual Mint] User: ${userId}`);
-  console.log(`👤 [X-CHANGE Dual Mint] Admin: ${BRL3_ADMIN_EXTERNAL_ID}`);
-
-  // Mint para o usuário
-  try {
-    await notifyMintToBRL3(userId, amount, `${depositId}_user`);
-    console.log(`✅ [X-CHANGE Dual Mint] User mint completed`);
-  } catch (error) {
-    console.error(`❌ [X-CHANGE Dual Mint] User mint failed`);
-    throw error;
-  }
-
-  // Mint para o admin
-  try {
-    await notifyMintToBRL3(BRL3_ADMIN_EXTERNAL_ID, amount, `${depositId}_admin`);
-    console.log(`✅ [X-CHANGE Dual Mint] Admin mint completed`);
-  } catch (error) {
-    console.error(`❌ [X-CHANGE Dual Mint] Admin mint failed - user mint already completed!`);
-    console.error(`⚠️  [X-CHANGE Dual Mint] Manual check required: verify user mint succeeded`);
-    throw error;
-  }
-
-  console.log(`✅ [X-CHANGE Dual Mint] Both mints completed - ${amount} BRL3 to each wallet`);
-  console.log(`🔥 [X-CHANGE Dual Mint] Total minted on-chain: ${amount * 2} BRL3`);
+  const wallet = await getUserWalletAddress(userId);
+  const amountStr = amount.toFixed(2);
+  const { userTx, adminTx } = await mintDual(wallet, amountStr);
+  console.log(`✅ [DUAL MINT] Depósito ${depositId}: ${amount} tokens para usuário (tx ${userTx}) e ${amount} tokens para admin (tx ${adminTx})`);
 }
 
 /**
- * Executa DUAL BURN (usuário + admin) via X-CHANGE
- * Queima tokens de ambas as wallets na blockchain Polygon
- * 
- * @param userId - ID do usuário solicitante do saque
- * @param amount - Valor em BRL a ser queimado de cada wallet
- * @param withdrawalId - ID único do saque original
+ * DUAL BURN: queima a mesma quantidade de tokens do usuário e do admin. O
+ * usuário assina permit e o admin paga gas. Recebe os dados de assinatura via
+ * `permitData`. Queima primeiro os tokens do usuário e depois os do admin.
  */
 export async function notifyDualBurnToBRL3(
-  userId: string,
-  amount: number,
-  withdrawalId: string
+  userId: string, 
+  amount: number, 
+  withdrawalId: string, 
+  permitData: {deadline: bigint; v: number; r: string; s: string}
 ): Promise<void> {
-  if (!BRL3_ADMIN_EXTERNAL_ID) {
-    console.warn("⚠️  BRL3_ADMIN_EXTERNAL_ID not configured - falling back to single burn");
-    await notifyBurnToBRL3(userId, amount, withdrawalId);
-    return;
+  if (!isPolygonEnabled()) {
+    throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
   }
 
-  console.log(`🔄 [X-CHANGE Dual Burn] Starting dual burn for ${amount} BRL`);
-  console.log(`👤 [X-CHANGE Dual Burn] User: ${userId}`);
-  console.log(`👤 [X-CHANGE Dual Burn] Admin: ${BRL3_ADMIN_EXTERNAL_ID}`);
-
-  // Burn do usuário
-  try {
-    await notifyBurnToBRL3(userId, amount, `${withdrawalId}_user`);
-    console.log(`✅ [X-CHANGE Dual Burn] User burn completed`);
-  } catch (error) {
-    console.error(`❌ [X-CHANGE Dual Burn] User burn failed`);
-    throw error;
-  }
-
-  // Burn do admin
-  try {
-    await notifyBurnToBRL3(BRL3_ADMIN_EXTERNAL_ID, amount, `${withdrawalId}_admin`);
-    console.log(`✅ [X-CHANGE Dual Burn] Admin burn completed`);
-  } catch (error) {
-    console.error(`❌ [X-CHANGE Dual Burn] Admin burn failed - user burn already completed!`);
-    console.error(`⚠️  [X-CHANGE Dual Burn] Manual check required: verify user burn succeeded`);
-    throw error;
-  }
-
-  console.log(`✅ [X-CHANGE Dual Burn] Both burns completed - ${amount} BRL3 from each wallet`);
-  console.log(`🔥 [X-CHANGE Dual Burn] Total burned on-chain: ${amount * 2} BRL3`);
+  const wallet = await getUserWalletAddress(userId);
+  const amountStr = amount.toFixed(2);
+  const { userTxs, adminBurnTx } = await burnDual(
+    wallet, 
+    amountStr, 
+    permitData.deadline, 
+    permitData.v, 
+    permitData.r, 
+    permitData.s
+  );
+  console.log(`✅ [DUAL BURN] Saque ${withdrawalId}: queima ${amount} tokens do usuário (permit ${userTxs.permitTx}, transfer ${userTxs.transferTx}, burn ${userTxs.burnTx}) e ${amount} tokens do admin (burn ${adminBurnTx})`);
 }
