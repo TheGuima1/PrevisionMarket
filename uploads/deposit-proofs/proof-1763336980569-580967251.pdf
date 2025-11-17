@@ -1,0 +1,302 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> >> >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 7124 >>
+stream
+BT
+/F1 10 Tf
+50 770 Td
+() Tj
+50 758 Td
+(BRL3 XChange - Guia de Endpoints e Integração com Palpites.AI) Tj
+50 746 Td
+() Tj
+50 734 Td
+(## Visão Geral) Tj
+50 722 Td
+() Tj
+50 710 Td
+(BRL3 XChange é responsável por mintar e queimar tokens BRL3 na blockchain e manter um registro de) Tj
+50 698 Td
+(saldos internos por usuário. Uma carteira "mãe" \(wallet do administrador\) detém todos os tokens; os) Tj
+50 686 Td
+(usuários não possuem wallets na blockchain. Este guia descreve como expor endpoints para integração) Tj
+50 674 Td
+(com o app Palpites.AI e como estruturar o backend.) Tj
+50 662 Td
+() Tj
+50 650 Td
+(## Estrutura Recomendada) Tj
+50 638 Td
+() Tj
+50 626 Td
+(- Servidor \(Node.js/Express\): expõe APIs REST autenticadas \(`/api/mint`, `/api/burn`,) Tj
+50 614 Td
+(`/api/balance`\).) Tj
+50 602 Td
+(- Banco de dados: tabela `users` \(id, email, balance\), tabela `transactions` \(id, userId, amount,) Tj
+50 590 Td
+(type [mint|burn], txHash, createdAt\).) Tj
+50 578 Td
+(- Integração blockchain: usa `ethers.js` para interagir com o contrato ERC-20 BRL3.) Tj
+50 566 Td
+(- Autenticação: valida requests via chave de API ou JWT; apenas Palpites.AI deve poder chamar) Tj
+50 554 Td
+(`/api/mint` e `/api/burn`.) Tj
+50 542 Td
+() Tj
+50 530 Td
+(## 1. Conexão com a Blockchain) Tj
+50 518 Td
+() Tj
+50 506 Td
+(Inicialize `ethers.js` com as credenciais da carteira admin:) Tj
+50 494 Td
+() Tj
+50 482 Td
+(```) Tj
+50 470 Td
+(const { ethers } = require\('ethers'\);) Tj
+50 458 Td
+(const provider = new ethers.JsonRpcProvider\(process.env.RPC_URL\);) Tj
+50 446 Td
+(const wallet = new ethers.Wallet\(process.env.ADMIN_PRIVATE_KEY, provider\);) Tj
+50 434 Td
+(const tokenAbi = [) Tj
+50 422 Td
+(  'function mint\(address to, uint256 amount\)',) Tj
+50 410 Td
+(  'function burn\(uint256 amount\)',) Tj
+50 398 Td
+(  'function decimals\(\) view returns \(uint8\)') Tj
+50 386 Td
+(];) Tj
+50 374 Td
+(const tokenContract = new ethers.Contract\(process.env.TOKEN_ADDRESS, tokenAbi, wallet\);) Tj
+50 362 Td
+(```) Tj
+50 350 Td
+() Tj
+50 338 Td
+(- `ADMIN_PRIVATE_KEY`: chave privada da carteira mãe.) Tj
+50 326 Td
+(- `RPC_URL`: URL do nó Ethereum/Polygon.) Tj
+50 314 Td
+(- `TOKEN_ADDRESS`: endereço do contrato BRL3.) Tj
+50 302 Td
+() Tj
+50 290 Td
+(## 2. Endpoint POST `/api/mint`) Tj
+50 278 Td
+() Tj
+50 266 Td
+(Recebe `userId` e `amount` e mintará tokens para a carteira admin. O endpoint deve:) Tj
+50 254 Td
+() Tj
+50 242 Td
+(1. Verificar autenticação.) Tj
+50 230 Td
+(2. Localizar \(ou criar\) o usuário na tabela `users`.) Tj
+50 218 Td
+(3. Converter `amount` para unidades do token \(`amount * 10^decimals`\).) Tj
+50 206 Td
+(4. Chamar `tokenContract.mint\(adminWalletAddress, value\)` e aguardar a confirmação \(`tx.wait\(\)`\).) Tj
+50 194 Td
+(5. Atualizar o campo `balance` do usuário \(`user.balance += amount`\).) Tj
+50 182 Td
+(6. Registrar a transação na tabela `transactions`.) Tj
+50 170 Td
+(7. Retornar `success: true` e `txHash`.) Tj
+50 158 Td
+() Tj
+50 146 Td
+(### Exemplo de código Express) Tj
+50 134 Td
+() Tj
+50 122 Td
+(```) Tj
+50 110 Td
+(router.post\('/api/mint', async \(req, res\) => {) Tj
+50 98 Td
+(  const { userId, amount } = req.body;) Tj
+50 86 Td
+(  if \(!req.headers.authorization || req.headers.authorization !== `Bearer ${process.env.API_TOKEN}`\)) Tj
+50 74 Td
+({) Tj
+50 62 Td
+(    return res.status\(401\).json\({ error: 'Não autorizado' }\);) Tj
+50 50 Td
+(  }) Tj
+50 38 Td
+(  if \(!userId || !amount\) return res.status\(400\).json\({ error: 'Campos obrigatórios' }\);) Tj
+50 26 Td
+(  let user = await User.findByPk\(userId\);) Tj
+50 14 Td
+(  if \(!user\) user = await User.create\({ id: userId, balance: 0 }\);) Tj
+50 2 Td
+(  const decimals = await tokenContract.decimals\(\);) Tj
+50 -10 Td
+(  const value = ethers.parseUnits\(amount.toString\(\), decimals\);) Tj
+50 -22 Td
+(  const tx = await tokenContract.mint\(process.env.ADMIN_WALLET, value\);) Tj
+50 -34 Td
+(  await tx.wait\(\);) Tj
+50 -46 Td
+(  user.balance += parseFloat\(amount\);) Tj
+50 -58 Td
+(  await user.save\(\);) Tj
+50 -70 Td
+(  await Transaction.create\({ userId, amount: parseFloat\(amount\), type: 'mint', txHash: tx.hash }\);) Tj
+50 -82 Td
+(  res.json\({ success: true, txHash: tx.hash }\);) Tj
+50 -94 Td
+(}\);) Tj
+50 -106 Td
+(```) Tj
+50 -118 Td
+() Tj
+50 -130 Td
+(## 3. Endpoint POST `/api/burn`) Tj
+50 -142 Td
+() Tj
+50 -154 Td
+(Para saques, receberá `userId` e `amount` e queimará tokens da carteira admin. O fluxo é semelhante) Tj
+50 -166 Td
+(ao mint, porém:) Tj
+50 -178 Td
+() Tj
+50 -190 Td
+(1. Verificar se o usuário possui saldo suficiente \(`user.balance >= amount`\).) Tj
+50 -202 Td
+(2. Chamar `tokenContract.burn\(value\)`.) Tj
+50 -214 Td
+(3. Diminuir o `balance` do usuário e registrar a transação.) Tj
+50 -226 Td
+() Tj
+50 -238 Td
+(## 4. Endpoint GET `/api/balance/:id`) Tj
+50 -250 Td
+() Tj
+50 -262 Td
+(Retorna o saldo interno de um usuário:) Tj
+50 -274 Td
+() Tj
+50 -286 Td
+(```) Tj
+50 -298 Td
+(router.get\('/api/balance/:id', async \(req, res\) => {) Tj
+50 -310 Td
+(  const user = await User.findByPk\(req.params.id\);) Tj
+50 -322 Td
+(  if \(!user\) return res.status\(404\).json\({ balance: 0 }\);) Tj
+50 -334 Td
+(  res.json\({ balance: user.balance }\);) Tj
+50 -346 Td
+(}\);) Tj
+50 -358 Td
+(```) Tj
+50 -370 Td
+() Tj
+50 -382 Td
+(## 5. Segurança) Tj
+50 -394 Td
+() Tj
+50 -406 Td
+(- Use uma chave de API \(`API_TOKEN`\) ou JWT para autenticar chamadas provenientes do Palpites.AI.) Tj
+50 -418 Td
+(- Limite o acesso aos endpoints de mint/burn somente a serviços confiáveis.) Tj
+50 -430 Td
+(- Armazene a chave privada do admin com cuidado \(variáveis de ambiente + cofre seguro\).) Tj
+50 -442 Td
+() Tj
+50 -454 Td
+(## 6. Carteira Mãe) Tj
+50 -466 Td
+() Tj
+50 -478 Td
+(Todos os tokens BRL3 permanecem na carteira `ADMIN_WALLET`. O contrato BRL3 deve permitir que apenas) Tj
+50 -490 Td
+(esta carteira possa mintar e queimar tokens. O campo `balance` no banco de dados representa o saldo) Tj
+50 -502 Td
+(do usuário dentro da plataforma; não há transferência on-chain para outras carteiras.) Tj
+50 -514 Td
+() Tj
+50 -526 Td
+(## 7. Comunicação com Palpites.AI) Tj
+50 -538 Td
+() Tj
+50 -550 Td
+(Forneça a URL base e o token de API para o time do Palpites.AI. Documente as chamadas esperadas:) Tj
+50 -562 Td
+() Tj
+50 -574 Td
+(- **POST /api/mint** - chamado quando o admin aprovar um depósito. Exemplo de corpo:) Tj
+50 -586 Td
+() Tj
+50 -598 Td
+(```) Tj
+50 -610 Td
+({) Tj
+50 -622 Td
+(  "userId": "12345",) Tj
+50 -634 Td
+(  "amount": 100.0) Tj
+50 -646 Td
+(}) Tj
+50 -658 Td
+(```) Tj
+50 -670 Td
+() Tj
+50 -682 Td
+(- **POST /api/burn** - chamado quando um usuário solicitar saque.) Tj
+50 -694 Td
+() Tj
+50 -706 Td
+(- **GET /api/balance/:id** - usado para sincronizar saldos.) Tj
+50 -718 Td
+() Tj
+50 -730 Td
+(Retorne respostas JSON claras e códigos HTTP apropriados.) Tj
+50 -742 Td
+() Tj
+50 -754 Td
+(## 8. Próximos Passos) Tj
+50 -766 Td
+() Tj
+50 -778 Td
+(1. Configurar banco de dados \(SQLite, PostgreSQL etc.\) e modelos `User` e `Transaction`.) Tj
+50 -790 Td
+(2. Implementar autenticação via API token.) Tj
+50 -802 Td
+(3. Testar chamadas locais simulando Palpites.AI.) Tj
+50 -814 Td
+(4. Realizar deploy seguro em ambiente de produção e proteger as chaves.) Tj
+50 -826 Td
+() Tj
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+7487
+%%EOF
