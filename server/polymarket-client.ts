@@ -82,20 +82,6 @@ export async function fetchMarketBySlug(slug: string): Promise<PolymarketMarket>
   }
 }
 
-/**
- * Apply spread to Polymarket price (legacy, kept for backward compat)
- * @param price - Base price (0-1)
- * @param side - 'BUY' or 'SELL'
- * @returns Price with spread applied
- */
-export function applySpread(price: number, side: 'BUY' | 'SELL'): number {
-  const SPREAD = Number(process.env.POLYMARKET_SPREAD || 0.02);
-  const adjusted = side === 'BUY' 
-    ? price * (1 - SPREAD)
-    : price * (1 + SPREAD);
-  
-  return Math.min(0.99, Math.max(0.01, adjusted));
-}
 
 /**
  * Check if Polymarket integration is enabled

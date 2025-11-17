@@ -6,22 +6,10 @@ const BRL3_API_URL = process.env.BRL3_API_URL?.replace(/^xhttp/, 'http');
 const BRL3_API_KEY = process.env.BRL3_API_KEY;
 const BRL3_ADMIN_EXTERNAL_ID = process.env.BRL3_ADMIN_EXTERNAL_ID;
 
-if (!BRL3_API_URL) {
-  console.warn("⚠️  BRL3_API_URL não configurada. Integração com X-CHANGE desativada.");
+if (BRL3_API_URL && BRL3_API_KEY && BRL3_ADMIN_EXTERNAL_ID) {
+  console.log(`✓ X-CHANGE Integration enabled`);
 } else {
-  console.log(`🔗 X-CHANGE Integration: URL configured (${BRL3_API_URL.substring(0, 40)}...)`);
-}
-
-if (!BRL3_API_KEY) {
-  console.warn("⚠️  BRL3_API_KEY não configurada. Integração com X-CHANGE desativada.");
-} else {
-  console.log(`🔑 X-CHANGE Integration: API Key configured (length: ${BRL3_API_KEY.length})`);
-}
-
-if (!BRL3_ADMIN_EXTERNAL_ID) {
-  console.warn("⚠️  BRL3_ADMIN_EXTERNAL_ID não configurada. Dual mint/burn desativado.");
-} else {
-  console.log(`👤 X-CHANGE Integration: Admin wallet configured (${BRL3_ADMIN_EXTERNAL_ID.substring(0, 10)}...)`);
+  console.warn("⚠️  X-CHANGE Integration disabled - missing configuration");
 }
 
 interface XChangeMintPayload {
