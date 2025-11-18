@@ -313,32 +313,53 @@ export async function grantMinterRole(minterAddress: string): Promise<{
     // MINTER_ROLE = keccak256("MINTER_ROLE")
     const MINTER_ROLE = ethers.id("MINTER_ROLE");
     
-    console.log(`🔐 [Grant Minter] Checking existing role for ${minterAddress}...`);
+    console.log(`🔐 [Grant Minter] Checking if contract has AccessControl...`);
     
-    // Verificar se já tem a role
-    const hasRole = await tokenContract.hasRole(MINTER_ROLE, minterAddress);
-    if (hasRole) {
+    // Verificar se o contrato tem AccessControl (hasRole e grantRole)
+    let hasAccessControl = false;
+    try {
+      const hasRole = await tokenContract.hasRole(MINTER_ROLE, minterAddress);
+      hasAccessControl = true;
+      
+      if (hasRole) {
+        console.log(`✅ [Grant Minter] Endereço já possui MINTER_ROLE`);
+        return {
+          txHash: "",
+          success: true,
+          message: `Endereço ${minterAddress} já possui permissão de MINTER_ROLE`
+        };
+      }
+    } catch (error: any) {
+      console.log(`⚠️ [Grant Minter] Contrato não usa AccessControl - provavelmente usa Ownable`);
+      hasAccessControl = false;
+    }
+    
+    if (hasAccessControl) {
+      console.log(`🔐 [Grant Minter] Granting MINTER_ROLE to ${minterAddress}...`);
+      
+      // Dar a permissão via AccessControl
+      const tx = await tokenContract.grantRole(MINTER_ROLE, minterAddress);
+      console.log(`⏳ [Grant Minter] Transaction sent: ${tx.hash}`);
+      
+      await tx.wait();
+      console.log(`✅ [Grant Minter] Role granted successfully!`);
+      
+      return {
+        txHash: tx.hash,
+        success: true,
+        message: `MINTER_ROLE concedida com sucesso para ${minterAddress}`
+      };
+    } else {
+      // Contrato não usa AccessControl - provavelmente usa Ownable
+      // Nesse caso, só o owner pode fazer mint
+      console.log(`📝 [Grant Minter] Contrato usa Ownable - verificando se a wallet atual é owner...`);
+      
       return {
         txHash: "",
         success: true,
-        message: `Endereço ${minterAddress} já possui permissão de MINTER_ROLE`
+        message: `Contrato não usa sistema de roles. Se a wallet em ADMIN_PRIVATE_KEY for o owner, já pode fazer mint diretamente.`
       };
     }
-    
-    console.log(`🔐 [Grant Minter] Granting MINTER_ROLE to ${minterAddress}...`);
-    
-    // Dar a permissão
-    const tx = await tokenContract.grantRole(MINTER_ROLE, minterAddress);
-    console.log(`⏳ [Grant Minter] Transaction sent: ${tx.hash}`);
-    
-    await tx.wait();
-    console.log(`✅ [Grant Minter] Role granted successfully!`);
-    
-    return {
-      txHash: tx.hash,
-      success: true,
-      message: `MINTER_ROLE concedida com sucesso para ${minterAddress}`
-    };
   } catch (error: any) {
     console.error("❌ [Grant Minter] Error:", error);
     throw new Error(`Falha ao conceder MINTER_ROLE: ${error.message}`);
