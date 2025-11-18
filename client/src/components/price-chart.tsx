@@ -24,11 +24,14 @@ interface HistoricalDataPoint {
 }
 
 const COLORS = [
-  'hsl(var(--chart-1))',
-  'hsl(var(--chart-2))',
-  'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))',
+  '#22c55e',
+  '#3b82f6',
+  '#a855f7',
+  '#f59e0b',
+  '#ef4444',
+  '#06b6d4',
+  '#ec4899',
+  '#84cc16',
 ];
 
 export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartProps) {
@@ -174,37 +177,49 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
       <div className="w-full h-96 bg-card rounded-lg border border-border p-4">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              stroke="hsl(var(--border))" 
+              opacity={0.2}
+              vertical={false}
+            />
             <XAxis 
               dataKey="time" 
               stroke="hsl(var(--muted-foreground))"
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+              axisLine={{ stroke: 'hsl(var(--border))' }}
             />
             <YAxis 
               stroke="hsl(var(--muted-foreground))"
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
               domain={[0, 100]}
               tickFormatter={(value) => `${value}%`}
+              axisLine={{ stroke: 'hsl(var(--border))' }}
             />
             <Tooltip 
               contentStyle={{
                 backgroundColor: 'hsl(var(--card))',
                 border: '1px solid hsl(var(--border))',
                 borderRadius: '8px',
+                padding: '8px 12px',
               }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
-              formatter={(value: number) => [`${value.toFixed(2)}%`, '']}
+              labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '4px' }}
+              formatter={(value: number, name: string) => [`${value.toFixed(1)}%`, name]}
             />
-            <Legend />
+            <Legend 
+              wrapperStyle={{ paddingTop: '16px' }}
+              iconType="line"
+            />
             {outcomeNames.map((name, index) => (
               <Line
                 key={name}
                 type="monotone"
                 dataKey={name}
                 stroke={COLORS[index % COLORS.length]}
-                strokeWidth={2}
+                strokeWidth={3}
                 dot={false}
                 name={name}
+                activeDot={{ r: 6, strokeWidth: 2 }}
               />
             ))}
           </LineChart>
