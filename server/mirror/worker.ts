@@ -108,7 +108,15 @@ export async function pollOnce(): Promise<void> {
     }
   }
   
-  // Step 3: Sync AMM market reserves (non-blocking, won't affect mirror updates)
+  // Step 3a: Sync Polymarket mirror markets (origin="polymarket")
+  try {
+    const { syncPolymarketMirrorsFromCache } = await import('../polymarket-sync');
+    await syncPolymarketMirrorsFromCache(fetchCache);
+  } catch (error) {
+    console.error('[Mirror Worker] Polymarket mirror sync failed (non-critical):', error);
+  }
+  
+  // Step 3b: Sync AMM market reserves (origin="local" with polymarketSlug)
   try {
     await syncAMMMarketsWithPolymarket(fetchCache);
   } catch (error) {

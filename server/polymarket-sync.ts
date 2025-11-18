@@ -110,3 +110,80 @@ export async function getPolymarketMarkets() {
     .from(markets)
     .where(eq(markets.origin, 'polymarket'));
 }
+
+/**
+ * Sync all Polymarket mirror markets using cached fetch results from mirror worker
+ * Updates reserves and price changes for all markets with origin="polymarket"
+ * 
+ * @param fetchCache - Cache of Polymarket fetch results (from mirror worker)
+ */
+export async function syncPolymarketMirrorsFromCache(
+  fetchCache: Map<string, { probYes: number; title: string; volumeUsd?: number; oneDayPriceChange?: number; oneWeekPriceChange?: number }>
+): Promise<void> {
+  try {
+    // Get all Polymarket mirror markets
+    const polymarketMarkets = await db
+      .select()
+      .from(markets)
+      .where(eq(markets.origin, 'polymarket'));
+    
+    if (polymarketMarkets.length === 0) {
+      return;
+    }
+    
+    console.log(`[Polymarket Sync] Syncing ${polymarketMarkets.length} mirror markets from cache...`);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const market of polymarketMarkets) {
+      if (!market.polymarketSlug) continue;
+      
+      try {
+        // Get data from cache (already fetched by mirror worker)
+        const polyData = fetchCache.get(market.polymarketSlug);
+        if (!polyData) {
+          // Skip if not in cache
+          continue;
+        }
+        
+        // Bootstrap reserves from Polymarket odds
+        const safeProb = Math.max(0.01, Math.min(0.99, polyData.probYes));
+        const probNo = 1 - safeProb;
+        const LIQUIDITY_SCALE = 10000;
+        
+        const yesReserve = Number((safeProb * LIQUIDITY_SCALE).toFixed(2));
+        const noReserve = Number((probNo * LIQUIDITY_SCALE).toFixed(2));
+        const k = Number((yesReserve * noReserve).toFixed(4));
+        const seedLiquidity = Number((yesReserve + noReserve).toFixed(2));
+        
+        // Update market reserves and price changes
+        await db
+          .update(markets)
+          .set({
+            yesReserve: yesReserve.toString(),
+            noReserve: noReserve.toString(),
+            k: k.toString(),
+            seedLiquidity: seedLiquidity.toString(),
+            totalVolume: polyData.volumeUsd?.toString(),
+            oneDayPriceChange: polyData.oneDayPriceChange?.toString(),
+            oneWeekPriceChange: polyData.oneWeekPriceChange?.toString(),
+          })
+          .where(eq(markets.id, market.id));
+        
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[Polymarket Sync] ✗ ${market.title}: ${errMsg}`);
+      }
+    }
+    
+    if (successCount > 0 || errorCount > 0) {
+      console.log(`[Polymarket Sync] Complete: ${successCount} updated, ${errorCount} errors`);
+    }
+  } catch (error) {
+    // Non-critical error - log and continue
+    console.error('[Polymarket Sync] Critical error (non-blocking):', error);
+  }
+}

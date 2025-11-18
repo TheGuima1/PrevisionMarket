@@ -90,11 +90,14 @@ export async function seed() {
         tags: marketMeta.tags,
         resolutionSource: marketMeta.resolutionSource,
         endDate: marketMeta.endDate,
+        origin: "polymarket", // CRITICAL: Markets must have origin="polymarket" for mirror worker
         polymarketSlug: marketMeta.polymarketSlug,
         yesReserve: yesReserve.toFixed(2),
         noReserve: noReserve.toFixed(2),
         k: k.toFixed(4),
         seedLiquidity: seedLiquidity.toFixed(2),
+        oneDayPriceChange: polyData.oneDayPriceChange?.toFixed(4),
+        oneWeekPriceChange: polyData.oneWeekPriceChange?.toFixed(4),
       }).returning();
       
       createdMarkets.push(created);
