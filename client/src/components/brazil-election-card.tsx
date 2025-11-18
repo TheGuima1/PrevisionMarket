@@ -89,7 +89,7 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
             <div 
               key={market.id} 
               className="p-4 hover-elevate active-elevate-2 transition-colors cursor-pointer"
-              onClick={() => setLocation(`/market/${market.id}`)}
+              onClick={() => setLocation('/event/brazil-election-2026')}
               data-testid={`row-candidate-${candidateSlug}`}
             >
               <div className="flex items-center justify-between gap-4">

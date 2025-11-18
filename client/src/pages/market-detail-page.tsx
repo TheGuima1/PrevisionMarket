@@ -62,6 +62,16 @@ export default function MarketDetailPage() {
     enabled: !!marketId,
   });
 
+  // Check if this market is part of an event (e.g., Brazil Election)
+  // If so, redirect to event page for better UX with all alternatives
+  const isBrazilElectionMarket = market?.polymarketSlug?.includes('brazil-election-2026');
+  
+  if (market && isBrazilElectionMarket) {
+    // Redirect to event page instead of showing individual market
+    setLocation('/event/brazil-election-2026');
+    return null;
+  }
+
   const { data: comments } = useQuery<(CommentType & { user: { username: string } })[]>({
     queryKey: ["/api/comments", marketId],
     enabled: !!marketId,

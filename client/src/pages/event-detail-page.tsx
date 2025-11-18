@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getYesPriceFromReserves } from "@shared/utils/odds";
 import type { Market } from "@shared/schema";
+import { useState } from "react";
 
 interface EventData {
   id: string;
@@ -26,6 +27,7 @@ interface EventData {
 export default function EventDetailPage() {
   const [match, params] = useRoute("/event/:slug");
   const [, setLocation] = useLocation();
+  const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
 
   // Fetch event with all alternatives
   const { data: event, isLoading } = useQuery<EventData>({
@@ -74,8 +76,10 @@ export default function EventDetailPage() {
   // Sort by percentage (descending)
   const sortedAlternatives = [...alternativesWithPrices].sort((a, b) => b.percentage - a.percentage);
 
-  // Get the primary market (first one) for the trade panel
-  const primaryMarket = sortedAlternatives[0];
+  // Get the market for trade panel (selected or first one)
+  const displayMarket = selectedMarketId 
+    ? sortedAlternatives.find(m => m.id === selectedMarketId) || sortedAlternatives[0]
+    : sortedAlternatives[0];
 
   return (
     <div className="min-h-screen bg-background">
@@ -147,11 +151,14 @@ export default function EventDetailPage() {
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4">Candidatos</h2>
               <div className="space-y-3">
-                {sortedAlternatives.map((alt, index) => (
-                  <div
+                {sortedAlternatives.map((alt, index) => {
+                  const isSelected = alt.id === displayMarket.id;
+                  return (<div
                     key={alt.id}
-                    className="flex items-center justify-between gap-4 p-4 rounded-lg border border-border hover-elevate cursor-pointer"
-                    onClick={() => setLocation(`/market/${alt.id}`)}
+                    className={`flex items-center justify-between gap-4 p-4 rounded-lg border ${
+                      isSelected ? 'border-primary bg-primary/5' : 'border-border'
+                    } hover-elevate cursor-pointer transition-colors`}
+                    onClick={() => setSelectedMarketId(alt.id)}
                     data-testid={`alternative-${index}`}
                   >
                     {/* Left: Name and Volume */}
@@ -187,7 +194,10 @@ export default function EventDetailPage() {
                         className="bg-green-600 hover:bg-green-700 text-white min-w-[100px]"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setLocation(`/market/${alt.id}`);
+                          setSelectedMarketId(alt.id);
+                          // Scroll to trade panel on mobile
+                          const tradePanel = document.querySelector('[data-trade-panel]');
+                          tradePanel?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         }}
                         data-testid={`button-buy-yes-${index}`}
                       >
@@ -199,23 +209,26 @@ export default function EventDetailPage() {
                         className="border-red-600 text-red-600 hover:bg-red-600/10 min-w-[100px]"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setLocation(`/market/${alt.id}`);
+                          setSelectedMarketId(alt.id);
+                          // Scroll to trade panel on mobile
+                          const tradePanel = document.querySelector('[data-trade-panel]');
+                          tradePanel?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         }}
                         data-testid={`button-buy-no-${index}`}
                       >
                         Buy No {((1 - alt.yesPrice) * 100).toFixed(0)}¢
                       </Button>
                     </div>
-                  </div>
-                ))}
+                  </div>);
+              })}
               </div>
             </Card>
           </div>
 
           {/* Right Column - Trade Panel */}
           <div className="lg:col-span-1">
-            <div className="sticky top-6">
-              <TradePanel market={primaryMarket} />
+            <div className="sticky top-6" data-trade-panel>
+              <TradePanel market={displayMarket} />
             </div>
           </div>
         </div>
