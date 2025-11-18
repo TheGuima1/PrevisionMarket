@@ -115,7 +115,7 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
             <div 
               key={market.id} 
               className="p-4 hover:bg-white/5 transition-colors cursor-pointer"
-              onClick={() => setLocation(`/market/${market.id}`)}
+              onClick={() => setLocation('/brazil-election-2026')}
               data-testid={`row-candidate-${candidateSlug}`}
             >
               <div className="flex items-center justify-between gap-4">
@@ -173,7 +173,7 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
                     className="bg-[#10B981]/10 border-[#10B981]/30 text-[#10B981] hover:bg-[#10B981]/20 h-8 px-3 text-xs font-medium"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setLocation(`/market/${market.id}`);
+                      setLocation('/brazil-election-2026');
                     }}
                     data-testid={`button-buy-yes-${candidateSlug}`}
                   >
@@ -185,7 +185,7 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
                     className="bg-[#EF4444]/10 border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/20 h-8 px-3 text-xs font-medium"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setLocation(`/market/${market.id}`);
+                      setLocation('/brazil-election-2026');
                     }}
                     data-testid={`button-buy-no-${candidateSlug}`}
                   >
