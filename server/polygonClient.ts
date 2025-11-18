@@ -69,6 +69,17 @@ export function isPolygonEnabled(): boolean {
 }
 
 /**
+ * Retorna o endereço da carteira do admin.
+ * Use para mint/burn operations que devem sempre ir para admin wallet.
+ */
+export function getAdminAddress(): string {
+  if (!adminWallet) {
+    throw new Error("Admin wallet not initialized - verifique ADMIN_PRIVATE_KEY");
+  }
+  return adminWallet.address;
+}
+
+/**
  * Retorna o endereço do contrato BRL3
  */
 export function getTokenContractAddress(): string {

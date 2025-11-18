@@ -2,7 +2,7 @@
 // Integração on-chain com o token BRL3 na Polygon
 // Agora usa polygonClient para mint/burn direto na blockchain (EIP-2612)
 
-import { mintTo, burnFromAdmin, isPolygonEnabled } from './polygonClient';
+import { mintTo, burnFromAdmin, isPolygonEnabled, getAdminAddress } from './polygonClient';
 import { db } from './db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -27,7 +27,8 @@ async function getUserWalletAddress(userId: string): Promise<string> {
 }
 
 /**
- * Mintar tokens somente para o usuário (versão simples).
+ * Mintar tokens para a carteira do ADMIN (admin-only custody).
+ * Usuário recebe saldo no database, mas tokens ficam na admin wallet.
  * A quantidade recebida deve ser um número em BRL; a função converte internamente para unidades do token.
  */
 export async function notifyMintToBRL3(
@@ -49,8 +50,9 @@ export async function notifyMintToBRL3(
       throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
     }
 
-    const wallet = await getUserWalletAddress(userId);
-    const txHash = await mintTo(wallet, amountStr);
+    // ADMIN-ONLY CUSTODY: Sempre mintar para admin wallet
+    const adminAddress = getAdminAddress();
+    const txHash = await mintTo(adminAddress, amountStr);
     
     await storage.updateOnchainOperation(onchainOp.id, {
       txHash,
@@ -58,7 +60,7 @@ export async function notifyMintToBRL3(
       confirmedAt: new Date(),
     });
     
-    console.log(`✅ [MINT] Depósito ${depositId}: mintado ${amount} tokens para ${wallet}. Tx: ${txHash}`);
+    console.log(`✅ [MINT ADMIN-ONLY] Depósito ${depositId}: mintado ${amount} BRL3 tokens para admin wallet ${adminAddress}. Tx: ${txHash}`);
   } catch (error: any) {
     await storage.updateOnchainOperation(onchainOp.id, {
       status: "failed",
