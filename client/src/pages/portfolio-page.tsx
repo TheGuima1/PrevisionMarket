@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, DollarSign, Settings, AlertCircle, Info } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, DollarSign, Settings, AlertCircle, Info, Copy, Check } from "lucide-react";
 import type { Position, Market, Transaction } from "@shared/schema";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -29,6 +29,7 @@ export default function PortfolioPage() {
   const [depositProofFile, setDepositProofFile] = useState<File | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [pixKey, setPixKey] = useState("");
+  const [cnpjCopied, setCnpjCopied] = useState(false);
   
   // Loading states para MetaMask/Polygon
   const [isSigningPermit, setIsSigningPermit] = useState(false);
@@ -232,6 +233,26 @@ export default function PortfolioPage() {
       });
     } finally {
       setIsSwitchingNetwork(false);
+    }
+  };
+
+  // Função para copiar CNPJ
+  const handleCopyCnpj = async () => {
+    const cnpj = "60.028.471/0001-30";
+    try {
+      await navigator.clipboard.writeText(cnpj);
+      setCnpjCopied(true);
+      toast({
+        title: "CNPJ copiado!",
+        description: "Cole no app do seu banco para fazer o PIX",
+      });
+      setTimeout(() => setCnpjCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Tente copiar manualmente: 60.028.471/0001-30",
+        variant: "destructive",
+      });
     }
   };
 
@@ -444,6 +465,38 @@ export default function PortfolioPage() {
                         Envie o comprovante PIX. Seu depósito será aprovado pelo admin e o BRL3 será mintado on-chain.
                       </p>
                     </div>
+
+                    <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 space-y-3 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Wallet className="h-4 w-4 text-primary" />
+                        <span className="font-medium text-white">Destinatário do PIX</span>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-purple-light text-xs">CNPJ</Label>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 font-mono text-white text-sm">
+                            60.028.471/0001-30
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handleCopyCnpj}
+                            className="border-primary/50 hover:bg-primary/10 flex-shrink-0"
+                            data-testid="button-copy-cnpj"
+                          >
+                            {cnpjCopied ? (
+                              <Check className="h-4 w-4 text-primary" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-purple-muted">
+                          Use este CNPJ como destinatário no app do seu banco
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="deposit-pix" className="text-white">Valor em R$</Label>
                       <Input
