@@ -19,7 +19,7 @@ export interface MarketMetadata {
 }
 
 /**
- * Os 3 mercados da Palpites.AI
+ * Os 7 mercados da Palpites.AI
  * IMPORTANTE: Número de mercados = número de slugs (sempre 1:1)
  */
 export const PALPITES_MARKETS: MarketMetadata[] = [
@@ -49,6 +49,42 @@ export const PALPITES_MARKETS: MarketMetadata[] = [
     tags: ["Fed", "Emergency", "Rate Cut"],
     resolutionSource: "Federal Reserve",
     endDate: new Date("2025-12-31T23:59:59Z"),
+  },
+  {
+    polymarketSlug: "brazil-election-2026-lula",
+    title: "Lula vencerá as eleições presidenciais brasileiras de 2026?",
+    description: "Mercado espelhado do Polymarket sobre as eleições presidenciais brasileiras de 2026. Será resolvido como SIM se Luiz Inácio Lula da Silva vencer as eleições. NÃO caso contrário.",
+    category: "politics",
+    tags: ["Eleição Brasil 2026", "Política", "Brasil"],
+    resolutionSource: "Polymarket",
+    endDate: new Date("2026-10-04T23:59:59Z"),
+  },
+  {
+    polymarketSlug: "brazil-election-2026-tarcisio",
+    title: "Tarcísio de Freitas vencerá as eleições presidenciais brasileiras de 2026?",
+    description: "Mercado espelhado do Polymarket sobre as eleições presidenciais brasileiras de 2026. Será resolvido como SIM se Tarcísio de Freitas vencer as eleições. NÃO caso contrário.",
+    category: "politics",
+    tags: ["Eleição Brasil 2026", "Política", "Brasil"],
+    resolutionSource: "Polymarket",
+    endDate: new Date("2026-10-04T23:59:59Z"),
+  },
+  {
+    polymarketSlug: "brazil-election-2026-haddad",
+    title: "Fernando Haddad vencerá as eleições presidenciais brasileiras de 2026?",
+    description: "Mercado espelhado do Polymarket sobre as eleições presidenciais brasileiras de 2026. Será resolvido como SIM se Fernando Haddad vencer as eleições. NÃO caso contrário.",
+    category: "politics",
+    tags: ["Eleição Brasil 2026", "Política", "Brasil"],
+    resolutionSource: "Polymarket",
+    endDate: new Date("2026-10-04T23:59:59Z"),
+  },
+  {
+    polymarketSlug: "brazil-election-2026-renan",
+    title: "Renan Santos vencerá as eleições presidenciais brasileiras de 2026?",
+    description: "Mercado espelhado do Polymarket sobre as eleições presidenciais brasileiras de 2026. Será resolvido como SIM se Renan Santos vencer as eleições. NÃO caso contrário.",
+    category: "politics",
+    tags: ["Eleição Brasil 2026", "Política", "Brasil"],
+    resolutionSource: "Polymarket",
+    endDate: new Date("2026-10-04T23:59:59Z"),
   },
 ];
 

@@ -91,13 +91,94 @@ export default function HomePage() {
             </div>
           )}
 
-          {!isLoading && !error && markets && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="grid-markets">
-              {markets.map((market) => (
-                <MarketCard key={market.id} market={market} isPublic />
-              ))}
-            </div>
-          )}
+          {!isLoading && !error && markets && (() => {
+            // Group Brazil Election markets
+            const brazilElectionMarkets = markets.filter(m => 
+              m.tags?.includes('Eleição Brasil 2026')
+            );
+            const otherMarkets = markets.filter(m => 
+              !m.tags?.includes('Eleição Brasil 2026')
+            );
+            
+            return (
+              <div className="space-y-8">
+                {/* Brazil Election 2026 - Special Card */}
+                {brazilElectionMarkets.length > 0 && (
+                  <div className="glass-card rounded-2xl p-6 border border-glow hover:border-glow-bright transition-all">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h3 className="text-2xl font-bold text-white mb-1">
+                          Eleição Presidencial Brasil 2026
+                        </h3>
+                        <p className="text-purple-light text-sm">
+                          Quem vencerá as eleições? Sincronizado com Polymarket
+                        </p>
+                      </div>
+                      <span className="px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-semibold">
+                        {brazilElectionMarkets.length} candidatos
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {brazilElectionMarkets.map((market) => {
+                        const probYes = parseFloat(market.yesReserve) / 
+                          (parseFloat(market.yesReserve) + parseFloat(market.noReserve));
+                        const percentage = (probYes * 100).toFixed(1);
+                        
+                        // Extract candidate name from title
+                        const candidateName = market.title.split(' vencerá')[0];
+                        
+                        return (
+                          <button
+                            key={market.id}
+                            onClick={() => setLocation(`/market/${market.id}`)}
+                            className="glass-card rounded-xl p-4 text-left hover:border-glow-bright transition-all group"
+                            data-testid={`card-election-${market.id}`}
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-start justify-between">
+                                <h4 className="font-semibold text-white group-hover:text-primary transition-colors line-clamp-2">
+                                  {candidateName}
+                                </h4>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-3xl font-bold text-primary">
+                                    {percentage}%
+                                  </span>
+                                  <span className="text-xs text-purple-light">
+                                    chance
+                                  </span>
+                                </div>
+                                
+                                {/* Progress bar */}
+                                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-gradient-purple transition-all duration-300"
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Other Markets */}
+                {otherMarkets.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="grid-markets">
+                    {otherMarkets.map((market) => (
+                      <MarketCard key={market.id} market={market} isPublic />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {!isLoading && !error && (!markets || markets.length === 0) && (
             <div className="text-center py-16 space-y-4">
