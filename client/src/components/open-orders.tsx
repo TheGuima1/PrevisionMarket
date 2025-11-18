@@ -38,7 +38,7 @@ export function OpenOrders() {
         description: "Sua ordem foi cancelada com sucesso",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/clob/my-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
     },
     onError: (error: Error) => {
       toast({

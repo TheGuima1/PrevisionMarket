@@ -62,7 +62,6 @@ export default function ProfilePage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Carteira atualizada!",
         description: `Endereço ${data.walletAddress.slice(0, 6)}...${data.walletAddress.slice(-4)} salvo com sucesso.`,

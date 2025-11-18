@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Market } from "@shared/schema";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TrendingUp, TrendingDown, HelpCircle, Loader2 } from "lucide-react";
@@ -38,13 +38,20 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const { toast } = useToast();
 
+  const { data: fetchedUser } = useQuery<{ balanceBrl: string; balanceUsdc: string }>({
+    queryKey: ["/api/user/profile"],
+    enabled: !userBalance,
+  });
+
+  const effectiveUserBalance = userBalance || fetchedUser;
+
   const probability = orderType === "yes" 
     ? getYesPriceFromReserves(market.yesReserve, market.noReserve)
     : getNoPriceFromReserves(market.yesReserve, market.noReserve);
   const odds = probToOdds(probability);
   
   const stakeBRL = amountBRL ? parseFloat(amountBRL) : 0;
-  const availableBalance = userBalance?.balanceBrl ? parseFloat(userBalance.balanceBrl) : 0;
+  const availableBalance = effectiveUserBalance?.balanceBrl ? parseFloat(effectiveUserBalance.balanceBrl) : 0;
   const hasInsufficientBalance = stakeBRL > availableBalance;
   const isValidAmount = stakeBRL > 0;
   
@@ -114,7 +121,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/markets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
     },
     onError: (error: Error) => {
       toast({
@@ -399,7 +406,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
       <div className="pt-4 border-t">
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>Saldo BRL3:</span>
-          <span className="font-medium">{formatBRL3(parseFloat(userBalance?.balanceBrl || "0"))}</span>
+          <span className="font-medium">{formatBRL3(parseFloat(effectiveUserBalance?.balanceBrl || "0"))}</span>
         </div>
       </div>
     </Card>

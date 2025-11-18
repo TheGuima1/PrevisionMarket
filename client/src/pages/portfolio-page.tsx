@@ -112,7 +112,7 @@ export default function PortfolioPage() {
     onSuccess: () => {
       setWithdrawAmount("");
       setPixKey("");
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
       toast({
         title: "Solicitação enviada!",

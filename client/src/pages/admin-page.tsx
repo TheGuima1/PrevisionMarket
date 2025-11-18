@@ -118,7 +118,7 @@ export default function AdminPage() {
 
   // Queries
   const { data: adminUser } = useQuery<AdminUser>({
-    queryKey: ["/api/user"],
+    queryKey: ["/api/user/profile"],
   });
 
   const { data: markets } = useQuery<Market[]>({

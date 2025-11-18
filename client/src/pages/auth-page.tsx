@@ -35,7 +35,7 @@ export default function AuthPage() {
       return await res.json();
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["/api/user"], data);
+      queryClient.setQueryData(["/api/user/profile"], data);
       setAdminDialogOpen(false);
       setAdminPassword("");
       setLocation("/admin");

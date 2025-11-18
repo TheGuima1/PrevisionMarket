@@ -34,8 +34,8 @@ export function UsernameSetupModal({ open, onSuccess }: UsernameSetupModalProps)
         title: "Username definido!",
         description: `Bem-vindo, @${username}`,
       });
-      queryClient.setQueryData(["/api/user"], data);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.setQueryData(["/api/user/profile"], data);
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
       onSuccess();
     },
     onError: (error: Error) => {
