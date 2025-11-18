@@ -11,22 +11,6 @@ declare module 'http' {
     rawBody: unknown
   }
 }
-// Validate critical Polygon environment variables on startup
-const requiredPolygonVars = [
-  'POLYGON_RPC_URL',
-  'ADMIN_PRIVATE_KEY', 
-  'TOKEN_CONTRACT_ADDRESS',
-  'TOKEN_DECIMALS'
-];
-
-const missingVars = requiredPolygonVars.filter(varName => !process.env[varName]);
-if (missingVars.length > 0) {
-  console.warn(`⚠️  WARNING: Missing Polygon environment variables: ${missingVars.join(', ')}`);
-  console.warn(`⚠️  Deposit/withdrawal approvals will FAIL without these variables!`);
-  console.warn(`⚠️  Please configure all required variables before approving transactions.`);
-} else {
-  console.log(`✅ Polygon environment variables validated`);
-}
 
 app.use(express.json({
   verify: (req, _res, buf) => {
