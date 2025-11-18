@@ -12,7 +12,7 @@ import * as AMM from "./amm-engine";
 import { startPolymarketSnapshots } from "./polymarket-cron";
 import { getSnapshot } from "./mirror/state";
 import { startMirror } from "./mirror/worker";
-import { notifyMintToBRL3, notifyBurnToBRL3, notifyDualMintToBRL3, notifyDualBurnToBRL3 } from "./brl3-client";
+import { notifyMintToBRL3, notifyBurnToBRL3 } from "./brl3-client";
 import { fetchPolyBySlug } from "./mirror/adapter";
 import multer from "multer";
 import path from "path";
@@ -1126,11 +1126,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Depósito aprovado: ${depositAmount} ${deposit.currency}`,
       });
 
-      // Integração com BRL3 (3BIT XChange) - DUAL MINT para depósitos em BRL via PIX
-      // Tanto o usuário quanto o admin recebem a mesma quantidade de tokens
+      // Integração com BRL3 - MINT simples para admin wallet (usuários têm apenas saldo no DB)
+      // Admin recebe tokens on-chain, usuário recebe saldo interno no database
       if (deposit.currency === "BRL") {
-        console.log(`🔄 [Deposit Approve] Calling X-CHANGE DUAL MINT for ${depositAmount} BRL`);
-        await notifyDualMintToBRL3(deposit.userId, depositAmount, depositId);
+        console.log(`🔄 [Deposit Approve] Calling BRL3 MINT (admin-only) for ${depositAmount} BRL`);
+        await notifyMintToBRL3(deposit.userId, depositAmount, depositId);
       }
 
       console.log(`✅ [Deposit Approve] Success - returning JSON response`);
@@ -1325,29 +1325,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Saque aprovado: ${withdrawAmount} ${withdrawal.currency} para ${withdrawal.pixKey}`,
       });
 
-      // Integração Polygon - DUAL BURN para saques em BRL via PIX
-      // Usuário assinou permit (EIP-2612) e admin paga gas
+      // Integração com BRL3 - BURN simples da admin wallet (usuários têm apenas saldo no DB)
+      // Admin burna tokens de sua wallet on-chain, usuário perde saldo interno no database
       if (withdrawal.currency === "BRL") {
-        console.log(`🔄 [Withdrawal Approve] Calling Polygon DUAL BURN for ${withdrawAmount} BRL`);
-        
-        // Verificar se usuário tem carteira Polygon configurada
-        if (!withdrawUser.walletAddress) {
-          return res.status(400).send("Usuário não possui carteira Polygon configurada. Solicite ao usuário configurar a carteira no perfil.");
-        }
-        
-        // Verificar se temos os dados de assinatura permit
-        if (!withdrawal.permitDeadline || !withdrawal.permitV || !withdrawal.permitR || !withdrawal.permitS) {
-          return res.status(400).send("Dados de assinatura permit ausentes. O usuário precisa assinar novamente a transação.");
-        }
-        
-        const permitData = {
-          deadline: BigInt(withdrawal.permitDeadline),
-          v: withdrawal.permitV,
-          r: withdrawal.permitR,
-          s: withdrawal.permitS,
-        };
-        
-        await notifyDualBurnToBRL3(withdrawal.userId, withdrawAmount, withdrawalId, permitData);
+        console.log(`🔄 [Withdrawal Approve] Calling BRL3 BURN (admin-only) for ${withdrawAmount} BRL`);
+        await notifyBurnToBRL3(withdrawal.userId, withdrawAmount, withdrawalId);
       }
 
       console.log(`✅ [Withdrawal Approve] Success - returning JSON response`);

@@ -2,7 +2,7 @@
 // Integração on-chain com o token BRL3 na Polygon
 // Agora usa polygonClient para mint/burn direto na blockchain (EIP-2612)
 
-import { mintTo, burnWithPermit, mintDual, burnDual, isPolygonEnabled } from './polygonClient';
+import { mintTo, burnFromAdmin, burnWithPermit, mintDual, burnDual, isPolygonEnabled } from './polygonClient';
 import { db } from './db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -69,15 +69,13 @@ export async function notifyMintToBRL3(
 }
 
 /**
- * Burn com permit (usuário paga zero gas). É necessário que, ao solicitar o saque,
- * o frontend envie a assinatura (v,r,s) e o deadline obtidos do usuário. Para
- * simplificação, esta função recebe esses dados através do objeto `permitData`.
+ * Burn simples da admin wallet (admin-only). Usuário recebe PIX, admin burna tokens
+ * de sua própria wallet on-chain. Usuário não precisa de wallet Polygon configurada.
  */
 export async function notifyBurnToBRL3(
   userId: string, 
   amount: number, 
-  withdrawalId: string, 
-  permitData: {deadline: bigint; v: number; r: string; s: string}
+  withdrawalId: string
 ): Promise<void> {
   const amountStr = amount.toFixed(2);
   
@@ -93,24 +91,15 @@ export async function notifyBurnToBRL3(
       throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
     }
 
-    const wallet = await getUserWalletAddress(userId);
-    const { permitTx, transferTx, burnTx } = await burnWithPermit(
-      wallet, 
-      amountStr, 
-      permitData.deadline, 
-      permitData.v, 
-      permitData.r, 
-      permitData.s
-    );
+    const txHash = await burnFromAdmin(amountStr);
     
     await storage.updateOnchainOperation(onchainOp.id, {
-      txHash: burnTx,
+      txHash,
       status: "confirmed",
       confirmedAt: new Date(),
     });
     
-    console.log(`✅ [BURN] Saque ${withdrawalId}: burned ${amount} tokens do usuário ${wallet}`);
-    console.log(`   PermitTx: ${permitTx}, TransferTx: ${transferTx}, BurnTx: ${burnTx}`);
+    console.log(`✅ [BURN] Saque ${withdrawalId}: burned ${amount} BRL3 tokens da admin wallet. Tx: ${txHash}`);
   } catch (error: any) {
     await storage.updateOnchainOperation(onchainOp.id, {
       status: "failed",

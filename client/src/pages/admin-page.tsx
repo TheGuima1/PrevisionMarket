@@ -1263,10 +1263,10 @@ export default function AdminPage() {
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                                 <span className="text-primary font-semibold text-sm">
-                                  {user.username.charAt(0).toUpperCase()}
+                                  {(user.username || user.email).charAt(0).toUpperCase()}
                                 </span>
                               </div>
-                              <span className="text-white font-medium">{user.username}</span>
+                              <span className="text-white font-medium">{user.username || user.email}</span>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-white/60">{user.email}</td>
