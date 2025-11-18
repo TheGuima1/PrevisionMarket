@@ -1109,6 +1109,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const mintData = prepareMintData(adminAddress, deposit.amount);
       
+      console.log(`🔧 [Prepare Approval] Mint data prepared:`);
+      console.log(`   - Contract: ${getTokenContractAddress()}`);
+      console.log(`   - To: ${adminAddress}`);
+      console.log(`   - Amount: ${deposit.amount} BRL3`);
+      console.log(`   - Calldata: ${mintData.data.substring(0, 66)}...`);
+      
       res.json({
         success: true,
         deposit: {
