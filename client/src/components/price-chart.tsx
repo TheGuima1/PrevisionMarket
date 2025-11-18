@@ -12,7 +12,7 @@ interface PriceChartProps {
   alternatives?: Market[];
 }
 
-type TimeRange = '1H' | '12H' | '24H' | '1W' | '1M' | 'ALL';
+type TimeRange = '1W' | '1M' | 'ALL';
 
 interface HistoricalDataPoint {
   timestamp: Date;
@@ -32,7 +32,7 @@ const COLORS = [
 ];
 
 export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartProps) {
-  const [timeRange, setTimeRange] = useState<TimeRange>('24H');
+  const [timeRange, setTimeRange] = useState<TimeRange>('1W');
   
   // For events with alternatives, fetch snapshots for each alternative market
   const shouldFetchAlternatives = !!(alternatives && alternatives.length > 0);
@@ -115,7 +115,7 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
   // Get unique outcome names for legend
   const outcomeNames = historyData?.[0]?.outcomes.map(o => o.name) || [];
 
-  const timeRanges: TimeRange[] = ['1H', '12H', '24H', '1W', '1M', 'ALL'];
+  const timeRanges: TimeRange[] = ['1W', '1M', 'ALL'];
 
   if (isLoading) {
     return (
