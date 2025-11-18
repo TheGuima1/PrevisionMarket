@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { PublicNavbar } from "@/components/public-navbar";
 import { Navbar } from "@/components/navbar";
-import { MarketCard } from "@/components/market-card";
+import { ModernMarketCard } from "@/components/modern-market-card";
 import { BrazilElectionCard } from "@/components/brazil-election-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -110,9 +110,9 @@ export default function HomePage() {
                 
                 {/* Other Markets */}
                 {otherMarkets.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="grid-markets">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-markets">
                     {otherMarkets.map((market) => (
-                      <MarketCard key={market.id} market={market} isPublic />
+                      <ModernMarketCard key={market.id} market={market} />
                     ))}
                   </div>
                 )}
