@@ -151,53 +151,13 @@ export default function AdminPage() {
   // Mutations
   const approveDepositMutation = useMutation({
     mutationFn: async (depositId: string) => {
-      // Verificar MetaMask conectado
-      if (!isConnected || !signer) {
-        throw new Error("MetaMask não conectado. Conecte sua carteira admin.");
-      }
-      if (!isCorrectNetwork) {
-        throw new Error("Rede incorreta. Troque para Polygon Mainnet.");
-      }
-
-      // 1. Preparar dados da transação
-      const prepareRes = await apiRequest("POST", `/api/deposits/${depositId}/prepare-approval`, {});
-      const prepareData = await prepareRes.json();
-      
-      if (!prepareData.success) {
-        throw new Error(prepareData.message || "Falha ao preparar transação");
-      }
-
-      // 2. Assinar e enviar transação via MetaMask
-      const tx = await signer.sendTransaction({
-        to: prepareData.mintTransaction.to,
-        data: prepareData.mintTransaction.data,
-        value: prepareData.mintTransaction.value,
-      });
-
-      toast({
-        title: "Transação enviada",
-        description: `Aguardando confirmação... TX: ${tx.hash.substring(0, 10)}...`,
-      });
-
-      // 3. Aguardar confirmação
-      await tx.wait();
-
-      // 4. Finalizar aprovação no backend
-      const finalizeRes = await apiRequest("POST", `/api/deposits/${depositId}/finalize-approval`, {
-        txHash: tx.hash,
-      });
-      const finalizeData = await finalizeRes.json();
-
-      if (!finalizeData.success) {
-        throw new Error(finalizeData.message || "Falha ao finalizar aprovação");
-      }
-
-      return finalizeData;
+      const res = await apiRequest("POST", `/api/deposits/${depositId}/approve`, {});
+      return await res.json();
     },
     onSuccess: (data) => {
       toast({
         title: "Depósito aprovado!",
-        description: `BRL3 creditado. TX: ${data.txHash.substring(0, 10)}...`,
+        description: `BRL3 mintado e creditado com sucesso.`,
       });
       setSelectedDeposit(null);
       queryClient.invalidateQueries({ queryKey: ["/api/deposits/pending"] });
@@ -679,38 +639,16 @@ export default function AdminPage() {
               {/* Botões de ação */}
               {selectedDeposit && (
                 <div className="flex gap-4">
-                  {!isConnected ? (
-                    <Button
-                      size="lg"
-                      className="flex-1 bg-primary hover:bg-primary/90 text-white gap-2"
-                      onClick={connectWallet}
-                      data-testid="button-connect-metamask"
-                    >
-                      <Wallet className="w-5 h-5" />
-                      Conectar MetaMask
-                    </Button>
-                  ) : !isCorrectNetwork ? (
-                    <Button
-                      size="lg"
-                      className="flex-1 bg-primary hover:bg-primary/90 text-white gap-2"
-                      onClick={switchToPolygon}
-                      data-testid="button-switch-network"
-                    >
-                      <AlertCircle className="w-5 h-5" />
-                      Trocar para Polygon
-                    </Button>
-                  ) : (
-                    <Button
-                      size="lg"
-                      className="flex-1 bg-primary hover:bg-primary/90 text-white gap-2"
-                      onClick={() => approveDepositMutation.mutate(selectedDeposit.id)}
-                      disabled={approveDepositMutation.isPending}
-                      data-testid="button-approve-deposit"
-                    >
-                      <CheckCircle className="w-5 h-5" />
-                      APROVAR → Mint BRL3
-                    </Button>
-                  )}
+                  <Button
+                    size="lg"
+                    className="flex-1 bg-primary hover:bg-primary/90 text-white gap-2"
+                    onClick={() => approveDepositMutation.mutate(selectedDeposit.id)}
+                    disabled={approveDepositMutation.isPending}
+                    data-testid="button-approve-deposit"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                    {approveDepositMutation.isPending ? "Mintando..." : "APROVAR → Mint BRL3"}
+                  </Button>
                   <Button
                     size="lg"
                     variant="outline"
