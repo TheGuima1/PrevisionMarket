@@ -3,28 +3,8 @@
 // Agora usa polygonClient para mint/burn direto na blockchain (EIP-2612)
 
 import { mintTo, burnFromAdmin, isPolygonEnabled, getAdminAddress } from './polygonClient';
-import { db } from './db';
-import { users } from '@shared/schema';
-import { eq } from 'drizzle-orm';
 import { storage } from './storage';
 
-/**
- * Recupera o endereço da carteira Polygon de um usuário a partir de seu ID.
- * Retorna erro se usuário não tiver carteira configurada.
- */
-async function getUserWalletAddress(userId: string): Promise<string> {
-  const result = await db
-    .select({ address: users.walletAddress })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  
-  const addr = result?.[0]?.address;
-  if (!addr) {
-    throw new Error(`Usuário ${userId} não possui carteira Polygon configurada. Configure em Perfil.`);
-  }
-  return addr;
-}
 
 /**
  * Mintar tokens para a carteira do ADMIN (admin-only custody).
