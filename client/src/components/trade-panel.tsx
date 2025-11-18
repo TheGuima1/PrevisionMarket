@@ -111,6 +111,8 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
       });
       setAmountBRL("");
       queryClient.invalidateQueries({ queryKey: ["/api/markets", market.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/markets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
     },

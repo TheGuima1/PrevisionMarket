@@ -20,19 +20,18 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Backend**: Node.js, Express
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
 - **Authentication**: Passport.js with sessions
-- **BRL3 Token Integration (Polygon Direct)**: Direct on-chain integration with BRL3 ERC-20 token using ethers.js and meta-transactions (EIP-2612).
+- **BRL3 Token Integration (Polygon Direct)**: Direct on-chain integration with BRL3 ERC-20 token using ethers.js. Admin controls all on-chain operations.
   - **Architecture**: Direct blockchain interaction (no intermediary service)
-  - **Mint Operations**: Admin wallet mints tokens directly to user + admin wallets (dual mint)
-  - **Burn Operations**: Gasless burns using EIP-2612 permit signatures (user doesn't pay gas)
-  - **Admin Wallet**: Configured via `ADMIN_PRIVATE_KEY` environment variable
-  - **Contract**: ERC-20 with Permit and Burnable extensions (address in `TOKEN_CONTRACT_ADDRESS`)
+  - **Mint Operations (Deposits)**: Single on-chain transaction - tokens minted to admin wallet only. Users receive internal balance in database (no MetaMask required for deposits).
+  - **Burn Operations (Withdrawals)**: Admin signs burn transaction in their MetaMask. Tokens burned from admin wallet. Users receive PIX transfer.
+  - **Admin Wallet**: Configured via `ADMIN_PRIVATE_KEY` environment variable. Admin pays all gas fees.
+  - **Contract**: ERC-20 with Burnable extension (address in `TOKEN_CONTRACT_ADDRESS`)
   - **RPC Provider**: Polygon Mainnet via `POLYGON_RPC_URL` (Alchemy/Infura recommended)
-  - **User Wallets**: Each user must configure `walletAddress` (Polygon address) in profile
-  - **Permit Flow**: User signs off-chain permit → Admin executes permit + transferFrom + burn (all gas paid by admin)
-  - **Implementation**: `server/polygonClient.ts`, `server/brl3-client.ts`, `client/src/lib/polygonUtils.ts`
+  - **User Balance**: Internal database balance only. Users do NOT hold tokens in personal wallets. All tokens remain in admin custody.
+  - **Implementation**: `server/polygonClient.ts`, `server/brl3-client.ts`
   - **Documentation**: See `POLYGON_INTEGRATION_SETUP.md` for complete setup guide
-- **Manual Deposit Approval Workflow**: Deposits require admin approval. Users upload PDF proofs, which admins review and approve/reject. Approval triggers dual mint via X-CHANGE API, executing on-chain immediately and updating local balance.
-- **Manual Withdrawal Approval Workflow**: Withdrawals require admin approval. Users submit requests with PIX keys (wallet address optional). System supports two paths: (1) Users with MetaMask + configured wallet sign EIP-2612 permit for gasless on-chain burn; (2) Users without MetaMask/wallet submit request for manual admin processing. No balance validation at request time - admin verifies before approval. Approval triggers dual burn via X-CHANGE API, executing on-chain immediately and updating local balance.
+- **Manual Deposit Approval Workflow**: Users upload PIX proof (PDF). Admin reviews and approves. System mints BRL3 tokens to admin wallet (single on-chain transaction). User's internal database balance is credited. User does NOT need MetaMask or personal wallet.
+- **Manual Withdrawal Approval Workflow**: Users request withdrawal with PIX key. Admin reviews balance and approves. Admin signs burn transaction in their MetaMask (burns from admin wallet). System updates user's database balance. Admin sends PIX transfer to user's bank account. User does NOT interact with blockchain.
 - **Dynamic Market Management**: An admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. A mirror worker automatically syncs odds from Polymarket.
 - **Polymarket Adapter**: Fetches market data from Polymarket's Gamma API with a 5-minute cache, extracting YES probabilities for pricing.
 - **Prediction Market Core**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 2% spread. Orders are instantly filled with real-time share estimates.
@@ -44,9 +43,9 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Brazil Election Event Page** (`/brazil-election-2026`): Dedicated page matching Polymarket's event layout, featuring all 8 presidential candidates in a unified view. Includes summary bar with colored candidate dots, chart placeholder (linking to Polymarket due to X-Frame-Options restrictions), and detailed candidate rows with Buy Yes/No buttons. Navigation flows from homepage card to event page to individual market detail pages.
 - **Market Detail Page**: Comprehensive market information, multiple odds formats, discussion system, and integrated trading panel.
 - **Trading Panel**: Visual YES/NO toggle, quantity input, real-time share estimate preview, cost, potential gain, and profit calculation. Includes balance validation - button disabled when user has insufficient balance with "Saldo insuficiente" message.
-- **Portfolio**: Overview of total value, invested amount, P&L, active positions, wallet management (deposit/withdrawal requests), and transaction history. Withdrawal flow includes MetaMask integration for EIP-2612 permit signatures.
-- **Profile Page**: User profile management with wallet address configuration. Users configure their Polygon wallet address (required for BRL withdrawals). Includes validation, format checking, and helpful instructions.
-- **MetaMask Integration**: Complete user-facing wallet integration with network verification (Polygon chainId 137), automatic network switching, gasless EIP-2612 permit signatures for withdrawals, error handling for missing MetaMask or wrong network, and comprehensive loading states. Global MetaMask context (`MetaMaskProvider`) exposes ethers.js `BrowserProvider` and `JsonRpcSigner` for blockchain interactions across the application.
+- **Portfolio**: Overview of total value, invested amount, P&L, active positions, wallet management (deposit/withdrawal requests), and transaction history. Users submit withdrawal requests with PIX key - admin processes on-chain burn operations.
+- **Profile Page**: User profile management including username, email, and account settings. No wallet configuration needed - all blockchain operations handled by admin.
+- **MetaMask Integration**: Admin-side blockchain integration. Global MetaMask context (`MetaMaskProvider`) exposes ethers.js `BrowserProvider` and `JsonRpcSigner` for admin wallet operations (mint/burn transactions). Users do NOT need MetaMask - all on-chain operations executed by admin wallet.
 - **On-chain Operations Logging**: All BRL3 mint/burn operations are automatically logged to the `onchain_operations` table with complete audit trail including transaction hashes, status transitions (pending → confirmed/failed), timestamps, and error messages. Covers all 4 BRL3 functions: `notifyMintToBRL3`, `notifyBurnToBRL3`, `notifyDualMintToBRL3`, `notifyDualBurnToBRL3`. Pre-transaction errors (disabled Polygon, missing wallet, RPC failures) are captured and logged as "failed" status. Note: Dual operations currently log only user-side transactions; future enhancement could track both user and admin transactions separately for complete dual-flow audit.
 - **AI Assistant (Cachorro)**: Floating chat powered by GPT-5 (via Replit AI Integrations) offering context-aware responses and market recommendations.
 - **Admin Panel**: Redesigned dark-themed interface for managing deposits, withdrawals, markets (manual and Polymarket mirrors), and users. Includes secure logout.
