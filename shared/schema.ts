@@ -524,12 +524,3 @@ export type Event = typeof events.$inferSelect;
 
 export type InsertEventMarket = z.infer<typeof insertEventMarketSchema>;
 export type EventMarket = typeof eventMarkets.$inferSelect;
-
-export const insertOnchainOperationSchema = createInsertSchema(onchainOperations).omit({
-  id: true,
-  createdAt: true,
-  confirmedAt: true,
-});
-
-export type InsertOnchainOperation = z.infer<typeof insertOnchainOperationSchema>;
-export type OnchainOperation = typeof onchainOperations.$inferSelect;
