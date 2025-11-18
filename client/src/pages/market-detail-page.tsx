@@ -12,7 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar, Clock, FileText, MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Calendar, Clock, FileText, MessageSquare, ThumbsUp, ThumbsDown, TrendingUp } from "lucide-react";
+import { useLocation } from "wouter";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { Market, Comment as CommentType } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
@@ -32,6 +33,7 @@ const categoryLabels: Record<string, string> = {
 
 export default function MarketDetailPage() {
   const [, params] = useRoute("/market/:id");
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [comment, setComment] = useState("");
@@ -46,6 +48,11 @@ export default function MarketDetailPage() {
   const { data: comments } = useQuery<(CommentType & { user: { username: string } })[]>({
     queryKey: ["/api/comments", marketId],
     enabled: !!marketId,
+  });
+
+  // Query all markets to find related ones (same event/category)
+  const { data: allMarkets } = useQuery<Market[]>({
+    queryKey: ["/api/markets"],
   });
 
   // Query AMM history for probability chart
@@ -121,6 +128,20 @@ export default function MarketDetailPage() {
 
   const endDate = new Date(market.endDate);
   const isActive = market.status === "active";
+
+  // Find related markets (Brazil election candidates)
+  const relatedMarkets = (allMarkets || [])
+    .filter(m => 
+      m.id !== market.id && 
+      m.slug && 
+      m.slug.includes('brazil-election-2026')
+    )
+    .sort((a, b) => {
+      const probA = parseFloat(a.yesReserve) / (parseFloat(a.yesReserve) + parseFloat(a.noReserve));
+      const probB = parseFloat(b.yesReserve) / (parseFloat(b.yesReserve) + parseFloat(b.noReserve));
+      return probB - probA;
+    })
+    .slice(0, 6); // Show top 6 related markets
 
   return (
     <div className="min-h-screen bg-background">
@@ -304,6 +325,50 @@ export default function MarketDetailPage() {
                 usdc: user?.balanceUsdc || "0" 
               }}
             />
+            
+            {/* Related Markets */}
+            {relatedMarkets.length > 0 && (
+              <Card className="p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold text-lg">Mercados Relacionados</h3>
+                </div>
+                <div className="space-y-2">
+                  {relatedMarkets.map((relMarket) => {
+                    const candidateName = relMarket.title.split(' vencerá')[0];
+                    const prob = parseFloat(relMarket.yesReserve) / (parseFloat(relMarket.yesReserve) + parseFloat(relMarket.noReserve));
+                    const priceChange = relMarket.oneDayPriceChange 
+                      ? parseFloat(relMarket.oneDayPriceChange) 
+                      : 0;
+                    
+                    return (
+                      <div
+                        key={relMarket.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border hover-elevate active-elevate-2 cursor-pointer transition-all"
+                        onClick={() => setLocation(`/market/${relMarket.id}`)}
+                        data-testid={`related-market-${relMarket.slug}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{candidateName}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {parseFloat(relMarket.totalVolume).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} BRL3
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="font-bold text-sm">{(prob * 100).toFixed(1)}%</span>
+                          {priceChange !== 0 && (
+                            <span className={`text-xs font-medium ${priceChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              {priceChange >= 0 ? '+' : ''}{(priceChange * 100).toFixed(1)}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+            
             <OrderBook marketId={market.id} />
           </div>
         </div>
