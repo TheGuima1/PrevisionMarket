@@ -24,11 +24,28 @@ import { useToast } from "@/hooks/use-toast";
 import { getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/odds";
 
 const categoryLabels: Record<string, string> = {
+  // Portuguese keys
   politica: "Política",
   economia: "Economia",
   cultura: "Cultura",
   esportes: "Esportes",
   ciencia: "Ciência",
+  // English keys (database values)
+  trending: "Em Alta",
+  breaking: "Últimas Notícias",
+  new: "Novo",
+  politics: "Política",
+  sports: "Esportes",
+  finance: "Finanças",
+  crypto: "Cripto",
+  geopolitics: "Geopolítica",
+  earnings: "Mercado",
+  tech: "Tecnologia",
+  culture: "Cultura",
+  world: "Mundo",
+  economy: "Economia",
+  elections: "Eleições",
+  mentions: "Menções",
 };
 
 export default function MarketDetailPage() {
@@ -154,7 +171,7 @@ export default function MarketDetailPage() {
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <Badge variant="outline" className="shrink-0">
-                    {categoryLabels[market.category]}
+                    {categoryLabels[market.category] || market.category}
                   </Badge>
                   {isActive && (
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
