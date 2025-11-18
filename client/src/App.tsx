@@ -11,7 +11,6 @@ import { useState } from "react";
 import HomePage from "@/pages/home-page";
 import MarketDetailPage from "@/pages/market-detail-page";
 import PolymarketDetailPage from "@/pages/polymarket-detail-page";
-import BrazilElectionPage from "@/pages/brazil-election-page";
 import PortfolioPage from "@/pages/portfolio-page";
 import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
@@ -54,7 +53,6 @@ function Router() {
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/market/:id" component={MarketDetailPage} />
       <Route path="/polymarket/:slug" component={PolymarketDetailPage} />
-      <Route path="/brazil-election-2026" component={BrazilElectionPage} />
       <Route path="/wallet/deposit" component={DepositPage} />
       
       {/* Protected Routes */}
