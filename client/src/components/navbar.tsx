@@ -9,14 +9,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, User, Wallet, LogOut, LayoutDashboard, Settings } from "lucide-react";
+import { Search, User, Wallet, LogOut, LayoutDashboard, Settings, Link as LinkIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useMetaMask } from "@/contexts/MetaMaskContext";
 import { Badge } from "@/components/ui/badge";
 import { HowToBetDialog } from "@/components/how-to-bet-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export function Navbar() {
   const [location, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
+  const { account, isConnected, isCorrectNetwork, connectWallet, switchToPolygon, isLoading } = useMetaMask();
+  const { toast } = useToast();
+
+  const handleMetaMaskClick = async () => {
+    if (!isConnected) {
+      await connectWallet();
+    } else if (!isCorrectNetwork) {
+      await switchToPolygon();
+    }
+  };
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
 
   const navItems = [
     { href: "/", label: "Mercados", icon: LayoutDashboard },
@@ -72,7 +88,7 @@ export function Navbar() {
             </div>
           </div>
 
-          {/* Right Section: Balance + Deposit + User Menu */}
+          {/* Right Section: Balance + Deposit + MetaMask + User Menu */}
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2">
               <Badge 
@@ -90,6 +106,27 @@ export function Navbar() {
               >
                 Depositar PIX
               </Button>
+              {isConnected && isCorrectNetwork ? (
+                <Badge 
+                  variant="outline" 
+                  className="bg-green-500/20 border-green-400/30 text-green-300 font-mono px-3 py-1.5" 
+                  data-testid="badge-metamask-connected"
+                >
+                  <LinkIcon className="h-3 w-3 mr-1.5" />
+                  {formatAddress(account!)}
+                </Badge>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleMetaMaskClick}
+                  disabled={isLoading}
+                  data-testid="button-connect-metamask"
+                >
+                  <LinkIcon className="h-4 w-4 mr-1.5" />
+                  {isLoading ? "Conectando..." : !isConnected ? "MetaMask" : "Trocar Rede"}
+                </Button>
+              )}
             </div>
 
             <DropdownMenu>
