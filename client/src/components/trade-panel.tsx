@@ -16,7 +16,7 @@ import { formatBRL3 } from "@shared/utils/currency";
 
 interface TradePanelProps {
   market: Market;
-  userBalance?: { brl: string; usdc: string };
+  userBalance?: { balanceBrl: string; balanceUsdc: string };
 }
 
 interface PreviewResult {
@@ -44,7 +44,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
   const odds = probToOdds(probability);
   
   const stakeBRL = amountBRL ? parseFloat(amountBRL) : 0;
-  const availableBalance = userBalance?.usdc ? parseFloat(userBalance.usdc) : 0;
+  const availableBalance = userBalance?.balanceBrl ? parseFloat(userBalance.balanceBrl) : 0;
   const hasInsufficientBalance = stakeBRL > availableBalance;
   const isValidAmount = stakeBRL > 0;
   
@@ -399,7 +399,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
       <div className="pt-4 border-t">
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>Saldo BRL3:</span>
-          <span className="font-medium">{formatBRL3(parseFloat(userBalance?.brl || "0"))}</span>
+          <span className="font-medium">{formatBRL3(parseFloat(userBalance?.balanceBrl || "0"))}</span>
         </div>
       </div>
     </Card>
