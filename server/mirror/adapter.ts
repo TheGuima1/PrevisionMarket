@@ -188,18 +188,19 @@ async function fetchBrazilElectionMarket(slug: string): Promise<AdapterMarketDat
         const mappedSlug = candidateMap[candidateName];
         
         if (mappedSlug) {
-          const outcomePrices = typeof market.outcomePrices === 'string' 
-            ? JSON.parse(market.outcomePrices) 
-            : market.outcomePrices;
-          
-          const probYes = Number(outcomePrices[0]); // First price is YES
+          // Use extractProbYes to correctly identify YES outcome by name
+          // (don't assume array position - Polymarket can return ['No','Yes'] or ['Yes','No'])
+          const probYes = extractProbYes(market);
           
           brazilElectionCache.set(mappedSlug, {
             slug: mappedSlug,
             title: market.question || `${candidateName} vencerá as eleições presidenciais brasileiras de 2026?`,
-            probYes: clamp01(probYes),
+            probYes,
             volumeUsd: market.volume || market.volumeNum,
           });
+        } else if (candidateName) {
+          // Log unmapped candidates (for debugging) but continue processing
+          console.log(`[Adapter] Brazil election: candidate "${candidateName}" not mapped, skipping`);
         }
       }
       
