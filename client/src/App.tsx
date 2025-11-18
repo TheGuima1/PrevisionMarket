@@ -5,7 +5,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
-import { MetaMaskProvider } from "@/contexts/MetaMaskContext";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { UsernameSetupModal } from "@/components/username-setup-modal";
 import { useState } from "react";
@@ -72,14 +71,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <MetaMaskProvider>
-          <UsernameGuard>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
-          </UsernameGuard>
-        </MetaMaskProvider>
+        <UsernameGuard>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </UsernameGuard>
       </AuthProvider>
     </QueryClientProvider>
   );

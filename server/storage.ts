@@ -8,7 +8,6 @@ import {
   transactions,
   pendingDeposits,
   pendingWithdrawals,
-  onchainOperations,
   type User,
   type InsertUser,
   type Market,
@@ -24,8 +23,6 @@ import {
   type InsertPendingDeposit,
   type PendingWithdrawal,
   type InsertPendingWithdrawal,
-  type OnchainOperation,
-  type InsertOnchainOperation,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, and, or, desc, sql } from "drizzle-orm";
@@ -109,12 +106,6 @@ export interface IStorage {
 
   // Recent trades method
   getRecentTrades(limit?: number): Promise<RecentTrade[]>;
-
-  // On-chain operations methods
-  createOnchainOperation(operation: Omit<InsertOnchainOperation, "id">): Promise<OnchainOperation>;
-  updateOnchainOperation(id: string, updates: { txHash?: string; status?: string; errorMessage?: string; confirmedAt?: Date }): Promise<OnchainOperation>;
-  getOnchainOperationsByUser(userId: string): Promise<OnchainOperation[]>;
-  checkTxHashUsed(txHash: string): Promise<boolean>;
 
   sessionStore: any;
 }
@@ -732,41 +723,6 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  // On-chain operations implementation
-  async createOnchainOperation(operation: Omit<InsertOnchainOperation, "id">): Promise<OnchainOperation> {
-    const [onchainOp] = await db
-      .insert(onchainOperations)
-      .values(operation)
-      .returning();
-    return onchainOp;
-  }
-
-  async updateOnchainOperation(id: string, updates: { txHash?: string; status?: string; errorMessage?: string; confirmedAt?: Date }): Promise<OnchainOperation> {
-    const [updated] = await db
-      .update(onchainOperations)
-      .set(updates)
-      .where(eq(onchainOperations.id, id))
-      .returning();
-    return updated;
-  }
-
-  async getOnchainOperationsByUser(userId: string): Promise<OnchainOperation[]> {
-    return await db
-      .select()
-      .from(onchainOperations)
-      .where(eq(onchainOperations.userId, userId))
-      .orderBy(desc(onchainOperations.createdAt))
-      .limit(50);
-  }
-
-  async checkTxHashUsed(txHash: string): Promise<boolean> {
-    const [operation] = await db
-      .select()
-      .from(onchainOperations)
-      .where(eq(onchainOperations.txHash, txHash))
-      .limit(1);
-    return !!operation;
-  }
 }
 
 export const storage = new DatabaseStorage();

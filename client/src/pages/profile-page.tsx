@@ -103,15 +103,14 @@ export default function ProfilePage() {
                 <AlertDescription>
                   <strong>Modelo de Custódia Simplificado</strong>
                   <br />
-                  Seus tokens BRL3 ficam custodiados em nossa carteira administrativa. 
-                  Você não precisa de MetaMask ou carteira Polygon própria.
+                  Seus tokens BRL3 ficam custodiados em nossa plataforma de forma segura.
                   <br /><br />
                   <strong>Como funciona:</strong>
                   <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
                     <li>Depósito PIX → Aprovação admin → Saldo creditado automaticamente</li>
                     <li>Saque → Aprovação admin → Transferência PIX para sua conta</li>
-                    <li>Tokens ficam seguros na carteira administrativa</li>
-                    <li>Você gerencia tudo pela plataforma, sem blockchain manual</li>
+                    <li>Tokens ficam seguros em custódia</li>
+                    <li>Você gerencia tudo pela plataforma de forma simples</li>
                   </ul>
                 </AlertDescription>
               </Alert>
