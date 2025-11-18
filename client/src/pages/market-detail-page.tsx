@@ -133,8 +133,8 @@ export default function MarketDetailPage() {
   const relatedMarkets = (allMarkets || [])
     .filter(m => 
       m.id !== market.id && 
-      m.slug && 
-      m.slug.includes('brazil-election-2026')
+      m.polymarketSlug && 
+      m.polymarketSlug.includes('brazil-election-2026')
     )
     .sort((a, b) => {
       const probA = parseFloat(a.yesReserve) / (parseFloat(a.yesReserve) + parseFloat(a.noReserve));
@@ -346,7 +346,7 @@ export default function MarketDetailPage() {
                         key={relMarket.id}
                         className="flex items-center justify-between p-3 rounded-lg border border-border hover-elevate active-elevate-2 cursor-pointer transition-all"
                         onClick={() => setLocation(`/market/${relMarket.id}`)}
-                        data-testid={`related-market-${relMarket.slug}`}
+                        data-testid={`related-market-${relMarket.polymarketSlug || relMarket.id}`}
                       >
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm truncate">{candidateName}</div>
