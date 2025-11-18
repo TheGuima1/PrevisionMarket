@@ -1,0 +1,333 @@
+Perfeito, Rafael.
+Abaixo está **o PROMPT COMPLETO**, integrando **todas as mudanças** (mercado da eleição → gráfico → copy CNPJ → conexão Web3 + mint/burn automático → integração com MetaMask → fluxo do admin).
+
+Esse prompt está no **formato perfeito para colar no Replit AI Agent** e ele executar as mudanças no seu código **sem precisar interpretar nada**.
+
+---
+
+# ✅ **PROMPT COMPLETO PARA O REPLIT (FINAL)**
+
+*(copie e cole exatamente como está abaixo no Replit)*
+
+---
+
+# ⚙️ **PROMPT PARA IMPLEMENTAR AS MUDANÇAS NA PALPITES.AI E X-CHANGE**
+
+A seguir estão instruções detalhadas e obrigatórias.
+Siga **EXATAMENTE** como escrito, sem interpretar ou modificar a lógica.
+
+---
+
+# =========================================================
+
+# 🔧 **1. CORRIGIR A PÁGINA DO MERCADO “ELEIÇÃO BRASIL 2026”**
+
+# =========================================================
+
+1. Corrigir o bug onde a página aparece **vazia**.
+
+   * O backend já envia os dados da API Polymarket → garantir que o frontend está lendo o JSON correto (marketId / slug).
+   * Verifique se o componente **MarketDetails.jsx** está recebendo os props `marketData`, `historyData`, `candidatesData`.
+   * Garantir que os states não estão como `undefined` na primeira renderização.
+   * Adicionar loading state.
+
+---
+
+# ===========================================
+
+# 📈 **2. MELHORAR O GRÁFICO (PARECIDO COM POLYMARKET)**
+
+# ===========================================
+
+### REMOVER os intervalos atuais e deixar **somente**:
+
+* **1W**
+* **1M**
+* **ALL**
+
+### AÇÕES OBRIGATÓRIAS:
+
+1. Substituir o gráfico atual por **Recharts LineChart** OU **Chart.js line** com:
+
+   * linhas suaves (`tension: 0.4`)
+   * espessura maior
+   * marcações limpas
+   * grid leve
+   * eixos visíveis como Polymarket
+
+2. O gráfico deve mostrar **linha única por candidato** (igual Polymarket).
+
+3. Criar **linha de diferença** (delta de variação):
+
+   * `diff = currentProbability - probability(7 days ago)`
+   * mostrar isso como tooltip adicional.
+
+4. Usar cores baseadas no Polymarket:
+
+   * Lula → `#FF6F61`
+   * Tarcísio → `#4C9AFF`
+   * Renan → `#5AC18E`
+   * Haddad → `#E8C547`
+
+5. Forçar qualidade alta:
+
+   * antialiasing
+   * retina scaling
+   * animação de load suave
+
+---
+
+# ======================================================
+
+# 🟪 3. FUNÇÃO DE COPIAR CNPJ (COPY-TO-CLIPBOARD)
+
+# ======================================================
+
+Criar componente **CopyCNPJBox.jsx** contendo:
+
+```
+const cnpj = "60.028.471/0001-30";
+
+navigator.clipboard.writeText(cnpj)
+```
+
+Design obrigatório:
+
+* uma box retangular com fundo roxo escuro (#1A1A2E)
+* bordas arredondadas
+* texto branco
+* ícone de copiar à direita
+* “CNPJ da empresa (clique para copiar)”
+* ao clicar → tooltip “Copiado!”
+
+Inserir esse componente em **/deposito-pix** na tela de gerar QR.
+
+---
+
+# ================================================================
+
+# 🔗 4. CONEXÃO COM METAMASK (WALLET CONNECT) – PALPITES.AI
+
+# ================================================================
+
+Implementar conexão com MetaMask no frontend:
+
+1. Criar hook `useWallet.js`:
+
+   * conectar MetaMask
+   * obter address do usuário
+   * exibir "wallet connected: 0x..."
+
+2. Na página Perfil do Usuário → mostrar:
+
+   * wallet address
+   * saldo BRL3 on-chain (via contract)
+
+3. Garantir compatibilidade com Polygon Mainnet:
+
+```
+chainId: "0x89"
+```
+
+---
+
+# ================================================================
+
+# 🟦 5. FUNÇÃO DE MINT E BURN AUTOMÁTICO VIA MÉTODOS DO ADMIN
+
+# ================================================================
+
+O admin é o **único** que interage com a blockchain.
+
+**Carteira do ADMIN:**
+`0xcd83c3f36396bcb3569240a3cb34f037ba310926`
+
+---
+
+# 🔹 **5A. FLUXO DE MINT (DEPÓSITO VIA PIX)**
+
+1. Usuário envia PIX → envia comprovante → admin aprova.
+2. Quando admin aprovar, executar automaticamente:
+
+### Backend (palpites.ai) chama:
+
+```
+POST https://x-change-palpites-ai.replit.app/mint
+{
+  "amount": <valor_em_BRL3>,
+  "userWallet": "<wallet do usuário>",
+  "api_key": "<chave>"
+}
+```
+
+3. O X-CHANGE deve executar:
+
+```
+contract.mint(userWallet, amount, { from: adminWallet })
+```
+
+4. **O ADMIN paga os gas fees.**
+
+5. Após mint:
+
+   * registrar transação no banco do palpites.ai:
+     tabela `onchain_operations`
+     campos:
+
+     ```
+     id
+     user_id
+     type ("mint")
+     amount
+     tx_hash
+     timestamp
+     ```
+
+---
+
+# 🔹 **5B. FLUXO DE BURN (SAQUE PIX)**
+
+1. Usuário solicita saque → admin aprova.
+2. Backend executa:
+
+```
+POST https://x-change-palpites-ai.replit.app/burn
+{
+  "amount": <valor>,
+  "userWallet": "<wallet do usuário>",
+  "api_key": "<chave>"
+}
+```
+
+3. O X-CHANGE faz:
+
+```
+contract.transferFrom(userWallet, adminWallet, amount)
+contract.burn(adminWallet, amount)
+```
+
+⚠ **IMPORTANTE:**
+O usuário **NÃO paga gas fee**.
+A transação é iniciada pela carteira do admin, usando `transferFrom`.
+
+Isso exige:
+
+* `approve(adminWallet, amount)` automático no smart contract OU
+* criar função “adminPullTokens(user, amount)” no contrato.
+
+---
+
+# ==============================================================
+
+# 🧱 6. SMART CONTRACT BRL3 USADO NO FLUXO
+
+# ==============================================================
+
+Usar exatamente este:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+
+contract BRL3Token is ERC20, AccessControl {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+
+    constructor() ERC20("BRL3 Token", "BRL3") {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
+        _grantRole(BURNER_ROLE, msg.sender);
+    }
+
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
+        _mint(to, amount);
+    }
+
+    function burn(address from, uint256 amount) external onlyRole(BURNER_ROLE) {
+        _burn(from, amount);
+    }
+
+    function adminPull(address user, uint256 amount) external onlyRole(BURNER_ROLE) {
+        _spendAllowance(user, msg.sender, amount);
+        _transfer(user, msg.sender, amount);
+        _burn(msg.sender, amount);
+    }
+}
+```
+
+---
+
+# ================================================================
+
+# 🗄️ 7. BANCO DE DADOS – ADICIONAR TABELA onchain_operations
+
+# ================================================================
+
+Criar tabela:
+
+```
+onchain_operations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER,
+  type TEXT,
+  amount REAL,
+  tx_hash TEXT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+```
+
+Registrar tudo: mint / burn.
+
+---
+
+# ================================================================
+
+# 🎨 8. ESTILO E DESIGN (PADRÃO POLYMARKET)
+
+# ================================================================
+
+Aplicar:
+
+* fundo roxo escuro (#0E0E16)
+* gradiente suave no header
+* fontes finas como Polymarket
+* botões minimalistas
+* gráfico com bordas limpas
+* componentes centralizados
+* remover poluição visual
+* usar o estilo do gráfico Polymarket como referência absoluta
+
+---
+
+# ==============================================================
+
+# 🟪 FINAL: EXECUTAR TODAS AS MUDANÇAS ACIMA
+
+# ==============================================================
+
+**Implementar tudo exatamente como descrito.**
+
+Não alterar lógica do token.
+Não mudar carteiras.
+Não mudar fluxos.
+Não mudar endpoints.
+
+---
+
+# FIM DO PROMPT
+
+---
+
+Se quiser, posso gerar **os arquivos de código completos**, como:
+
+* `useWallet.js`
+* `CopyCNPJBox.jsx`
+* `MintController.js`
+* `BurnController.js`
+* `RechartsGraph.jsx`
+* funções para o X-CHANGE
+
+É só pedir.
