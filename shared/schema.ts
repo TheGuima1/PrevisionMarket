@@ -230,6 +230,28 @@ export const ammSnapshots = pgTable("amm_snapshots", {
   probNo: decimal("prob_no", { precision: 5, scale: 4 }).notNull(),
 });
 
+// Events table (groups related markets - e.g., Brazil Presidential Election 2026)
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(), // URL slug (e.g., "brazil-election-2026")
+  title: text("title").notNull(), // Display title (e.g., "Eleição Presidencial Brasil 2026")
+  description: text("description").notNull(),
+  category: marketCategoryEnum("category").notNull(),
+  flagIcon: text("flag_icon"), // Icon name or asset path
+  endDate: timestamp("end_date").notNull(),
+  totalVolume: decimal("total_volume", { precision: 18, scale: 2 }).notNull().default("0.00"), // Aggregated from child markets
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Event Markets join table (links events to their alternative markets)
+export const eventMarkets = pgTable("event_markets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull().references(() => events.id),
+  marketId: varchar("market_id").notNull().references(() => markets.id),
+  order: integer("order").notNull().default(0), // Display order in vertical alternatives list
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   positions: many(positions),
@@ -245,11 +267,27 @@ export const marketsRelations = relations(markets, ({ many }) => ({
   orders: many(orders),
   comments: many(comments),
   ammSnapshots: many(ammSnapshots),
+  eventMarkets: many(eventMarkets),
 }));
 
 export const ammSnapshotsRelations = relations(ammSnapshots, ({ one }) => ({
   market: one(markets, {
     fields: [ammSnapshots.marketId],
+    references: [markets.id],
+  }),
+}));
+
+export const eventsRelations = relations(events, ({ many }) => ({
+  eventMarkets: many(eventMarkets),
+}));
+
+export const eventMarketsRelations = relations(eventMarkets, ({ one }) => ({
+  event: one(events, {
+    fields: [eventMarkets.eventId],
+    references: [events.id],
+  }),
+  market: one(markets, {
+    fields: [eventMarkets.marketId],
     references: [markets.id],
   }),
 }));
@@ -464,3 +502,25 @@ export type Position = typeof positions.$inferSelect;
 // Polymarket types
 export type PolymarketMarket = typeof polymarketMarkets.$inferSelect;
 export type PolymarketSnapshot = typeof polymarketSnapshots.$inferSelect;
+
+// Event types
+export const insertEventSchema = createInsertSchema(events).omit({
+  id: true,
+  createdAt: true,
+  totalVolume: true,
+}).extend({
+  endDate: z.union([z.string(), z.date()]).transform(val => 
+    typeof val === "string" ? new Date(val) : val
+  ),
+});
+
+export const insertEventMarketSchema = createInsertSchema(eventMarkets).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+export type Event = typeof events.$inferSelect;
+
+export type InsertEventMarket = z.infer<typeof insertEventMarketSchema>;
+export type EventMarket = typeof eventMarkets.$inferSelect;

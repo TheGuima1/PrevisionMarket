@@ -145,12 +145,7 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
       <div className="p-3 border-t border-border text-center">
         <button
           className="text-sm text-primary hover:text-primary/80 transition-colors font-medium"
-          onClick={() => {
-            // Navigate to first candidate's market detail - they can see all candidates in related markets
-            if (topTwoCandidates.length > 0) {
-              setLocation(`/market/${topTwoCandidates[0].id}`);
-            }
-          }}
+          onClick={() => setLocation('/event/brazil-election-2026')}
           data-testid="button-view-all-candidates"
         >
           Ver todos os candidatos →

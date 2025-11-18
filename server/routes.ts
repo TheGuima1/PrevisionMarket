@@ -466,6 +466,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== EVENT ROUTES =====
+  
+  // GET /api/events/:slug - Get event with all alternative markets (PUBLIC)
+  app.get("/api/events/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { events: eventsTable, eventMarkets: eventMarketsTable } = await import("@shared/schema");
+      
+      // Get event
+      const event = await db.query.events.findFirst({
+        where: eq(eventsTable.slug, slug),
+      });
+      
+      if (!event) {
+        return res.status(404).json({ error: "Evento não encontrado" });
+      }
+      
+      // Get event's markets with full market data
+      const eventMarketRecords = await db.query.eventMarkets.findMany({
+        where: eq(eventMarketsTable.eventId, event.id),
+        with: {
+          market: true,
+        },
+        orderBy: (em, { asc }) => [asc(em.order)],
+      });
+      
+      // Extract markets and sort by order
+      const alternativeMarkets = eventMarketRecords.map(em => em.market);
+      
+      // Calculate aggregated volume
+      const totalVolume = alternativeMarkets.reduce((sum, m) => {
+        return sum + parseFloat(m.totalVolume || '0');
+      }, 0);
+      
+      res.json({
+        ...event,
+        totalVolume: totalVolume.toFixed(2),
+        alternatives: alternativeMarkets,
+      });
+    } catch (error) {
+      console.error("Failed to fetch event:", error);
+      res.status(500).json({ error: "Falha ao buscar evento." });
+    }
+  });
+
   // ===== ORDER ROUTES =====
   
   // GET /api/orders - Get user's order history (requires auth)
