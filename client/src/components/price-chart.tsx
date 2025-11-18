@@ -120,8 +120,17 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
     return dataPoint;
   }) || [];
 
-  // Get unique outcome names for legend
-  const outcomeNames = historyData?.[0]?.outcomes.map(o => o.name) || [];
+  // Get unique outcome names for legend and extract candidate names
+  const outcomeNames = historyData?.[0]?.outcomes.map(o => {
+    const fullName = o.name;
+    // Extract candidate name from titles like "Lula vencerá as eleições presidenciais brasileiras de 2026?"
+    // or "Tarcísio de Freitas vencerá as eleições presidenciais brasileiras de 2026?"
+    const match = fullName.match(/^(.+?)\s+vencerá/);
+    return {
+      full: fullName,
+      short: match ? match[1] : fullName, // e.g., "Lula" or "Tarcísio de Freitas"
+    };
+  }) || [];
 
   const timeRanges: TimeRange[] = ['1W', '1M', 'ALL'];
 
@@ -179,7 +188,7 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
       </div>
 
       {/* Chart */}
-      <div className="w-full h-96 bg-card rounded-lg border border-border p-4">
+      <div className="w-full h-[550px] bg-card rounded-lg border border-border p-4">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <CartesianGrid 
@@ -198,8 +207,10 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
               stroke="hsl(var(--muted-foreground))"
               tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
               domain={[0, 100]}
+              ticks={[0, 20, 40, 60, 80, 100]}
               tickFormatter={(value) => `${value}%`}
               axisLine={{ stroke: 'hsl(var(--border))' }}
+              width={50}
             />
             <Tooltip 
               contentStyle={{
@@ -209,21 +220,32 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
                 padding: '8px 12px',
               }}
               labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '4px' }}
-              formatter={(value: number, name: string) => [`${value.toFixed(1)}%`, name]}
+              formatter={(value: number, name: string) => {
+                // Find the short name for tooltip
+                const outcome = outcomeNames.find(o => o.full === name);
+                return [`${value.toFixed(1)}%`, outcome?.short || name];
+              }}
             />
             <Legend 
               wrapperStyle={{ paddingTop: '16px' }}
               iconType="line"
+              formatter={(value: string) => {
+                // Show short name in legend
+                const outcome = outcomeNames.find(o => o.full === value);
+                const displayName = outcome?.short;
+                // Ensure we always return a string
+                return displayName && typeof displayName === 'string' ? displayName : value;
+              }}
             />
-            {outcomeNames.map((name, index) => (
+            {outcomeNames.map((outcome, index) => (
               <Line
-                key={name}
+                key={outcome.full}
                 type="monotone"
-                dataKey={name}
+                dataKey={outcome.full}
                 stroke={COLORS[index % COLORS.length]}
                 strokeWidth={3}
                 dot={false}
-                name={name}
+                name={outcome.full}
                 activeDot={{ r: 6, strokeWidth: 2 }}
               />
             ))}
