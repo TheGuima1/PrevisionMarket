@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Market } from "@shared/schema";
 import { ExternalLink } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const CANDIDATE_COLORS: Record<string, string> = {
   "Lula": "#FF6B2C",
@@ -99,14 +100,31 @@ export default function BrazilElectionPage() {
             </div>
           </div>
 
-          {/* Polymarket Graph Embed */}
-          <div className="w-full bg-[#1A1B21] border-b border-white/10" data-testid="container-polymarket-graph">
-            <iframe
-              src="https://polymarket.com/event/brazil-presidential-election?embed=true"
-              className="w-full h-[400px] border-0"
-              title="Polymarket Brazil Election Chart"
-              loading="lazy"
-            />
+          {/* Polymarket Chart Placeholder */}
+          <div className="w-full bg-[#1A1B21] border-b border-white/10 p-8" data-testid="container-polymarket-chart">
+            <div className="flex flex-col items-center justify-center space-y-4 py-12">
+              <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center">
+                <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-white font-semibold text-lg">Historical Price Chart</h3>
+              <p className="text-white/60 text-sm text-center max-w-md">
+                View the complete historical price chart and trading volume on Polymarket's platform
+              </p>
+              <Button
+                variant="outline"
+                className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 mt-2"
+                onClick={() => window.open('https://polymarket.com/event/brazil-presidential-election', '_blank')}
+                data-testid="button-view-polymarket-chart"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View Chart on Polymarket
+              </Button>
+              <div className="mt-4 text-xs text-white/40">
+                Current prices and data synced from Polymarket every 60 seconds
+              </div>
+            </div>
           </div>
 
           {/* Candidate List */}
