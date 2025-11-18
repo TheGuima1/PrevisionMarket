@@ -160,7 +160,7 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
                       }}
                       data-testid={`change-${candidateSlug}`}
                     >
-                      {priceChangeSign}{priceChange.toFixed(1)}%
+                      {priceChangeSign}{(priceChange * 100).toFixed(1)}%
                     </span>
                   )}
                 </div>
