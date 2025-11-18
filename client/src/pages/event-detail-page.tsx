@@ -142,7 +142,6 @@ export default function EventDetailPage() {
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4">Histórico de Probabilidades</h2>
               <PriceChart 
-                polymarketSlug={event.slug}
                 alternatives={event.alternatives}
               />
             </Card>
