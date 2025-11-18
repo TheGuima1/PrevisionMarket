@@ -40,9 +40,9 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 
 ### Feature Specifications
 - **Authentication**: Standard email/password login/registration with unique usernames and protected routes. Admin quick access via password-only login.
-- **Public Landing Page**: Displays available markets with real-time Polymarket odds.
+- **Public Landing Page**: Displays available markets with real-time Polymarket odds. Features special grouped display for multi-candidate markets like "Eleição Presidencial Brasil 2026" showing 4 candidates (Lula, Tarcísio, Haddad, Renan Santos) with live odds synchronized from Polymarket.
 - **Market Detail Page**: Comprehensive market information, multiple odds formats, discussion system, and integrated trading panel.
-- **Trading Panel**: Visual YES/NO toggle, quantity input, real-time share estimate preview, cost, potential gain, and profit calculation.
+- **Trading Panel**: Visual YES/NO toggle, quantity input, real-time share estimate preview, cost, potential gain, and profit calculation. Includes balance validation - button disabled when user has insufficient balance with "Saldo insuficiente" message.
 - **Portfolio**: Overview of total value, invested amount, P&L, active positions, wallet management (deposit/withdrawal requests), and transaction history. Withdrawal flow includes MetaMask integration for EIP-2612 permit signatures.
 - **Profile Page**: User profile management with wallet address configuration. Users configure their Polygon wallet address (required for BRL withdrawals). Includes validation, format checking, and helpful instructions.
 - **MetaMask Integration**: Complete user-facing wallet integration with network verification (Polygon chainId 137), automatic network switching, gasless EIP-2612 permit signatures for withdrawals, error handling for missing MetaMask or wrong network, and comprehensive loading states.
