@@ -208,16 +208,10 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
       <div className="w-full h-[550px] bg-card rounded-lg border border-border p-4">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke="hsl(var(--border))" 
-              opacity={0.2}
-              vertical={false}
-            />
             <XAxis 
               dataKey="time" 
-              stroke="hsl(var(--muted-foreground))"
-              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+              stroke="hsl(var(--border))"
+              tick={false}
               axisLine={{ stroke: 'hsl(var(--border))' }}
             />
             <YAxis 
@@ -261,9 +255,11 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
                 dataKey={outcome.full}
                 stroke={COLORS[index % COLORS.length]}
                 strokeWidth={2}
+                strokeDasharray="0"
                 dot={false}
                 activeDot={false}
                 name={outcome.full}
+                isAnimationActive={false}
               />
             ))}
           </LineChart>
