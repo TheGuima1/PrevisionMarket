@@ -44,6 +44,9 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
   const odds = probToOdds(probability);
   
   const stakeBRL = amountBRL ? parseFloat(amountBRL) : 0;
+  const availableBalance = userBalance?.usdc ? parseFloat(userBalance.usdc) : 0;
+  const hasInsufficientBalance = stakeBRL > availableBalance;
+  const isValidAmount = stakeBRL > 0;
   
   // Use preview data if available, otherwise fallback to simple calculation
   const estimatedShares = previewData?.estimatedShares ?? 0;
@@ -257,7 +260,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
 
           <Button
             onClick={handleBuy}
-            disabled={!amountBRL || buyMutation.isPending || isLoadingPreview}
+            disabled={!isValidAmount || buyMutation.isPending || isLoadingPreview || hasInsufficientBalance}
             className="w-full bg-primary hover:bg-primary/90"
             size="lg"
             data-testid="button-buy-yes-execute"
@@ -267,6 +270,8 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Processando...
               </>
+            ) : hasInsufficientBalance && isValidAmount ? (
+              "Saldo insuficiente"
             ) : (
               "Apostar em SIM"
             )}
@@ -369,7 +374,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
 
           <Button
             onClick={handleBuy}
-            disabled={!amountBRL || buyMutation.isPending || isLoadingPreview}
+            disabled={!isValidAmount || buyMutation.isPending || isLoadingPreview || hasInsufficientBalance}
             className="w-full"
             variant="destructive"
             size="lg"
@@ -380,6 +385,8 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Processando...
               </>
+            ) : hasInsufficientBalance && isValidAmount ? (
+              "Saldo insuficiente"
             ) : (
               "Apostar em NÃO"
             )}
