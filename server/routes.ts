@@ -208,39 +208,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== USER PROFILE ROUTES =====
 
-  // PUT /api/user/wallet - Update user's Polygon wallet address
-  app.put("/api/user/wallet", requireAuth, async (req, res) => {
-    try {
-      const { walletAddress } = req.body;
-      
-      // Validate Ethereum address format (0x followed by 40 hex characters)
-      const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
-      if (!walletAddress || !ethAddressRegex.test(walletAddress)) {
-        return res.status(400).json({ 
-          error: "Endereço de carteira inválido. Use o formato Ethereum (0x...)" 
-        });
-      }
-      
-      // Update user's wallet address
-      await db.update(users)
-        .set({ walletAddress })
-        .where(eq(users.id, req.user!.id));
-      
-      // Return updated user
-      const updatedUser = await db.query.users.findFirst({
-        where: eq(users.id, req.user!.id),
-      });
-      
-      res.json({ 
-        success: true, 
-        walletAddress: updatedUser?.walletAddress 
-      });
-    } catch (error) {
-      console.error("Failed to update wallet address:", error);
-      res.status(500).json({ error: "Falha ao atualizar endereço da carteira" });
-    }
-  });
-
   // GET /api/user/profile - Get current user profile
   app.get("/api/user/profile", requireAuth, async (req, res) => {
     try {
