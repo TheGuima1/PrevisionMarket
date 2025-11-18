@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Button } from "@/components/ui/button";
 import type { Market } from "@shared/schema";
@@ -34,11 +34,68 @@ const COLORS = [
 export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('24H');
   
-  // Fetch historical data from Polymarket snapshots
-  const { data: historyData, isLoading } = useQuery<HistoricalDataPoint[]>({
-    queryKey: polymarketSlug ? ['/api/polymarket/history', polymarketSlug, { range: timeRange }] : ['no-data'],
-    enabled: !!polymarketSlug,
+  // For events with alternatives, fetch snapshots for each alternative market
+  const shouldFetchAlternatives = !!(alternatives && alternatives.length > 0);
+  const slugsToFetch = shouldFetchAlternatives 
+    ? alternatives!.filter(alt => alt.polymarketSlug).map(alt => ({
+        slug: alt.polymarketSlug!,
+        title: alt.title
+      }))
+    : polymarketSlug ? [{ slug: polymarketSlug, title: 'Market' }] : [];
+  
+  // Fetch historical data from Polymarket snapshots for each slug
+  const queries = useQueries({
+    queries: slugsToFetch.map(({ slug }) => ({
+      queryKey: [`/api/polymarket/history/${slug}?range=${timeRange}`, timeRange],
+      enabled: !!slug,
+    })),
   });
+  
+  const isLoading = queries.some(q => q.isLoading);
+  
+  // Combine data from all queries - align by timestamp
+  const timestampMap = new Map<string, { timestamp: Date; outcomes: Map<string, { percent: number; raw: number }> }>();
+  
+  queries.forEach((query, index) => {
+    const data = query.data as HistoricalDataPoint[] | undefined;
+    if (!data || data.length === 0) return;
+    
+    const { title: marketTitle } = slugsToFetch[index];
+    
+    // Add this market's data to timestamp map
+    data.forEach((point) => {
+      const timestampKey = new Date(point.timestamp).toISOString();
+      
+      if (!timestampMap.has(timestampKey)) {
+        timestampMap.set(timestampKey, {
+          timestamp: point.timestamp,
+          outcomes: new Map(),
+        });
+      }
+      
+      const yesOutcome = point.outcomes.find(o => o.name === 'Yes');
+      if (yesOutcome) {
+        timestampMap.get(timestampKey)!.outcomes.set(marketTitle, {
+          percent: yesOutcome.percent,
+          raw: yesOutcome.raw,
+        });
+      }
+    });
+  });
+  
+  // Convert map to array and sort by timestamp
+  const combinedHistoryData = Array.from(timestampMap.values())
+    .map(entry => ({
+      timestamp: entry.timestamp,
+      outcomes: Array.from(entry.outcomes.entries()).map(([name, data]) => ({
+        name,
+        percent: data.percent,
+        raw: data.raw,
+      })),
+    }))
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  
+  const historyData = combinedHistoryData.length > 0 ? combinedHistoryData : null;
 
   // Transform data for multi-line chart (for events with alternatives)
   const chartData = historyData?.map(point => {

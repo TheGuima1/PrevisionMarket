@@ -10,7 +10,7 @@ import { fetchPolyBySlug } from './adapter';
 import { upsertMarket } from './state';
 import { syncAMMMarketsWithPolymarket } from '../amm-sync';
 import { db } from '../db';
-import { markets } from '@shared/schema';
+import { markets, polymarketSnapshots } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 const POLL_INTERVAL = Number(process.env.MIRROR_POLL_MS || 60000); // 60s default
@@ -86,10 +86,51 @@ async function validateSlugs(slugs: string[]): Promise<string[]> {
 }
 
 /**
+ * Save historical snapshot for a market
+ */
+async function saveSnapshot(slug: string, data: { probYes: number; title: string; volumeUsd?: number }): Promise<void> {
+  try {
+    // Validation
+    if (!slug || slug.trim() === '') {
+      console.error('[Mirror Worker] Invalid snapshot: empty slug');
+      return;
+    }
+    
+    if (typeof data.probYes !== 'number' || data.probYes < 0 || data.probYes > 1) {
+      console.error(`[Mirror Worker] Invalid snapshot for ${slug}: probYes out of range (${data.probYes})`);
+      return;
+    }
+    
+    const probNo = 1 - data.probYes;
+    const outcomes = JSON.stringify([
+      {
+        name: 'Yes',
+        raw: data.probYes,
+        percent: Number((data.probYes * 100).toFixed(2)),
+      },
+      {
+        name: 'No',
+        raw: probNo,
+        percent: Number((probNo * 100).toFixed(2)),
+      },
+    ]);
+    
+    await db.insert(polymarketSnapshots).values({
+      slug,
+      outcomes,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error(`[Mirror Worker] Failed to save snapshot for ${slug}:`, error);
+  }
+}
+
+/**
  * Poll all validated slugs once
  * Step 1: Fetch Polymarket data and cache results
  * Step 2: Update mirror state (in-memory)
  * Step 3: Sync AMM market reserves (database) using cached data
+ * Step 4: Save historical snapshots
  */
 export async function pollOnce(): Promise<void> {
   // Cache fetch results to avoid double-fetching for AMM sync
@@ -123,6 +164,12 @@ export async function pollOnce(): Promise<void> {
     // Log error but don't throw - AMM sync failures shouldn't block mirror updates
     console.error('[Mirror Worker] AMM sync failed (non-critical):', error);
   }
+  
+  // Step 4: Save historical snapshots for all fetched markets
+  const snapshotPromises = Array.from(fetchCache.entries()).map(([slug, data]) => 
+    saveSnapshot(slug, data)
+  );
+  await Promise.allSettled(snapshotPromises);
 }
 
 /**

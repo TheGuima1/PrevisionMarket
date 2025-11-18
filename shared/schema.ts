@@ -214,7 +214,7 @@ export const polymarketMarkets = pgTable("polymarket_markets", {
 // Polymarket Snapshots table (historical data for charts)
 export const polymarketSnapshots = pgTable("polymarket_snapshots", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  slug: text("slug").notNull().references(() => polymarketMarkets.slug),
+  slug: text("slug").notNull(), // Polymarket slug - no foreign key to allow flexibility
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   outcomes: text("outcomes").notNull(), // JSON string: [{name, percent, raw}]
 });

@@ -433,17 +433,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { slug } = req.params;
-      const range = (req.query.range as string) || '1M';
+      const range = (req.query.range as string) || '24H';
       
-      // Calculate time range
+      // Calculate time range in milliseconds
       const intervals: Record<string, number> = {
-        '1D': 1,
-        '1W': 7,
-        '1M': 30,
-        'ALL': 365,
+        '1H': 1 * 60 * 60 * 1000,           // 1 hour
+        '12H': 12 * 60 * 60 * 1000,         // 12 hours
+        '24H': 24 * 60 * 60 * 1000,         // 24 hours (1 day)
+        '1W': 7 * 24 * 60 * 60 * 1000,      // 1 week
+        '1M': 30 * 24 * 60 * 60 * 1000,     // 1 month
+        'ALL': 365 * 24 * 60 * 60 * 1000,   // All time (1 year)
       };
-      const days = intervals[range] || 30;
-      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const milliseconds = intervals[range] || intervals['24H'];
+      const since = new Date(Date.now() - milliseconds);
       
       const snapshots = await db.query.polymarketSnapshots.findMany({
         where: and(
