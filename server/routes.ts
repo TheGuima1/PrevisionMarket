@@ -12,7 +12,6 @@ import * as AMM from "./amm-engine";
 // Legacy polymarket-cron removed - now using mirror worker
 import { getSnapshot } from "./mirror/state";
 import { startMirror } from "./mirror/worker";
-import { notifyMintToBRL3, notifyBurnToBRL3 } from "./brl3-client";
 import { fetchPolyBySlug } from "./mirror/adapter";
 import multer from "multer";
 import path from "path";
@@ -976,31 +975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Depósito aprovado: ${depositAmount} ${deposit.currency}`,
       });
 
-      // Integração com BRL3 - MINT para admin wallet (todas as moedas)
-      // Admin recebe tokens on-chain, usuário recebe saldo interno no database
-      console.log(`🔄 [Deposit Approve] Calling BRL3 MINT (admin-only) for ${depositAmount} ${deposit.currency}`);
-      
-      try {
-        await notifyMintToBRL3(deposit.userId, depositAmount, depositId);
-        console.log(`✅ [Deposit Approve] BRL3 mint successful`);
-      } catch (mintError: any) {
-        console.error(`❌ [Deposit Approve] BRL3 mint failed:`, mintError);
-        // Rollback balance update if mint fails
-        await storage.updateUserBalance(deposit.userId, depositUser.balanceBrl, depositUser.balanceUsdc);
-        // Update deposit status back to pending
-        await db.update(pendingDeposits)
-          .set({ status: "pending" })
-          .where(eq(pendingDeposits.id, depositId));
-        
-        return res.status(500).json({
-          success: false,
-          error: "Falha ao mintar tokens BRL3",
-          message: mintError.message || "Erro ao processar mint on-chain. O depósito foi revertido.",
-          details: process.env.NODE_ENV === "development" ? mintError.toString() : undefined
-        });
-      }
-
-      console.log(`✅ [Deposit Approve] Success - returning JSON response`);
+      console.log(`✅ [Deposit Approve] Success - user balance updated in database`);
       res.json({ 
         success: true, 
         deposit: approved,
@@ -1192,14 +1167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Saque aprovado: ${withdrawAmount} ${withdrawal.currency} para ${withdrawal.pixKey}`,
       });
 
-      // Integração com BRL3 - BURN simples da admin wallet (usuários têm apenas saldo no DB)
-      // Admin burna tokens de sua wallet on-chain, usuário perde saldo interno no database
-      if (withdrawal.currency === "BRL") {
-        console.log(`🔄 [Withdrawal Approve] Calling BRL3 BURN (admin-only) for ${withdrawAmount} BRL`);
-        await notifyBurnToBRL3(withdrawal.userId, withdrawAmount, withdrawalId);
-      }
-
-      console.log(`✅ [Withdrawal Approve] Success - returning JSON response`);
+      console.log(`✅ [Withdrawal Approve] Success - user balance updated in database`);
       res.json({ 
         success: true, 
         withdrawal: approved,
