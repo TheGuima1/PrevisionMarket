@@ -49,7 +49,7 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
   // Fetch historical data from Polymarket snapshots for each slug
   const queries = useQueries({
     queries: slugsToFetch.map(({ slug }) => ({
-      queryKey: [`/api/polymarket/history/${slug}?range=${timeRange}`, timeRange],
+      queryKey: ['/api/polymarket/history', slug, timeRange],
       enabled: !!slug,
     })),
   });

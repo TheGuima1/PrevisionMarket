@@ -7,6 +7,8 @@ interface MetaMaskContextType {
   isCorrectNetwork: boolean;
   isLoading: boolean;
   error: string | null;
+  provider: ethers.BrowserProvider | null;
+  signer: ethers.JsonRpcSigner | null;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   switchToPolygon: () => Promise<void>;
@@ -33,6 +35,8 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [signer, setSigner] = useState<ethers.JsonRpcSigner | null>(null);
 
   const checkNetwork = async () => {
     if (!window.ethereum) return false;
@@ -95,6 +99,11 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
       });
 
       if (accounts.length > 0) {
+        const ethersProvider = new ethers.BrowserProvider(window.ethereum);
+        const ethersSigner = await ethersProvider.getSigner();
+        
+        setProvider(ethersProvider);
+        setSigner(ethersSigner);
         setAccount(accounts[0]);
         setIsConnected(true);
         await checkNetwork();
@@ -104,6 +113,8 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
       setError(err.message || 'Erro ao conectar carteira');
       setIsConnected(false);
       setAccount(null);
+      setProvider(null);
+      setSigner(null);
     } finally {
       setIsLoading(false);
     }
@@ -114,6 +125,8 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
     setIsConnected(false);
     setIsCorrectNetwork(false);
     setError(null);
+    setProvider(null);
+    setSigner(null);
   };
 
   useEffect(() => {
@@ -138,11 +151,16 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
 
     window.ethereum
       .request({ method: 'eth_accounts' })
-      .then((accounts: string[]) => {
+      .then(async (accounts: string[]) => {
         if (accounts.length > 0) {
+          const ethersProvider = new ethers.BrowserProvider(window.ethereum);
+          const ethersSigner = await ethersProvider.getSigner();
+          
+          setProvider(ethersProvider);
+          setSigner(ethersSigner);
           setAccount(accounts[0]);
           setIsConnected(true);
-          checkNetwork();
+          await checkNetwork();
         }
       })
       .catch((err: any) => {
@@ -165,6 +183,8 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
         isCorrectNetwork,
         isLoading,
         error,
+        provider,
+        signer,
         connectWallet,
         disconnectWallet,
         switchToPolygon,

@@ -35,14 +35,37 @@ export async function notifyMintToBRL3(
   amount: number, 
   depositId: string
 ): Promise<void> {
-  if (!isPolygonEnabled()) {
-    throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
-  }
-
-  const wallet = await getUserWalletAddress(userId);
   const amountStr = amount.toFixed(2);
-  const txHash = await mintTo(wallet, amountStr);
-  console.log(`✅ [MINT] Depósito ${depositId}: mintado ${amount} tokens para ${wallet}. Tx: ${txHash}`);
+  
+  const onchainOp = await storage.createOnchainOperation({
+    userId,
+    type: "mint",
+    amount: amountStr,
+    status: "pending",
+  });
+
+  try {
+    if (!isPolygonEnabled()) {
+      throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
+    }
+
+    const wallet = await getUserWalletAddress(userId);
+    const txHash = await mintTo(wallet, amountStr);
+    
+    await storage.updateOnchainOperation(onchainOp.id, {
+      txHash,
+      status: "confirmed",
+      confirmedAt: new Date(),
+    });
+    
+    console.log(`✅ [MINT] Depósito ${depositId}: mintado ${amount} tokens para ${wallet}. Tx: ${txHash}`);
+  } catch (error: any) {
+    await storage.updateOnchainOperation(onchainOp.id, {
+      status: "failed",
+      errorMessage: error.message || "Erro desconhecido ao mintar tokens",
+    });
+    throw error;
+  }
 }
 
 /**
@@ -56,22 +79,45 @@ export async function notifyBurnToBRL3(
   withdrawalId: string, 
   permitData: {deadline: bigint; v: number; r: string; s: string}
 ): Promise<void> {
-  if (!isPolygonEnabled()) {
-    throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
-  }
-
-  const wallet = await getUserWalletAddress(userId);
   const amountStr = amount.toFixed(2);
-  const { permitTx, transferTx, burnTx } = await burnWithPermit(
-    wallet, 
-    amountStr, 
-    permitData.deadline, 
-    permitData.v, 
-    permitData.r, 
-    permitData.s
-  );
-  console.log(`✅ [BURN] Saque ${withdrawalId}: burned ${amount} tokens do usuário ${wallet}`);
-  console.log(`   PermitTx: ${permitTx}, TransferTx: ${transferTx}, BurnTx: ${burnTx}`);
+  
+  const onchainOp = await storage.createOnchainOperation({
+    userId,
+    type: "burn",
+    amount: amountStr,
+    status: "pending",
+  });
+
+  try {
+    if (!isPolygonEnabled()) {
+      throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
+    }
+
+    const wallet = await getUserWalletAddress(userId);
+    const { permitTx, transferTx, burnTx } = await burnWithPermit(
+      wallet, 
+      amountStr, 
+      permitData.deadline, 
+      permitData.v, 
+      permitData.r, 
+      permitData.s
+    );
+    
+    await storage.updateOnchainOperation(onchainOp.id, {
+      txHash: burnTx,
+      status: "confirmed",
+      confirmedAt: new Date(),
+    });
+    
+    console.log(`✅ [BURN] Saque ${withdrawalId}: burned ${amount} tokens do usuário ${wallet}`);
+    console.log(`   PermitTx: ${permitTx}, TransferTx: ${transferTx}, BurnTx: ${burnTx}`);
+  } catch (error: any) {
+    await storage.updateOnchainOperation(onchainOp.id, {
+      status: "failed",
+      errorMessage: error.message || "Erro desconhecido ao queimar tokens",
+    });
+    throw error;
+  }
 }
 
 /**
@@ -84,11 +130,6 @@ export async function notifyDualMintToBRL3(
   amount: number, 
   depositId: string
 ): Promise<void> {
-  if (!isPolygonEnabled()) {
-    throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
-  }
-
-  const wallet = await getUserWalletAddress(userId);
   const amountStr = amount.toFixed(2);
   
   const onchainOp = await storage.createOnchainOperation({
@@ -99,12 +140,19 @@ export async function notifyDualMintToBRL3(
   });
 
   try {
+    if (!isPolygonEnabled()) {
+      throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
+    }
+
+    const wallet = await getUserWalletAddress(userId);
     const { userTx, adminTx } = await mintDual(wallet, amountStr);
+    
     await storage.updateOnchainOperation(onchainOp.id, {
       txHash: userTx,
       status: "confirmed",
       confirmedAt: new Date(),
     });
+    
     console.log(`✅ [DUAL MINT] Depósito ${depositId}: ${amount} tokens para usuário (tx ${userTx}) e ${amount} tokens para admin (tx ${adminTx})`);
   } catch (error: any) {
     await storage.updateOnchainOperation(onchainOp.id, {
@@ -126,11 +174,6 @@ export async function notifyDualBurnToBRL3(
   withdrawalId: string, 
   permitData: {deadline: bigint; v: number; r: string; s: string}
 ): Promise<void> {
-  if (!isPolygonEnabled()) {
-    throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
-  }
-
-  const wallet = await getUserWalletAddress(userId);
   const amountStr = amount.toFixed(2);
   
   const onchainOp = await storage.createOnchainOperation({
@@ -141,6 +184,11 @@ export async function notifyDualBurnToBRL3(
   });
 
   try {
+    if (!isPolygonEnabled()) {
+      throw new Error("Polygon integration not enabled - verifique variáveis de ambiente (POLYGON_RPC_URL, ADMIN_PRIVATE_KEY, TOKEN_CONTRACT_ADDRESS, TOKEN_DECIMALS)");
+    }
+
+    const wallet = await getUserWalletAddress(userId);
     const { userTxs, adminBurnTx } = await burnDual(
       wallet, 
       amountStr, 
@@ -149,11 +197,13 @@ export async function notifyDualBurnToBRL3(
       permitData.r, 
       permitData.s
     );
+    
     await storage.updateOnchainOperation(onchainOp.id, {
       txHash: userTxs.burnTx,
       status: "confirmed",
       confirmedAt: new Date(),
     });
+    
     console.log(`✅ [DUAL BURN] Saque ${withdrawalId}: queima ${amount} tokens do usuário (permit ${userTxs.permitTx}, transfer ${userTxs.transferTx}, burn ${userTxs.burnTx}) e ${amount} tokens do admin (burn ${adminBurnTx})`);
   } catch (error: any) {
     await storage.updateOnchainOperation(onchainOp.id, {
