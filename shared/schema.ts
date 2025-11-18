@@ -263,7 +263,7 @@ export const onchainOperations = pgTable("onchain_operations", {
   userId: varchar("user_id").notNull().references(() => users.id),
   type: onchainOperationTypeEnum("type").notNull(), // mint or burn
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
-  txHash: text("tx_hash"), // Polygon transaction hash (nullable until confirmed)
+  txHash: text("tx_hash").unique(), // Polygon transaction hash (UNIQUE to prevent replay attacks)
   status: text("status").notNull().default("pending"), // pending, confirmed, failed
   errorMessage: text("error_message"), // Error details if failed
   createdAt: timestamp("created_at").notNull().defaultNow(),

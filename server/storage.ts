@@ -114,6 +114,7 @@ export interface IStorage {
   createOnchainOperation(operation: Omit<InsertOnchainOperation, "id">): Promise<OnchainOperation>;
   updateOnchainOperation(id: string, updates: { txHash?: string; status?: string; errorMessage?: string; confirmedAt?: Date }): Promise<OnchainOperation>;
   getOnchainOperationsByUser(userId: string): Promise<OnchainOperation[]>;
+  checkTxHashUsed(txHash: string): Promise<boolean>;
 
   sessionStore: any;
 }
@@ -756,6 +757,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(onchainOperations.userId, userId))
       .orderBy(desc(onchainOperations.createdAt))
       .limit(50);
+  }
+
+  async checkTxHashUsed(txHash: string): Promise<boolean> {
+    const [operation] = await db
+      .select()
+      .from(onchainOperations)
+      .where(eq(onchainOperations.txHash, txHash))
+      .limit(1);
+    return !!operation;
   }
 }
 

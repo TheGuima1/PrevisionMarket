@@ -1152,16 +1152,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Depósito já foi processado.");
       }
 
-      // Verificar transação na blockchain
-      const { waitForTransaction } = await import("./polygonClient");
-      console.log(`🔍 [Finalize Approval] Verificando transação ${txHash}...`);
-      
-      const confirmed = await waitForTransaction(txHash);
-      if (!confirmed) {
-        return res.status(400).send("Transação falhou ou não foi confirmada.");
+      // Validar configuração ANTES de consumir txHash
+      const adminAddress = process.env.VITE_ADMIN_ADDRESS;
+      if (!adminAddress) {
+        return res.status(500).send("Admin wallet address não configurado.");
       }
 
-      console.log(`✅ [Finalize Approval] Transação ${txHash} confirmada`);
+      // ANTI-REPLAY: Verificação dupla de txHash (antes do insert DB)
+      const txHashAlreadyUsed = await storage.checkTxHashUsed(txHash);
+      if (txHashAlreadyUsed) {
+        console.error(`❌ [Finalize Approval] Replay attack detected: tx hash ${txHash} already used`);
+        return res.status(400).send("Transaction hash já foi utilizado. Replay attacks não são permitidos.");
+      }
+
+      // ANTI-REPLAY: Registrar operação on-chain para consumir txHash atomicamente
+      // Se txHash já existe (race condition), createOnchainOperation falhará (DB unique constraint)
+      let onchainOp;
+      try {
+        onchainOp = await storage.createOnchainOperation({
+          userId: deposit.userId,
+          type: "mint",
+          amount: deposit.amount,
+          txHash: txHash,
+          status: "pending",
+        });
+        console.log(`📝 [Finalize Approval] Onchain operation registered: ${onchainOp.id}`);
+      } catch (error: any) {
+        console.error(`❌ [Finalize Approval] DB constraint violation - concurrent txHash insert`, error);
+        return res.status(400).send("Transaction hash já foi utilizado (race condition detectada).");
+      }
+
+      // Verificar transação na blockchain com validação completa
+      const { verifyMintTransaction } = await import("./polygonClient");
+      console.log(`🔍 [Finalize Approval] Verificando transação ${txHash}...`);
+
+      // Verificar que a transação é um mint válido com valor e destinatário corretos
+      const verification = await verifyMintTransaction(txHash, adminAddress, deposit.amount);
+      if (!verification.valid) {
+        console.error(`❌ [Finalize Approval] Transaction verification failed:`, verification.error);
+        // Atualizar operação on-chain para status "failed"
+        await storage.updateOnchainOperation(onchainOp.id, {
+          status: "failed",
+          errorMessage: verification.error || "Transaction verification failed",
+        });
+        return res.status(400).send(`Transação inválida: ${verification.error}`);
+      }
+
+      console.log(`✅ [Finalize Approval] Transação ${txHash} verificada e confirmada`);
 
       // Aprovar o depósito
       const approved = await storage.approvePendingDeposit(depositId, user.id);
@@ -1183,7 +1220,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Depósito via PIX aprovado (TX: ${txHash.substring(0, 10)}...)`,
       });
 
-      console.log(`✅ [Finalize Approval] Depósito aprovado - Saldo atualizado`);
+      // Atualizar operação on-chain para status "confirmed"
+      await storage.updateOnchainOperation(onchainOp.id, {
+        status: "confirmed",
+        confirmedAt: new Date(),
+      });
+
+      console.log(`✅ [Finalize Approval] Depósito aprovado - Saldo atualizado - Tx confirmada`);
 
       res.json({
         success: true,

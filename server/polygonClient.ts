@@ -120,6 +120,85 @@ export async function waitForTransaction(txHash: string, confirmations: number =
 }
 
 /**
+ * Verifica se uma transação é um mint válido para o endereço e valor esperados.
+ * @param txHash Hash da transação a verificar
+ * @param expectedRecipient Endereço que deveria receber os tokens
+ * @param expectedAmount Valor em formato string (ex: "10.50")
+ * @returns true se a tx é válida, false caso contrário
+ */
+export async function verifyMintTransaction(
+  txHash: string,
+  expectedRecipient: string,
+  expectedAmount: string
+): Promise<{ valid: boolean; error?: string }> {
+  if (!provider || !TOKEN_CONTRACT_ADDRESS) {
+    return { valid: false, error: "Polygon provider not initialized" };
+  }
+
+  try {
+    // 1. Obter transação e receipt
+    const tx = await provider.getTransaction(txHash);
+    const receipt = await provider.getTransactionReceipt(txHash);
+
+    if (!tx || !receipt) {
+      return { valid: false, error: "Transaction not found" };
+    }
+
+    // 2. Verificar que interagiu com o contrato correto
+    if (tx.to?.toLowerCase() !== TOKEN_CONTRACT_ADDRESS.toLowerCase()) {
+      return { 
+        valid: false, 
+        error: `Transaction sent to wrong contract: ${tx.to} instead of ${TOKEN_CONTRACT_ADDRESS}` 
+      };
+    }
+
+    // 3. Decodificar calldata para verificar função mint e parâmetros
+    const iface = new ethers.Interface(tokenAbi);
+    let decodedData;
+    try {
+      decodedData = iface.parseTransaction({ data: tx.data, value: tx.value });
+    } catch (error) {
+      return { valid: false, error: "Failed to decode transaction data" };
+    }
+
+    if (!decodedData || decodedData.name !== "mint") {
+      return { 
+        valid: false, 
+        error: `Transaction is not a mint call: ${decodedData?.name || 'unknown'}` 
+      };
+    }
+
+    // 4. Verificar recipient e amount
+    const [actualRecipient, actualAmount] = decodedData.args;
+    const expectedUnits = toUnits(expectedAmount);
+
+    if (actualRecipient.toLowerCase() !== expectedRecipient.toLowerCase()) {
+      return { 
+        valid: false, 
+        error: `Mint recipient mismatch: ${actualRecipient} instead of ${expectedRecipient}` 
+      };
+    }
+
+    if (actualAmount !== expectedUnits) {
+      return { 
+        valid: false, 
+        error: `Mint amount mismatch: ${actualAmount.toString()} instead of ${expectedUnits.toString()}` 
+      };
+    }
+
+    // 5. Verificar que a transação foi bem sucedida
+    if (receipt.status !== 1) {
+      return { valid: false, error: "Transaction failed (reverted)" };
+    }
+
+    return { valid: true };
+  } catch (error: any) {
+    console.error(`Error verifying mint transaction ${txHash}:`, error);
+    return { valid: false, error: error.message || "Unknown verification error" };
+  }
+}
+
+/**
  * Mintar tokens para um endereço. Apenas a carteira do admin deve executar.
  * Retorna o hash da transação.
  * @param amount - Valor em formato string (ex: "10.50") para evitar rounding errors
