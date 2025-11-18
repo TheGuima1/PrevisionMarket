@@ -174,12 +174,16 @@ async function fetchBrazilElectionMarket(slug: string): Promise<AdapterMarketDat
       
       const event = events[0];
       
-      // Map candidate names to our slugs
+      // Map candidate names to our slugs (top 8 candidates from Polymarket)
       const candidateMap: Record<string, string> = {
         'Luiz Inácio Lula da Silva': 'brazil-election-2026-lula',
         'Tarcisio de Freitas': 'brazil-election-2026-tarcisio',
         'Fernando Haddad': 'brazil-election-2026-haddad',
         'Renan Santos': 'brazil-election-2026-renan',
+        'Ratinho Júnior': 'brazil-election-2026-ratinho',
+        'Jair Bolsonaro': 'brazil-election-2026-jair',
+        'Michelle Bolsonaro': 'brazil-election-2026-michelle',
+        'Eduardo Bolsonaro': 'brazil-election-2026-eduardo',
       };
       
       // Extract market data for each candidate
