@@ -774,13 +774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ===== WALLET ROUTES =====
-  // Legacy endpoints /api/wallet/deposit and /api/wallet/withdraw removed
-  // All deposits/withdrawals now use the manual approval workflow:
-  // - POST /api/deposits/request + admin approval
-  // - POST /api/wallet/withdraw/request + admin approval
-
-  // ===== PENDING DEPOSITS ROUTES (Manual Approval Workflow) =====
+  // ===== DEPOSITS & WITHDRAWALS (Manual Approval Workflow) =====
 
   // POST /api/deposits/request - User requests a deposit with proof file (PDF)
   app.post("/api/deposits/request", requireAuth, (req, res, next) => {
