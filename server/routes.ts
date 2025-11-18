@@ -124,14 +124,17 @@ async function autoSeedIfEmpty() {
     const numUsers = Number(userCountResult[0]?.count ?? 0);
     const numMarkets = Number(marketCountResult[0]?.count ?? 0);
     
-    // Only seed if database is truly empty
-    if (numUsers === 0 || numMarkets === 0) {
+    // Only seed if database is completely empty (both users AND markets)
+    if (numUsers === 0 && numMarkets === 0) {
       console.log(`🌱 Database is empty (${numUsers} users, ${numMarkets} markets). Running auto-seed...`);
       const { seed } = await import("./seed");
       await seed();
       console.log("✅ Auto-seed completed successfully!");
     } else {
       console.log(`✓ Database already has ${numUsers} users and ${numMarkets} markets`);
+      if (numUsers === 0 || numMarkets === 0) {
+        console.warn(`⚠️  Partial data detected: ${numUsers} users, ${numMarkets} markets. Auto-seed skipped to prevent duplicates.`);
+      }
     }
   } catch (error) {
     console.error("❌ Auto-seed failed:", error);
