@@ -30,7 +30,8 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 ### Feature Specifications
 - **Authentication**: Standard email/password login/registration with unique usernames and protected routes. Admin quick access via password-only login.
 - **Public Landing Page**: Displays available markets with real-time Polymarket odds. Features special grouped display for multi-candidate markets like "Eleição Presidencial Brasil 2026" showing **8 candidates** (Lula, Tarcísio, Haddad, Renan Santos, Ratinho Jr, Jair Bolsonaro, Michelle Bolsonaro, Eduardo Bolsonaro) with **authentic Polymarket price changes** synchronized every 60 seconds. Data includes daily/weekly price deltas and real-time volumes - no simulated historical charts.
-- **Brazil Election Event Page** (`/brazil-election-2026`): Dedicated page matching Polymarket's event layout, featuring all 8 presidential candidates in a unified view. Includes summary bar with colored candidate dots, chart placeholder (linking to Polymarket due to X-Frame-Options restrictions), and detailed candidate rows with Buy Yes/No buttons. Navigation flows from homepage card to event page to individual market detail pages.
+- **Brazil Election Event Page** (`/brazil-election-2026`): Dedicated page matching Polymarket's event layout, featuring all 8 presidential candidates in a unified view. Includes summary bar with colored candidate dots, professional probability chart (top 4 candidates with solid lines, clean X-axis, dynamic Y-axis), and detailed candidate rows with Buy Yes/No buttons. Navigation flows from homepage card to event page to individual market detail pages.
+  - **Chart Design**: Matches Polymarket's professional style with top 4 candidates as solid smooth curves, clean X-axis without date labels, dynamic Y-axis (rounded to nearest 10%), no background grid, and tooltip showing dates only on hover.
 - **Market Detail Page**: Comprehensive market information, multiple odds formats, discussion system, and integrated trading panel.
 - **Trading Panel**: Visual YES/NO toggle, quantity input, real-time share estimate preview, cost, potential gain, and profit calculation. Includes balance validation - button disabled when user has insufficient balance with "Saldo insuficiente" message.
 - **Portfolio**: Overview of total value, invested amount, P&L, active positions, wallet management (deposit/withdrawal requests), and transaction history. Users submit withdrawal requests with PIX key - admin processes transfers manually.
@@ -45,6 +46,7 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Pricing Strategy**: Palpites.AI uses Polymarket's "spot price" (consensus market price) from the Gamma API, offering users ~10-15% better odds than Polymarket's execution price, with a transparent 2% platform fee.
 - **Production Deployment Optimization**: Asynchronous mirror worker initialization and database seeding prevent deployment health check timeouts, ensuring rapid server startup.
 - **Replit Autoscale Health Checks**: Optimized for fast responses with dedicated `/healthz` (no DB) and `/health` (with DB ping) endpoints.
+- **Code Cleanup**: Repository cleaned of unused assets (attached_assets/, docs/), with all legacy routes and duplicated code removed. All 12 pages, components, and server files actively used and tested.
 
 ## External Dependencies
 - **Database**: PostgreSQL (Neon)
