@@ -69,6 +69,57 @@ export function isPolygonEnabled(): boolean {
 }
 
 /**
+ * Retorna o endereço do contrato BRL3
+ */
+export function getTokenContractAddress(): string {
+  if (!TOKEN_CONTRACT_ADDRESS) throw new Error("TOKEN_CONTRACT_ADDRESS not configured");
+  return TOKEN_CONTRACT_ADDRESS;
+}
+
+/**
+ * Prepara os dados para uma transação de mint (sem executar).
+ * Retorna os dados necessários para o frontend assinar com MetaMask.
+ * @param amount - Valor em formato string (ex: "10.50")
+ */
+export function prepareMintData(toAddress: string, amount: string): {
+  to: string;
+  data: string;
+  value: string;
+} {
+  if (!tokenContract || !TOKEN_CONTRACT_ADDRESS) {
+    throw new Error("Polygon integration not initialized - verifique variáveis de ambiente");
+  }
+  
+  const units = toUnits(amount);
+  const iface = new ethers.Interface(tokenAbi);
+  const data = iface.encodeFunctionData("mint", [toAddress, units]);
+  
+  return {
+    to: TOKEN_CONTRACT_ADDRESS,
+    data: data,
+    value: "0",
+  };
+}
+
+/**
+ * Aguarda confirmação de uma transação na blockchain e verifica se foi bem sucedida.
+ * Retorna true se confirmada com sucesso, false se revertida.
+ */
+export async function waitForTransaction(txHash: string, confirmations: number = 1): Promise<boolean> {
+  if (!provider) throw new Error("Polygon provider not initialized");
+  
+  try {
+    const receipt = await provider.waitForTransaction(txHash, confirmations);
+    if (!receipt) return false;
+    
+    return receipt.status === 1;
+  } catch (error) {
+    console.error(`Error waiting for transaction ${txHash}:`, error);
+    return false;
+  }
+}
+
+/**
  * Mintar tokens para um endereço. Apenas a carteira do admin deve executar.
  * Retorna o hash da transação.
  * @param amount - Valor em formato string (ex: "10.50") para evitar rounding errors

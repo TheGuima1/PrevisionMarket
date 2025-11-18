@@ -1072,7 +1072,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/deposits/:id/approve - Admin approves a deposit
+  // POST /api/deposits/:id/prepare-approval - Prepara dados para mint via MetaMask
+  app.post("/api/deposits/:id/prepare-approval", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (!user.isAdmin) {
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const depositId = req.params.id;
+      const deposit = await storage.getPendingDeposit(depositId);
+
+      if (!deposit) {
+        return res.status(404).send("Depósito não encontrado.");
+      }
+
+      if (deposit.status !== "pending") {
+        return res.status(400).send("Depósito já foi processado.");
+      }
+
+      if (deposit.currency !== "BRL") {
+        return res.status(400).send("Apenas depósitos em BRL suportam mint via MetaMask.");
+      }
+
+      // Preparar dados para transação de mint
+      // IMPORTANTE: Tokens são mintados APENAS para carteira do admin
+      // Usuários têm saldo interno no banco de dados, não possuem wallets
+      const { prepareMintData, getTokenContractAddress } = await import("./polygonClient");
+      const depositAmount = parseFloat(deposit.amount);
+      
+      // Obter endereço da carteira admin do .env
+      const adminAddress = process.env.VITE_ADMIN_ADDRESS;
+      if (!adminAddress) {
+        return res.status(500).send("Admin wallet address não configurado.");
+      }
+
+      const mintData = prepareMintData(adminAddress, deposit.amount);
+      
+      res.json({
+        success: true,
+        deposit: {
+          id: deposit.id,
+          userId: deposit.userId,
+          amount: deposit.amount,
+          currency: deposit.currency,
+        },
+        mintTransaction: mintData,
+        contractAddress: getTokenContractAddress(),
+        message: "Transação preparada. Execute via MetaMask para mintar tokens para a carteira admin."
+      });
+    } catch (error: any) {
+      console.error("Failed to prepare deposit approval:", error);
+      res.status(500).send(error.message || "Falha ao preparar aprovação.");
+    }
+  });
+
+  // POST /api/deposits/:id/finalize-approval - Finaliza aprovação após mint via MetaMask
+  app.post("/api/deposits/:id/finalize-approval", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (!user.isAdmin) {
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const depositId = req.params.id;
+      const { txHash } = req.body;
+
+      if (!txHash) {
+        return res.status(400).send("Transaction hash obrigatório.");
+      }
+
+      const deposit = await storage.getPendingDeposit(depositId);
+
+      if (!deposit) {
+        return res.status(404).send("Depósito não encontrado.");
+      }
+
+      if (deposit.status !== "pending") {
+        return res.status(400).send("Depósito já foi processado.");
+      }
+
+      // Verificar transação na blockchain
+      const { waitForTransaction } = await import("./polygonClient");
+      console.log(`🔍 [Finalize Approval] Verificando transação ${txHash}...`);
+      
+      const confirmed = await waitForTransaction(txHash);
+      if (!confirmed) {
+        return res.status(400).send("Transação falhou ou não foi confirmada.");
+      }
+
+      console.log(`✅ [Finalize Approval] Transação ${txHash} confirmada`);
+
+      // Aprovar o depósito
+      const approved = await storage.approvePendingDeposit(depositId, user.id);
+
+      // Atualizar saldo do usuário
+      const depositUser = await storage.getUser(deposit.userId);
+      if (!depositUser) {
+        return res.status(404).send("Usuário não encontrado.");
+      }
+
+      const depositAmount = parseFloat(deposit.amount);
+      const newBalanceBrl = (parseFloat(depositUser.balanceBrl) + depositAmount).toFixed(2);
+      await storage.updateUserBalance(deposit.userId, newBalanceBrl, depositUser.balanceUsdc);
+
+      // Criar transação no histórico
+      await storage.createTransaction(deposit.userId, {
+        type: "deposit_pix",
+        amount: deposit.amount,
+        description: `Depósito via PIX aprovado (TX: ${txHash.substring(0, 10)}...)`,
+      });
+
+      console.log(`✅ [Finalize Approval] Depósito aprovado - Saldo atualizado`);
+
+      res.json({
+        success: true,
+        deposit: approved,
+        txHash,
+        message: `Depósito de ${depositAmount} BRL aprovado com sucesso.`
+      });
+    } catch (error: any) {
+      console.error("Failed to finalize deposit approval:", error);
+      res.status(500).send(error.message || "Falha ao finalizar aprovação.");
+    }
+  });
+
+  // POST /api/deposits/:id/approve - Admin approves a deposit (LEGACY - mantido para compatibilidade)
   app.post("/api/deposits/:id/approve", requireAuth, async (req, res) => {
     try {
       console.log(`📥 [Deposit Approve] Request received for deposit ID: ${req.params.id}`);
