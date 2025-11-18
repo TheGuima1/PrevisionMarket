@@ -215,7 +215,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: user.id,
         email: user.email,
         username: user.username,
-        walletAddress: user.walletAddress,
         balanceBrl: user.balanceBrl,
         balanceUsdc: user.balanceUsdc,
         isAdmin: user.isAdmin,
@@ -1039,36 +1038,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user!;
       
-      // Extract permit data if provided (required for BRL withdrawals)
-      const { permitDeadline, permitV, permitR, permitS, ...withdrawalData } = req.body;
-      
-      const validated = insertPendingWithdrawalSchema.parse(withdrawalData);
+      const validated = insertPendingWithdrawalSchema.parse(req.body);
       const withdrawAmount = parseFloat(validated.amount);
-      
-      // For BRL withdrawals with permit signature, verify user has wallet configured
-      // If no permit signature, approval will be manual (admin handles burn)
-      if (validated.currency === "BRL" && permitDeadline && !user.walletAddress) {
-        return res.status(400).json({
-          error: "Carteira Polygon não configurada",
-          message: "Configure sua carteira Polygon no perfil antes de solicitar saque em BRL com assinatura.",
-          action: "Vá em 'Perfil' e adicione seu endereço de carteira Polygon."
-        });
-      }
       
       // Note: Balance check removed - pending withdrawals are created before balance verification
       // Admin will verify balance before approving the withdrawal
       // This allows users to request withdrawals before deposits are approved
 
-      // Create pending withdrawal with permit data
-      const withdrawalWithPermit = {
-        ...validated,
-        permitDeadline,
-        permitV,
-        permitR,
-        permitS,
-      };
-      
-      const withdrawal = await storage.createPendingWithdrawal(user.id, withdrawalWithPermit);
+      const withdrawal = await storage.createPendingWithdrawal(user.id, validated);
 
       res.json({ 
         success: true, 
@@ -1667,13 +1644,11 @@ Your role:
       let totalBRL3Burned = 0;
       let burnErrors: string[] = [];
 
-      // Step 1: Skip BRL3 burn (requires permit signatures from each user)
-      // Admin should manually burn tokens via Polygon admin wallet after reset
+      // Step 1: Calculate total BRL3 to be cleared (database-only, no blockchain burn needed)
       for (const user of clientUsers) {
         const balance = parseFloat(user.balanceBrl);
         if (balance > 0) {
-          console.log(`⚠️  [RESET] User ${user.username} has ${balance} BRL3 - burn skipped (requires permit signature)`);
-          console.log(`   Admin deve queimar manualmente via Polygon após reset`);
+          console.log(`⚠️  [RESET] User ${user.username} has ${balance} BRL3 - will be cleared from database`);
           totalBRL3Burned += balance;
         }
       }

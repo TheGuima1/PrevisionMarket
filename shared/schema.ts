@@ -68,7 +68,6 @@ export const users = pgTable("users", {
   username: text("username").unique(), // Nullable - set after first login
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  walletAddress: text("wallet_address"), // Polygon wallet address for BRL3 tokens
   balanceBrl: decimal("balance_brl", { precision: 12, scale: 2 }).notNull().default("0.00"),
   balanceUsdc: decimal("balance_usdc", { precision: 12, scale: 6 }).notNull().default("0.000000"),
   isAdmin: boolean("is_admin").notNull().default(false),
