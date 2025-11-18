@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import type { Market } from "@shared/schema";
@@ -7,59 +6,6 @@ import type { Market } from "@shared/schema";
 interface BrazilElectionCardProps {
   markets: Market[];
 }
-
-// Historical trend multipliers (relative changes over time, not absolute values)
-// Each array represents how the candidate's odds changed from Sep 21 to Nov 2
-// Final multiplier is always 1.0 (= current real value)
-const CANDIDATE_TREND_MULTIPLIERS: Record<string, number[]> = {
-  "Lula": [0.95, 0.97, 0.98, 0.99, 0.995, 0.998, 1.0],
-  "Tarcísio de Freitas": [0.91, 0.94, 0.96, 0.97, 0.986, 0.994, 1.0],
-  "Fernando Haddad": [1.14, 1.09, 1.03, 1.0, 0.986, 1.0, 1.0],
-  "Renan Santos": [0.87, 0.92, 0.96, 0.98, 1.0, 1.0, 1.0],
-  "Ratinho Júnior": [0.83, 0.90, 0.93, 0.97, 1.0, 1.0, 1.0],
-  "Jair Bolsonaro": [1.25, 1.15, 1.10, 1.05, 1.0, 1.0, 1.0],
-  "Michelle Bolsonaro": [1.25, 1.15, 1.10, 1.05, 1.0, 1.0, 1.0],
-  "Eduardo Bolsonaro": [1.50, 1.30, 1.20, 1.10, 1.0, 1.0, 1.0],
-};
-
-// Generate historical data anchored to current market values
-const generateChartData = (markets: Market[]) => {
-  const dates = ["Sep 21", "Sep 28", "Oct 5", "Oct 12", "Oct 19", "Oct 26", "Nov 2"];
-  
-  return dates.map((date, idx) => {
-    const dataPoint: any = { date };
-    
-    markets.forEach((market) => {
-      const candidateName = market.title.split(' vencerá')[0];
-      const currentProb = parseFloat(market.yesReserve) / 
-        (parseFloat(market.yesReserve) + parseFloat(market.noReserve));
-      
-      const trendMultipliers = CANDIDATE_TREND_MULTIPLIERS[candidateName];
-      
-      if (trendMultipliers && trendMultipliers[idx] !== undefined) {
-        // Apply multiplier to current value to get historical value
-        dataPoint[candidateName] = currentProb * trendMultipliers[idx] * 100;
-      } else {
-        // Fallback to current value if no trend defined
-        dataPoint[candidateName] = currentProb * 100;
-      }
-    });
-    
-    return dataPoint;
-  });
-};
-
-// Calculate price change from historical trend (first vs last point)
-const calculatePriceChange = (candidateName: string, currentProb: number): number => {
-  const trendMultipliers = CANDIDATE_TREND_MULTIPLIERS[candidateName];
-  if (!trendMultipliers || trendMultipliers.length < 2) return 0;
-  
-  const firstValue = currentProb * trendMultipliers[0];
-  const lastValue = currentProb * trendMultipliers[trendMultipliers.length - 1];
-  
-  // Calculate percentage change
-  return ((lastValue - firstValue) / firstValue) * 100;
-};
 
 const CANDIDATE_COLORS: Record<string, string> = {
   "Lula": "#FF6B2C",
@@ -84,9 +30,6 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
     });
   }, [markets]);
 
-  // Memoize chart data to prevent regeneration on every render
-  const chartData = useMemo(() => generateChartData(sortedMarkets), [sortedMarkets]);
-
   return (
     <div 
       className="bg-[#17181D] rounded-xl border border-white/10 overflow-hidden"
@@ -98,80 +41,54 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
           <span className="text-2xl">🇧🇷</span>
           <h2 className="text-white font-semibold text-lg">Brazil Presidential Election</h2>
         </div>
-        <div className="flex items-center gap-2 text-xs text-white/50">
-          <span>Linked to</span>
-          <span className="text-white/70">Polymarket</span>
-        </div>
+        <a
+          href="https://polymarket.com/event/brazil-presidential-election"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition-colors"
+        >
+          <span>View on Polymarket</span>
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+            />
+          </svg>
+        </a>
       </div>
 
-      {/* Candidates List with Odds */}
+      {/* Candidates Summary with Dots */}
       <div className="p-3 border-b border-white/10">
         <div className="flex flex-wrap gap-4 text-xs text-white/60">
           {sortedMarkets.map((market) => {
             const candidateName = market.title.split(' vencerá')[0];
             const prob = parseFloat(market.yesReserve) / (parseFloat(market.yesReserve) + parseFloat(market.noReserve));
             const color = CANDIDATE_COLORS[candidateName] || "#888";
+            const candidateSlug = candidateName.toLowerCase().replace(/\s+/g, '-');
             
             return (
               <div 
                 key={market.id} 
                 className="flex items-center gap-2"
-                data-testid={`summary-${candidateName.toLowerCase().replace(/\s+/g, '-')}`}
+                data-testid={`summary-${candidateSlug}`}
               >
                 <div 
-                  className="w-2 h-2 rounded-full" 
+                  className="w-2 h-2 rounded-full flex-shrink-0" 
                   style={{ backgroundColor: color }}
                 />
                 <span className="text-white/80">{candidateName}</span>
-                <span className="font-semibold">{(prob * 100).toFixed(1)}%</span>
+                <span className="text-white/40">{(prob * 100).toFixed(1)}%</span>
               </div>
             );
           })}
         </div>
-      </div>
-
-      {/* Line Chart */}
-      <div className="p-4 bg-[#0D0E12]" data-testid="chart-election-trends">
-        <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-            <XAxis 
-              dataKey="date" 
-              stroke="#ffffff20" 
-              tick={{ fill: '#ffffff60', fontSize: 11 }}
-              axisLine={false}
-            />
-            <YAxis 
-              stroke="#ffffff20" 
-              tick={{ fill: '#ffffff60', fontSize: 11 }}
-              axisLine={false}
-              tickFormatter={(value) => `${value}%`}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1a1b20', 
-                border: '1px solid #ffffff20',
-                borderRadius: '8px'
-              }}
-              labelStyle={{ color: '#fff' }}
-            />
-            {sortedMarkets.map((market) => {
-              const candidateName = market.title.split(' vencerá')[0];
-              const color = CANDIDATE_COLORS[candidateName] || "#888";
-              
-              return (
-                <Line
-                  key={market.id}
-                  type="monotone"
-                  dataKey={candidateName}
-                  stroke={color}
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4 }}
-                />
-              );
-            })}
-          </LineChart>
-        </ResponsiveContainer>
       </div>
 
       {/* Candidates List */}
@@ -181,8 +98,10 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
           const prob = parseFloat(market.yesReserve) / (parseFloat(market.yesReserve) + parseFloat(market.noReserve));
           const volume = parseFloat(market.totalVolume || "0");
           
-          // Calculate price change from historical trend
-          const priceChange = calculatePriceChange(candidateName, prob);
+          // Use REAL Polymarket price change data
+          const priceChange = market.oneDayPriceChange 
+            ? parseFloat(market.oneDayPriceChange) 
+            : 0;
           const priceChangeColor = priceChange >= 0 ? "#10B981" : "#EF4444";
           const priceChangeSign = priceChange >= 0 ? "+" : "";
           
@@ -227,25 +146,31 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
                 {/* Middle: Percentage */}
                 <div className="flex items-center gap-2">
                   <span 
-                    className="text-white font-bold text-2xl tabular-nums"
+                    className="text-white font-bold text-lg"
                     data-testid={`percentage-${candidateSlug}`}
                   >
-                    {(prob * 100).toFixed(0)}%
+                    {(prob * 100).toFixed(1)}%
                   </span>
-                  <span 
-                    className="text-xs font-semibold"
-                    style={{ color: priceChangeColor }}
-                    data-testid={`change-${candidateSlug}`}
-                  >
-                    {priceChangeSign}{Math.abs(priceChange).toFixed(1)}%
-                  </span>
+                  {priceChange !== 0 && (
+                    <span 
+                      className="text-xs font-medium px-1.5 py-0.5 rounded"
+                      style={{ 
+                        backgroundColor: `${priceChangeColor}20`,
+                        color: priceChangeColor 
+                      }}
+                      data-testid={`change-${candidateSlug}`}
+                    >
+                      {priceChangeSign}{priceChange.toFixed(1)}%
+                    </span>
+                  )}
                 </div>
 
                 {/* Right: Buy Buttons */}
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Button
+                    variant="outline"
                     size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-8 px-4 text-xs"
+                    className="bg-[#10B981]/10 border-[#10B981]/30 text-[#10B981] hover:bg-[#10B981]/20 h-8 px-3 text-xs font-medium"
                     onClick={(e) => {
                       e.stopPropagation();
                       setLocation(`/market/${market.id}`);
@@ -255,9 +180,9 @@ export function BrazilElectionCard({ markets }: BrazilElectionCardProps) {
                     Buy Yes {buyYesPrice}¢
                   </Button>
                   <Button
+                    variant="outline"
                     size="sm"
-                    variant="destructive"
-                    className="h-8 px-4 text-xs font-semibold"
+                    className="bg-[#EF4444]/10 border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/20 h-8 px-3 text-xs font-medium"
                     onClick={(e) => {
                       e.stopPropagation();
                       setLocation(`/market/${market.id}`);

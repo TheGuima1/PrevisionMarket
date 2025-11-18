@@ -46,7 +46,7 @@ function bootstrapAMMFromOdds(probYes: number): {
  * @param fetchCache - Optional cache of Polymarket fetch results to avoid double-fetching
  */
 export async function syncAMMMarketsWithPolymarket(
-  fetchCache?: Map<string, { probYes: number; title: string; volumeUsd?: number }>
+  fetchCache?: Map<string, { probYes: number; title: string; volumeUsd?: number; oneDayPriceChange?: number; oneWeekPriceChange?: number }>
 ): Promise<void> {
   try {
     // Get all local AMM markets with Polymarket slugs
@@ -86,7 +86,7 @@ export async function syncAMMMarketsWithPolymarket(
         // Note: 2% spread is applied in amm-engine.ts buyShares(), not here
         const amm = bootstrapAMMFromOdds(polyData.probYes);
         
-        // Update market reserves atomically
+        // Update market reserves and price changes atomically
         await db
           .update(markets)
           .set({
@@ -94,6 +94,8 @@ export async function syncAMMMarketsWithPolymarket(
             noReserve: amm.noReserve.toString(),
             k: amm.k.toString(),
             seedLiquidity: amm.seedLiquidity.toString(),
+            oneDayPriceChange: polyData.oneDayPriceChange?.toString(),
+            oneWeekPriceChange: polyData.oneWeekPriceChange?.toString(),
           })
           .where(eq(markets.id, market.id));
         

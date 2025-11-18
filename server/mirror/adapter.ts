@@ -15,6 +15,8 @@ export interface PolymarketRawMarket {
   volumeNum?: number;
   endDateIso?: string;
   endDate?: string;
+  oneDayPriceChange?: number;
+  oneWeekPriceChange?: number;
 }
 
 export interface AdapterMarketData {
@@ -22,6 +24,8 @@ export interface AdapterMarketData {
   title: string;
   probYes: number; // 0-1, extracted from YES outcome by name
   volumeUsd?: number;
+  oneDayPriceChange?: number;
+  oneWeekPriceChange?: number;
 }
 
 /**
@@ -140,6 +144,8 @@ export async function fetchPolyBySlug(slug: string): Promise<AdapterMarketData> 
       title: market.question || slug,
       probYes,
       volumeUsd: market.volume || market.volumeNum,
+      oneDayPriceChange: market.oneDayPriceChange,
+      oneWeekPriceChange: market.oneWeekPriceChange,
     };
   } catch (error) {
     console.error(`[Adapter] Failed to fetch ${slug}:`, error);
@@ -201,6 +207,8 @@ async function fetchBrazilElectionMarket(slug: string): Promise<AdapterMarketDat
             title: market.question || `${candidateName} vencerá as eleições presidenciais brasileiras de 2026?`,
             probYes,
             volumeUsd: market.volume || market.volumeNum,
+            oneDayPriceChange: market.oneDayPriceChange,
+            oneWeekPriceChange: market.oneWeekPriceChange,
           });
         } else if (candidateName) {
           // Log unmapped candidates (for debugging) but continue processing

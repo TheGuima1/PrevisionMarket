@@ -93,7 +93,7 @@ async function validateSlugs(slugs: string[]): Promise<string[]> {
  */
 export async function pollOnce(): Promise<void> {
   // Cache fetch results to avoid double-fetching for AMM sync
-  const fetchCache = new Map<string, { probYes: number; title: string; volumeUsd?: number }>();
+  const fetchCache = new Map<string, { probYes: number; title: string; volumeUsd?: number; oneDayPriceChange?: number; oneWeekPriceChange?: number }>();
   
   // Step 1 & 2: Fetch and update mirror state
   for (const slug of validatedSlugs) {

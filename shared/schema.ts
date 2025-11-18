@@ -102,6 +102,9 @@ export const markets = pgTable("markets", {
   // Origin: "local" (native AMM) or "polymarket" (mirrored from Polymarket)
   origin: text("origin").notNull().default("local"),
   polymarketSlug: text("polymarket_slug"), // If origin="polymarket", this is the Polymarket slug
+  // Real Polymarket price changes (fetched from Gamma API)
+  oneDayPriceChange: decimal("one_day_price_change", { precision: 8, scale: 4 }),
+  oneWeekPriceChange: decimal("one_week_price_change", { precision: 8, scale: 4 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
