@@ -115,7 +115,7 @@ function ensureUsername(req: Request, res: Response, next: Function) {
   next();
 }
 
-// Auto-seed database if empty OR reconcile market set to match configured slugs
+// Auto-seed database if empty (simplified - no auto-reconciliation)
 async function autoSeedIfEmpty() {
   try {
     const userCountResult = await db.select({ count: sql<number>`count(*)` }).from(users);
@@ -124,42 +124,14 @@ async function autoSeedIfEmpty() {
     const numUsers = Number(userCountResult[0]?.count ?? 0);
     const numMarkets = Number(marketCountResult[0]?.count ?? 0);
     
-    // Import metadata to know expected market set
-    const { getConfiguredSlugs } = await import("./polymarket-metadata");
-    const expectedSlugs = getConfiguredSlugs();
-    
-    // Check if we need to reconcile markets
-    let needsReconciliation = false;
-    if (numMarkets !== expectedSlugs.length) {
-      needsReconciliation = true;
-    } else {
-      // Verify slugs match
-      const existingMarkets = await db.select().from(markets);
-      const existingSlugs = existingMarkets.map(m => m.polymarketSlug).filter(Boolean);
-      const slugsMatch = expectedSlugs.every(s => existingSlugs.includes(s)) && 
-                         existingSlugs.length === expectedSlugs.length;
-      if (!slugsMatch) {
-        needsReconciliation = true;
-      }
-    }
-    
-    // Run seed if DB is empty OR market set needs reconciliation
-    if (numUsers === 0 || numMarkets === 0 || needsReconciliation) {
-      if (needsReconciliation && numMarkets > 0) {
-        console.log(`🔄 Market reconciliation needed (${numMarkets} markets, expected ${expectedSlugs.length}). Cleaning legacy markets...`);
-        // Delete all markets and related data
-        await db.delete(ammSnapshots);
-        await db.delete(positions);
-        await db.delete(orders);
-        await db.delete(markets);
-      }
-      
-      console.log(`🌱 Database needs seeding (${numUsers} users, ${numMarkets} markets). Running auto-seed...`);
+    // Only seed if database is truly empty
+    if (numUsers === 0 || numMarkets === 0) {
+      console.log(`🌱 Database is empty (${numUsers} users, ${numMarkets} markets). Running auto-seed...`);
       const { seed } = await import("./seed");
       await seed();
       console.log("✅ Auto-seed completed successfully!");
     } else {
-      console.log(`✓ Database already has ${numUsers} users and ${numMarkets} markets matching configured slugs`);
+      console.log(`✓ Database already has ${numUsers} users and ${numMarkets} markets`);
     }
   } catch (error) {
     console.error("❌ Auto-seed failed:", error);
