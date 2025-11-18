@@ -6,6 +6,7 @@ import { mintTo, burnWithPermit, mintDual, burnDual, isPolygonEnabled } from './
 import { db } from './db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { storage } from './storage';
 
 /**
  * Recupera o endereço da carteira Polygon de um usuário a partir de seu ID.
@@ -89,8 +90,29 @@ export async function notifyDualMintToBRL3(
 
   const wallet = await getUserWalletAddress(userId);
   const amountStr = amount.toFixed(2);
-  const { userTx, adminTx } = await mintDual(wallet, amountStr);
-  console.log(`✅ [DUAL MINT] Depósito ${depositId}: ${amount} tokens para usuário (tx ${userTx}) e ${amount} tokens para admin (tx ${adminTx})`);
+  
+  const onchainOp = await storage.createOnchainOperation({
+    userId,
+    type: "mint",
+    amount: amountStr,
+    status: "pending",
+  });
+
+  try {
+    const { userTx, adminTx } = await mintDual(wallet, amountStr);
+    await storage.updateOnchainOperation(onchainOp.id, {
+      txHash: userTx,
+      status: "confirmed",
+      confirmedAt: new Date(),
+    });
+    console.log(`✅ [DUAL MINT] Depósito ${depositId}: ${amount} tokens para usuário (tx ${userTx}) e ${amount} tokens para admin (tx ${adminTx})`);
+  } catch (error: any) {
+    await storage.updateOnchainOperation(onchainOp.id, {
+      status: "failed",
+      errorMessage: error.message || "Erro desconhecido ao mintar tokens",
+    });
+    throw error;
+  }
 }
 
 /**
@@ -110,13 +132,34 @@ export async function notifyDualBurnToBRL3(
 
   const wallet = await getUserWalletAddress(userId);
   const amountStr = amount.toFixed(2);
-  const { userTxs, adminBurnTx } = await burnDual(
-    wallet, 
-    amountStr, 
-    permitData.deadline, 
-    permitData.v, 
-    permitData.r, 
-    permitData.s
-  );
-  console.log(`✅ [DUAL BURN] Saque ${withdrawalId}: queima ${amount} tokens do usuário (permit ${userTxs.permitTx}, transfer ${userTxs.transferTx}, burn ${userTxs.burnTx}) e ${amount} tokens do admin (burn ${adminBurnTx})`);
+  
+  const onchainOp = await storage.createOnchainOperation({
+    userId,
+    type: "burn",
+    amount: amountStr,
+    status: "pending",
+  });
+
+  try {
+    const { userTxs, adminBurnTx } = await burnDual(
+      wallet, 
+      amountStr, 
+      permitData.deadline, 
+      permitData.v, 
+      permitData.r, 
+      permitData.s
+    );
+    await storage.updateOnchainOperation(onchainOp.id, {
+      txHash: userTxs.burnTx,
+      status: "confirmed",
+      confirmedAt: new Date(),
+    });
+    console.log(`✅ [DUAL BURN] Saque ${withdrawalId}: queima ${amount} tokens do usuário (permit ${userTxs.permitTx}, transfer ${userTxs.transferTx}, burn ${userTxs.burnTx}) e ${amount} tokens do admin (burn ${adminBurnTx})`);
+  } catch (error: any) {
+    await storage.updateOnchainOperation(onchainOp.id, {
+      status: "failed",
+      errorMessage: error.message || "Erro desconhecido ao queimar tokens",
+    });
+    throw error;
+  }
 }
