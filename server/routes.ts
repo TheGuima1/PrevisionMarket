@@ -9,7 +9,7 @@ import { db } from "./db";
 import { users } from "@shared/schema";
 import { sql, desc, and, gte, eq, inArray } from "drizzle-orm";
 import * as AMM from "./amm-engine";
-import { startPolymarketSnapshots } from "./polymarket-cron";
+// Legacy polymarket-cron removed - now using mirror worker
 import { getSnapshot } from "./mirror/state";
 import { startMirror } from "./mirror/worker";
 import { notifyMintToBRL3, notifyBurnToBRL3 } from "./brl3-client";
@@ -196,15 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('[Server] Failed to start mirror worker:', err);
   }
   
-  // Legacy system (disabled by default)
-  // Enable with ENABLE_POLYMARKET_CRON=true if historical snapshots are needed
-  // The mirror worker handles live odds display (/api/polymarket/markets)
-  if (process.env.ENABLE_POLYMARKET_CRON === 'true') {
-    console.log('[Server] Starting legacy Polymarket cron (ENABLE_POLYMARKET_CRON=true)');
-    startPolymarketSnapshots();
-  } else {
-    console.log('[Server] Legacy Polymarket cron disabled (set ENABLE_POLYMARKET_CRON=true to enable)');
-  }
+  // Legacy Polymarket cron removed - mirror worker now handles all odds syncing
 
   // ===== USER PROFILE ROUTES =====
 
@@ -785,119 +777,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===== WALLET ROUTES =====
-  
-  // Zod schema for wallet deposit
-  const depositSchema = z.object({
-    amount: z.union([z.string(), z.number()]).transform(val => 
-      typeof val === "string" ? parseFloat(val) : val
-    ).refine(val => val > 0 && !isNaN(val), "Amount must be a positive number"),
-    currency: z.enum(["BRL", "USDC"]),
-    type: z.enum(["deposit_pix", "deposit_usdc"]),
-  });
-
-  // POST /api/wallet/deposit - Deposit funds (MOCKED)
-  app.post("/api/wallet/deposit", requireAuth, async (req, res) => {
-    try {
-      // Validate input with Zod
-      const validated = depositSchema.parse(req.body);
-      const { amount: depositAmount, currency, type } = validated;
-      
-      const user = req.user!;
-
-      let newBalanceBrl = user.balanceBrl;
-      let newBalanceUsdc = user.balanceUsdc;
-
-      if (currency === "BRL") {
-        newBalanceBrl = (parseFloat(user.balanceBrl) + depositAmount).toFixed(2);
-      } else if (currency === "USDC") {
-        newBalanceUsdc = (parseFloat(user.balanceUsdc) + depositAmount).toFixed(6);
-      }
-
-      await storage.updateUserBalance(user.id, newBalanceBrl, newBalanceUsdc);
-      
-      await storage.createTransaction(user.id, {
-        type: type as any,
-        amount: depositAmount.toString(),
-        currency,
-        description: `Deposited ${depositAmount} ${currency} (MOCKED)`,
-      });
-
-      // Integração com BRL3 (3BIT XChange) - apenas para depósitos em BRL via PIX
-      if (currency === "BRL" && type === "deposit_pix") {
-        if (!Number.isNaN(depositAmount) && depositAmount > 0) {
-          await notifyMintToBRL3(user.id, depositAmount, `legacy_deposit_${Date.now()}`);
-        }
-      }
-
-      res.json({ success: true });
-    } catch (error: any) {
-      if (error.name === "ZodError") {
-        return res.status(400).send(error.message || errorMessages.INVALID_INPUT);
-      }
-      res.status(500).send(errorMessages.FAILED_DEPOSIT);
-    }
-  });
-
-  // Zod schema for wallet withdrawal
-  const withdrawalSchema = z.object({
-    amount: z.union([z.string(), z.number()]).transform(val => 
-      typeof val === "string" ? parseFloat(val) : val
-    ).refine(val => val > 0 && !isNaN(val), "Amount must be a positive number"),
-    currency: z.enum(["BRL", "USDC"]),
-    type: z.enum(["withdrawal_pix", "withdrawal_usdc"]),
-  });
-
-  // POST /api/wallet/withdraw - Withdraw funds (MOCKED)
-  app.post("/api/wallet/withdraw", requireAuth, async (req, res) => {
-    try {
-      // Validate input with Zod
-      const validated = withdrawalSchema.parse(req.body);
-      const { amount: withdrawAmount, currency, type } = validated;
-      
-      const user = req.user!;
-
-      let newBalanceBrl = user.balanceBrl;
-      let newBalanceUsdc = user.balanceUsdc;
-
-      if (currency === "BRL") {
-        if (parseFloat(user.balanceBrl) < withdrawAmount) {
-          return res.status(400).send("Insufficient balance");
-        }
-        newBalanceBrl = (parseFloat(user.balanceBrl) - withdrawAmount).toFixed(2);
-      } else if (currency === "USDC") {
-        if (parseFloat(user.balanceUsdc) < withdrawAmount) {
-          return res.status(400).send("Insufficient balance");
-        }
-        newBalanceUsdc = (parseFloat(user.balanceUsdc) - withdrawAmount).toFixed(6);
-      }
-
-      await storage.updateUserBalance(user.id, newBalanceBrl, newBalanceUsdc);
-      
-      await storage.createTransaction(user.id, {
-        type: type as any,
-        amount: withdrawAmount.toString(),
-        currency,
-        description: `Withdrew ${withdrawAmount} ${currency} (MOCKED)`,
-      });
-
-      // Integração Polygon - DESABILITADA para saques diretos (requer assinatura permit)
-      // Usuários devem usar o novo fluxo: POST /api/wallet/withdraw/request + aprovação admin
-      if (currency === "BRL" && type === "withdrawal_pix") {
-        return res.status(410).json({
-          error: "Saque direto de BRL desabilitado",
-          message: "Por favor, use o novo fluxo de solicitação de saque em 'Carteira' → 'Sacar'. Saques em BRL agora requerem assinatura Polygon (gasless) e aprovação manual.",
-          action: "Solicite seu saque através da página Carteira e aguarde aprovação do admin."
-        });
-      }
-
-      res.json({ success: true });
-    } catch (error: any) {
-      if (error.name === "ZodError") {
-        return res.status(400).send(error.message || errorMessages.INVALID_INPUT);
-      }
-      res.status(500).send(errorMessages.FAILED_WITHDRAWAL);
-    }
-  });
+  // Legacy endpoints /api/wallet/deposit and /api/wallet/withdraw removed
+  // All deposits/withdrawals now use the manual approval workflow:
+  // - POST /api/deposits/request + admin approval
+  // - POST /api/wallet/withdraw/request + admin approval
 
   // ===== PENDING DEPOSITS ROUTES (Manual Approval Workflow) =====
 
