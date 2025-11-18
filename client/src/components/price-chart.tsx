@@ -260,10 +260,10 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
                 type="natural"
                 dataKey={outcome.full}
                 stroke={COLORS[index % COLORS.length]}
-                strokeWidth={2.5}
+                strokeWidth={2}
                 dot={false}
+                activeDot={false}
                 name={outcome.full}
-                activeDot={{ r: 6, strokeWidth: 2 }}
               />
             ))}
           </LineChart>
