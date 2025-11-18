@@ -50,6 +50,11 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
   const queries = useQueries({
     queries: slugsToFetch.map(({ slug }) => ({
       queryKey: ['/api/polymarket/history', slug, timeRange],
+      queryFn: async () => {
+        const res = await fetch(`/api/polymarket/history/${slug}?range=${timeRange}`);
+        if (!res.ok) throw new Error('Erro ao carregar histórico');
+        return res.json();
+      },
       enabled: !!slug,
     })),
   });

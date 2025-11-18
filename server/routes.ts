@@ -976,11 +976,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Depósito aprovado: ${depositAmount} ${deposit.currency}`,
       });
 
-      // Integração com BRL3 - MINT simples para admin wallet (usuários têm apenas saldo no DB)
+      // Integração com BRL3 - MINT para admin wallet (todas as moedas)
       // Admin recebe tokens on-chain, usuário recebe saldo interno no database
-      if (deposit.currency === "BRL") {
-        console.log(`🔄 [Deposit Approve] Calling BRL3 MINT (admin-only) for ${depositAmount} BRL`);
+      console.log(`🔄 [Deposit Approve] Calling BRL3 MINT (admin-only) for ${depositAmount} ${deposit.currency}`);
+      
+      try {
         await notifyMintToBRL3(deposit.userId, depositAmount, depositId);
+        console.log(`✅ [Deposit Approve] BRL3 mint successful`);
+      } catch (mintError: any) {
+        console.error(`❌ [Deposit Approve] BRL3 mint failed:`, mintError);
+        // Rollback balance update if mint fails
+        await storage.updateUserBalance(deposit.userId, depositUser.balanceBrl, depositUser.balanceUsdc);
+        // Update deposit status back to pending
+        await db.update(pendingDeposits)
+          .set({ status: "pending" })
+          .where(eq(pendingDeposits.id, depositId));
+        
+        return res.status(500).json({
+          success: false,
+          error: "Falha ao mintar tokens BRL3",
+          message: mintError.message || "Erro ao processar mint on-chain. O depósito foi revertido.",
+          details: process.env.NODE_ENV === "development" ? mintError.toString() : undefined
+        });
       }
 
       console.log(`✅ [Deposit Approve] Success - returning JSON response`);
