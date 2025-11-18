@@ -62,11 +62,6 @@ export const withdrawalStatusEnum = pgEnum("withdrawal_status", [
   "rejected",
 ]);
 
-export const onchainOperationTypeEnum = pgEnum("onchain_operation_type", [
-  "mint",
-  "burn",
-]);
-
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -255,19 +250,6 @@ export const eventMarkets = pgTable("event_markets", {
   marketId: varchar("market_id").notNull().references(() => markets.id),
   order: integer("order").notNull().default(0), // Display order in vertical alternatives list
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-// On-chain operations table - tracks mint/burn transactions on Polygon
-export const onchainOperations = pgTable("onchain_operations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  type: onchainOperationTypeEnum("type").notNull(), // mint or burn
-  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
-  txHash: text("tx_hash").unique(), // Polygon transaction hash (UNIQUE to prevent replay attacks)
-  status: text("status").notNull().default("pending"), // pending, confirmed, failed
-  errorMessage: text("error_message"), // Error details if failed
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  confirmedAt: timestamp("confirmed_at"), // When transaction was confirmed on-chain
 });
 
 // Relations
