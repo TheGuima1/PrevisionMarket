@@ -41,6 +41,7 @@ import {
   DollarSign,
   CircleDollarSign,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 
@@ -1475,8 +1476,90 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* Configurações - Permissões de Minter */}
+          {currentView === "configuracoes" && (
+            <div className="space-y-6">
+              <h1 className="text-white text-3xl font-bold">Configurações</h1>
+
+              <Card className="bg-[#2A2640] border-white/10 p-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-white font-semibold text-lg mb-2">Permissões de Minter</h3>
+                    <p className="text-white/60 text-sm">
+                      Para aprovar depósitos via MetaMask, a wallet admin precisa ter permissão MINTER_ROLE no contrato BRL3.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const res = await apiRequest("POST", "/api/admin/check-minter-role", {});
+                          const data = await res.json();
+                          
+                          toast({
+                            title: data.hasMinterRole ? "✅ Permissão OK" : "⚠️ Sem Permissão",
+                            description: data.message,
+                            variant: data.hasMinterRole ? "default" : "destructive",
+                          });
+                        } catch (error: any) {
+                          toast({
+                            title: "Erro ao verificar permissão",
+                            description: error.message,
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      data-testid="button-check-minter-role"
+                    >
+                      Verificar Permissão
+                    </Button>
+
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const res = await apiRequest("POST", "/api/admin/grant-minter-role", {});
+                          const data = await res.json();
+                          
+                          toast({
+                            title: data.success ? "✅ Permissão Concedida" : "⚠️ Erro",
+                            description: data.message + (data.txHash ? ` (TX: ${data.txHash.substring(0, 10)}...)` : ""),
+                          });
+                        } catch (error: any) {
+                          toast({
+                            title: "Erro ao conceder permissão",
+                            description: error.message,
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      data-testid="button-grant-minter-role"
+                    >
+                      <Shield className="w-5 h-5 mr-2" />
+                      Conceder Permissão de Minter
+                    </Button>
+                  </div>
+
+                  {isConnected && (
+                    <div className="mt-4 p-4 bg-[#1F1B2E] border border-white/10 rounded-lg">
+                      <p className="text-white/60 text-sm">
+                        <span className="font-semibold text-white">Wallet Conectada:</span>{" "}
+                        {account?.substring(0, 6)}...{account?.substring(account.length - 4)}
+                      </p>
+                      <p className="text-white/60 text-sm mt-1">
+                        <span className="font-semibold text-white">Rede:</span>{" "}
+                        {isCorrectNetwork ? "✅ Polygon Mainnet" : "❌ Rede Incorreta"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
+
           {/* Outras views (placeholder) */}
-          {!["depositos", "mercados", "polymarket", "usuarios"].includes(currentView) && (
+          {!["depositos", "mercados", "polymarket", "usuarios", "configuracoes"].includes(currentView) && (
             <div className="text-white/40 text-center py-12">
               <p className="text-xl mb-2">{menuItems.find(m => m.id === currentView)?.label}</p>
               <p className="text-sm">Em desenvolvimento...</p>

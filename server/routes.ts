@@ -1223,6 +1223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createTransaction(deposit.userId, {
         type: "deposit_pix",
         amount: deposit.amount,
+        currency: "BRL",
         description: `Depósito via PIX aprovado (TX: ${txHash.substring(0, 10)}...)`,
       });
 
@@ -1243,6 +1244,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Failed to finalize deposit approval:", error);
       res.status(500).send(error.message || "Falha ao finalizar aprovação.");
+    }
+  });
+
+  // POST /api/admin/grant-minter-role - Dar permissão de mint para wallet admin
+  app.post("/api/admin/grant-minter-role", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (!user.isAdmin) {
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const { grantMinterRole } = await import("./polygonClient");
+      
+      const adminAddress = process.env.VITE_ADMIN_ADDRESS;
+      if (!adminAddress) {
+        return res.status(500).send("Admin wallet address não configurado.");
+      }
+
+      console.log(`🔐 [Admin] Granting MINTER_ROLE to ${adminAddress}...`);
+      
+      const result = await grantMinterRole(adminAddress);
+      
+      res.json({
+        success: result.success,
+        txHash: result.txHash,
+        message: result.message,
+        address: adminAddress,
+      });
+    } catch (error: any) {
+      console.error("Failed to grant minter role:", error);
+      res.status(500).send(error.message || "Falha ao conceder permissão de mint.");
+    }
+  });
+
+  // POST /api/admin/check-minter-role - Verificar se wallet tem permissão de mint
+  app.post("/api/admin/check-minter-role", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (!user.isAdmin) {
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const { checkMinterRole } = await import("./polygonClient");
+      
+      const adminAddress = process.env.VITE_ADMIN_ADDRESS;
+      if (!adminAddress) {
+        return res.status(500).send("Admin wallet address não configurado.");
+      }
+
+      const hasMinterRole = await checkMinterRole(adminAddress);
+      
+      res.json({
+        success: true,
+        address: adminAddress,
+        hasMinterRole,
+        message: hasMinterRole 
+          ? "Wallet já possui permissão de MINTER_ROLE" 
+          : "Wallet NÃO possui permissão de MINTER_ROLE"
+      });
+    } catch (error: any) {
+      console.error("Failed to check minter role:", error);
+      res.status(500).send(error.message || "Falha ao verificar permissão de mint.");
     }
   });
 

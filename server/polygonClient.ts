@@ -294,3 +294,65 @@ export async function burnDual(
   const adminBurnTx = await burnFromAdmin(amount);
   return { userTxs, adminBurnTx };
 }
+
+/**
+ * Dar permissão de MINTER_ROLE para uma wallet específica.
+ * Requer que a wallet que assina tenha role de admin/owner no contrato.
+ * @param minterAddress - Endereço que vai receber permissão de mint
+ */
+export async function grantMinterRole(minterAddress: string): Promise<{
+  txHash: string;
+  success: boolean;
+  message: string;
+}> {
+  if (!tokenContract || !adminWallet) {
+    throw new Error("Polygon integration not initialized - verifique variáveis de ambiente");
+  }
+
+  try {
+    // MINTER_ROLE = keccak256("MINTER_ROLE")
+    const MINTER_ROLE = ethers.id("MINTER_ROLE");
+    
+    console.log(`🔐 [Grant Minter] Checking existing role for ${minterAddress}...`);
+    
+    // Verificar se já tem a role
+    const hasRole = await tokenContract.hasRole(MINTER_ROLE, minterAddress);
+    if (hasRole) {
+      return {
+        txHash: "",
+        success: true,
+        message: `Endereço ${minterAddress} já possui permissão de MINTER_ROLE`
+      };
+    }
+    
+    console.log(`🔐 [Grant Minter] Granting MINTER_ROLE to ${minterAddress}...`);
+    
+    // Dar a permissão
+    const tx = await tokenContract.grantRole(MINTER_ROLE, minterAddress);
+    console.log(`⏳ [Grant Minter] Transaction sent: ${tx.hash}`);
+    
+    await tx.wait();
+    console.log(`✅ [Grant Minter] Role granted successfully!`);
+    
+    return {
+      txHash: tx.hash,
+      success: true,
+      message: `MINTER_ROLE concedida com sucesso para ${minterAddress}`
+    };
+  } catch (error: any) {
+    console.error("❌ [Grant Minter] Error:", error);
+    throw new Error(`Falha ao conceder MINTER_ROLE: ${error.message}`);
+  }
+}
+
+/**
+ * Verificar se um endereço tem permissão de MINTER_ROLE
+ */
+export async function checkMinterRole(address: string): Promise<boolean> {
+  if (!tokenContract) {
+    throw new Error("Polygon integration not initialized");
+  }
+  
+  const MINTER_ROLE = ethers.id("MINTER_ROLE");
+  return await tokenContract.hasRole(MINTER_ROLE, address);
+}
