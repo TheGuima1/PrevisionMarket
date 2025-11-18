@@ -121,7 +121,7 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
   }) || [];
 
   // Get unique outcome names for legend and extract candidate names
-  const outcomeNames = historyData?.[0]?.outcomes.map(o => {
+  const allOutcomeNames = historyData?.[0]?.outcomes.map(o => {
     const fullName = o.name;
     // Extract candidate name from titles like "Lula vencerá as eleições presidenciais brasileiras de 2026?"
     // or "Tarcísio de Freitas vencerá as eleições presidenciais brasileiras de 2026?"
@@ -131,6 +131,23 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
       short: match ? match[1] : fullName, // e.g., "Lula" or "Tarcísio de Freitas"
     };
   }) || [];
+  
+  // Get latest probabilities to find top 4
+  const latestDataPoint = chartData[chartData.length - 1] || {};
+  const outcomesByProbability = allOutcomeNames
+    .map(outcome => ({
+      ...outcome,
+      probability: latestDataPoint[outcome.full] || 0,
+    }))
+    .sort((a, b) => b.probability - a.probability);
+  
+  // Show only top 4 in chart
+  const outcomeNames = outcomesByProbability.slice(0, 4);
+  
+  // Calculate dynamic Y-axis max based on highest probability
+  const maxProbability = Math.max(...outcomeNames.map(o => o.probability), 0);
+  const yAxisMax = Math.ceil(maxProbability / 10) * 10; // Round up to nearest 10
+  const yAxisTicks = Array.from({ length: (yAxisMax / 10) + 1 }, (_, i) => i * 10);
 
   const timeRanges: TimeRange[] = ['1W', '1M', 'ALL'];
 
@@ -206,8 +223,8 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
             <YAxis 
               stroke="hsl(var(--muted-foreground))"
               tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-              domain={[0, 100]}
-              ticks={[0, 20, 40, 60, 80, 100]}
+              domain={[0, yAxisMax]}
+              ticks={yAxisTicks}
               tickFormatter={(value) => `${value}%`}
               axisLine={{ stroke: 'hsl(var(--border))' }}
               width={50}
@@ -240,10 +257,10 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
             {outcomeNames.map((outcome, index) => (
               <Line
                 key={outcome.full}
-                type="monotone"
+                type="natural"
                 dataKey={outcome.full}
                 stroke={COLORS[index % COLORS.length]}
-                strokeWidth={3}
+                strokeWidth={2.5}
                 dot={false}
                 name={outcome.full}
                 activeDot={{ r: 6, strokeWidth: 2 }}
