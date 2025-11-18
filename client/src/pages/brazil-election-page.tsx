@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Market } from "@shared/schema";
 import { ExternalLink } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const CANDIDATE_COLORS: Record<string, string> = {
   "Lula": "#FF6B2C",
@@ -110,17 +109,23 @@ export default function BrazilElectionPage() {
               </div>
               <h3 className="text-white font-semibold text-lg">Historical Price Chart</h3>
               <p className="text-white/60 text-sm text-center max-w-md">
-                View the complete historical price chart and trading volume on Polymarket's platform
+                Polymarket's security settings prevent embedding their chart directly. View the complete historical price chart and trading volume on their platform.
               </p>
-              <Button
-                variant="outline"
-                className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 mt-2"
-                onClick={() => window.open('https://polymarket.com/event/brazil-presidential-election', '_blank')}
-                data-testid="button-view-polymarket-chart"
+              <a
+                href="https://polymarket.com/event/brazil-presidential-election"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-2"
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                View Chart on Polymarket
-              </Button>
+                <Button
+                  variant="outline"
+                  className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20"
+                  data-testid="button-view-polymarket-chart"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  View Chart on Polymarket
+                </Button>
+              </a>
               <div className="mt-4 text-xs text-white/40">
                 Current prices and data synced from Polymarket every 60 seconds
               </div>
