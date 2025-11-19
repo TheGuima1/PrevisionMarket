@@ -16,6 +16,7 @@ import { fetchPolyBySlug } from "./mirror/adapter";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import tokenRoutes from "./routes/tokenRoutes";
 
 // Configure multer for deposit proof file uploads
 const uploadDir = path.join(process.cwd(), "uploads", "deposit-proofs");
@@ -1288,6 +1289,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).send(errorMessages.FAILED_FETCH_ORDERS);
     }
   });
+
+  // ===== BLOCKCHAIN TOKEN ROUTES =====
+  app.use("/api/token", tokenRoutes);
 
   // ===== AI ASSISTANT ROUTES =====
   

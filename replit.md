@@ -19,6 +19,7 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Frontend**: React, TypeScript, Tailwind CSS, Shadcn UI
 - **Backend**: Node.js, Express
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
+- **Blockchain**: Polygon Mainnet integration with BRL3 ERC20 token contract. Admin-controlled mint/burn operations for supply management via ethers.js v6. All token routes (`/api/token/*`) are protected with `requireAuth` + `requireAdmin` middleware for security. Decimal precision handled via `ethers.parseUnits`/`formatUnits` to prevent floating-point errors.
 - **Authentication**: Passport.js with sessions
 - **Manual Deposit Approval Workflow**: Users upload PIX proof (PDF). Admin clicks "Aprovar" in admin panel. Backend updates user's database balance. Simple database-only flow.
 - **Manual Withdrawal Approval Workflow**: Users request withdrawal with PIX key. Admin clicks "Aprovar" in admin panel. Backend deducts user's database balance. Admin processes PIX transfer separately via manual process.
@@ -50,6 +51,7 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 
 ## External Dependencies
 - **Database**: PostgreSQL (Neon)
+- **Blockchain**: Polygon Mainnet (via ethers.js v6)
 - **AI**: OpenAI (via Replit AI Integrations for GPT-5)
 - **Frontend Frameworks/Libraries**: React, Tailwind CSS, Shadcn UI, TanStack Query
-- **Backend Libraries**: Node.js, Express, Drizzle ORM, Passport.js, scrypt
+- **Backend Libraries**: Node.js, Express, Drizzle ORM, Passport.js, scrypt, ethers
