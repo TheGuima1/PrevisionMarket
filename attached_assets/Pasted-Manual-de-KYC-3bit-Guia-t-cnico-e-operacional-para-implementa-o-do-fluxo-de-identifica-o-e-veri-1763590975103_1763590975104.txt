@@ -1,0 +1,202 @@
+Manual de KYC – 3bit
+
+Guia técnico e operacional para implementação do fluxo de identificação e verificação de usuários.
+
+⸻
+
+1. Objetivo do KYC
+
+Garantir que todos os usuários da 3bit sejam devidamente identificados, prevenindo fraudes, lavagem de dinheiro e garantindo aderência às normas do Banco Central, CVM e estruturas necessárias para operar BRL3, Prediction Markets e serviços de pagamentos.
+
+⸻
+
+2. Estrutura de Tiers (Níveis de Verificação)
+
+A 3bit adotará níveis progressivos de verificação para equilibrar segurança, conversão e usabilidade.
+
+Tier 0 – Entrada Imediata (Onboarding Rápido)
+
+Permissões:
+	•	Enviar PIX para a 3bit.
+	•	A conta do PIX é obrigatoriamente nominal ao usuário que enviou.
+	•	Criar conta na plataforma e acessar o dashboard.
+
+Regras e validações:
+	•	Captura do CPF via PIX.
+	•	Nome completo extraído da base do banco emissor.
+	•	Validação automática de CPF (Receita Federal / bureaus).
+	•	Verificação de lista de sanções e PEP soft check.
+
+Tier 1 – Identidade Básica
+
+Permissões:
+	•	Resgates limitados (ex.: até R$ 5.000/dia).
+	•	Usar BRL3, acessar funcionalidades financeiras básicas.
+
+Regras e validações:
+	•	Dados pessoais completos (nome, CPF, data de nascimento, endereço).
+	•	Selfie + biometria simplificada.
+	•	Validação OCR e integridade do documento.
+	•	Verificação PEP/Sanções fortalecida.
+
+Tier 2 – Identidade Avançada
+
+Permissões:
+	•	Aumenta limites para até R$ 100.000/dia.
+	•	Acesso a produtos tokenizados, renda fixa, prediction markets.
+
+Regras e validações:
+	•	Documento oficial: RG, CNH ou Passaporte.
+	•	Prova de endereço.
+	•	Comparação facial liveness.
+	•	Análise de risco automatizada.
+	•	Checagem de histórico financeiro e score via bureaus.
+
+Tier 3 – High Value / Institucional
+
+Permissões:
+	•	Limites ilimitados.
+	•	Acesso a produtos institucionais e uso de BRL3 para movimentações de grande porte.
+
+Regras e validações:
+	•	Declaração de origem de recursos.
+	•	Contratos societários (para PJ).
+	•	Selfie e documentos dos sócios.
+	•	Compliance manual.
+	•	Verificação reforçada PEP / Sanções.
+
+⸻
+
+3. Fluxo Técnico de Implementação – End-to-End
+
+O fluxo deve ser implementado em módulos independentes, escaláveis e auditáveis.
+
+3.1. Módulo 1 – Identificação Automática via PIX (Tier 0)
+	1.	Usuário envia PIX para a 3bit.
+	2.	Recebimento do payload contendo:
+	•	Nome completo
+	•	CPF
+	•	Banco emissor
+	•	Dados da transação
+	3.	API de validação de CPF.
+	4.	Criação automática do usuário.
+	5.	Registro do device fingerprint.
+
+3.2. Módulo 2 – Captura de Documento e Selfie (Tier 1 e 2)
+	1.	Upload de documento (frente e verso).
+	2.	OCR automático.
+	3.	Match documento CPF.
+	4.	Selfie + prova de vida.
+	5.	Match rosto com documento.
+	6.	Aprovação automática ou manual (fallback).
+
+3.3. Módulo 3 – Prova de Endereço
+	1.	Upload (conta de luz/água/telefone, ou extrato bancário).
+	2.	OCR + validação automática de endereço.
+	3.	Match com dados cadastrais.
+
+3.4. Módulo 4 – Sanções, PEP e Background Check
+
+Integração com API:
+	•	Lista OFAC.
+	•	UN Sanctions.
+	•	UE Sanctions.
+	•	PEPs nacionais.
+	•	Processos judiciais (soft flag).
+	•	Bureaus (Serasa/Boa Vista).
+
+3.5. Módulo 5 – Score de Risco Interno
+
+Parâmetros:
+	•	Frequência de movimentações.
+	•	Volume financeiro.
+	•	Histórico de transações.
+	•	Device risk.
+	•	Localização geográfica.
+	•	Flags de PIX suspeitos.
+
+Pontuação define Tier automático e necessidade de revisão.
+
+3.6. Módulo 6 – Monitoramento Contínuo (Ongoing Monitoring)
+	•	Alertas automáticos de comportamento anômalo.
+	•	Repetição periódica de listas de sanções (diário).
+	•	Re-KYC anual para Tier 2 e Tier 3.
+	•	Suspensão automática em caso de risco.
+
+⸻
+
+4. Regras de Bloqueio e Ação Imediata
+
+Situações que exigem bloqueio:
+	•	Divergência entre documento e selfie.
+	•	Indicação em lista de sanções.
+	•	Movimentação incompatível com renda declarada.
+	•	Transações de alto risco via BRL3.
+	•	Tentativas repetidas de falsificação.
+
+Ações:
+	1.	Bloqueio preventivo.
+	2.	Notificação ao usuário.
+	3.	Análise interna.
+	4.	Reabertura ou encerramento.
+
+⸻
+
+5. Logs e Auditoria
+
+A plataforma deve registrar:
+	•	IPs
+	•	Device fingerprint
+	•	Hash dos documentos e selfies
+	•	Status de cada etapa do KYC
+	•	Operações financeiras por tier
+
+Metadata deve ser exportável para auditoria do Bacen, CVM e parceiros institucionais.
+
+⸻
+
+6. Padrões de Segurança e Armazenamento
+	•	Criptografia AES-256.
+	•	Dados sensíveis armazenados em cofre segregado.
+	•	Hash das imagens para preservação da integridade.
+	•	Tokens temporários para upload.
+	•	Logs imutáveis para auditoria.
+
+⸻
+
+7. APIs Necessárias
+	•	/kyc/init
+	•	/kyc/document/upload
+	•	/kyc/document/validate
+	•	/kyc/selfie/verify
+	•	/kyc/ocr
+	•	/kyc/status
+	•	/risk/score
+	•	/sanctions/check
+	•	/logs/export
+
+⸻
+
+8. KPI Operacionais do KYC
+	•	Tempo médio de aprovação.
+	•	% de aprovações automáticas.
+	•	% de reprovações.
+	•	% de reprovações indevidas (false positive).
+	•	Custo por verificação.
+	•	Conversão Tier 0 → Tier 1 → Tier 2.
+
+⸻
+
+9. Regras Específicas para BRL3
+	•	Todas as transações com BRL3 exigem Tier 1 ou superior.
+	•	Resgates exigem Tier 2.
+	•	Institucionais devem sempre ser Tier 3.
+	•	Monitoramento em tempo real, devido a operação multichain.
+
+⸻
+
+10. Responsabilidades Internas
+
+Time de Compliance
+	•	Aprovação manual.
+	•	Revisão periódica.

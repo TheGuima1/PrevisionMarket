@@ -40,6 +40,7 @@ import {
   Shield,
 } from "lucide-react";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
+import { BlockchainActions } from "@/components/blockchain-actions";
 
 // Interfaces
 interface PendingDeposit {
@@ -87,6 +88,7 @@ type AdminView =
   | "saldos" 
   | "mercados" 
   | "polymarket" 
+  | "blockchain"
   | "usuarios" 
   | "historico" 
   | "notificacoes" 
@@ -407,6 +409,7 @@ export default function AdminPage() {
     { id: "saldos" as AdminView, label: "Saldos dos Usuários", icon: DollarSign },
     { id: "mercados" as AdminView, label: "Mercados", icon: TrendingUp },
     { id: "polymarket" as AdminView, label: "Polymarket Oráculo", icon: Link2 },
+    { id: "blockchain" as AdminView, label: "Blockchain (MetaMask)", icon: Shield },
     { id: "usuarios" as AdminView, label: "Usuários", icon: Users, badge: allUsers?.length },
     { id: "historico" as AdminView, label: "Histórico / Logs", icon: FileText },
     { id: "notificacoes" as AdminView, label: "Notificações", icon: Bell },
@@ -1225,6 +1228,11 @@ export default function AdminPage() {
                 </div>
               </Card>
             </div>
+          )}
+
+          {/* View: Blockchain */}
+          {currentView === "blockchain" && (
+            <BlockchainActions />
           )}
 
           {/* View: Usuários */}
