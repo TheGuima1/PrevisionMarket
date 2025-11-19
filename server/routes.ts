@@ -939,17 +939,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Depósito já foi processado.");
       }
 
-      // Approve the deposit
-      const approved = await storage.approvePendingDeposit(depositId, user.id);
-
       // Get the user who made the deposit
       const depositUser = await storage.getUser(deposit.userId);
       if (!depositUser) {
         return res.status(404).send("Usuário não encontrado.");
       }
 
-      // Update user balance
       const depositAmount = parseFloat(deposit.amount);
+
+      // 🪙 BLOCKCHAIN FIRST: Mint BRL3 tokens to admin wallet BEFORE updating database
+      let mintTxHash: string | undefined;
+      let mintBlockNumber: number | undefined;
+      
+      if (deposit.currency === "BRL") {
+        try {
+          console.log(`🪙 [Blockchain] Minting ${depositAmount} BRL3 tokens for deposit ${depositId}`);
+          const { getContract, toTokenUnits, getSigner } = await import('./blockchain/contract');
+          
+          const contract = getContract();
+          const signer = getSigner();
+          const tokenUnits = toTokenUnits(depositAmount);
+          
+          console.log(`💱 [Blockchain] Converting ${depositAmount} BRL → ${tokenUnits.toString()} token units`);
+          
+          // Mint tokens to admin wallet
+          const tx = await contract.mint(signer.address, tokenUnits);
+          mintTxHash = tx.hash;
+          console.log(`⏳ [Blockchain] Mint transaction broadcast: ${tx.hash}`);
+          console.log(`🔗 [Blockchain] Polygonscan: https://polygonscan.com/tx/${tx.hash}`);
+          
+          // Wait for 1 confirmation (fast feedback, low risk)
+          const receipt = await tx.wait(1);
+          mintBlockNumber = receipt.blockNumber;
+          console.log(`✅ [Blockchain] Mint confirmed in block ${receipt.blockNumber}`);
+        } catch (mintError: any) {
+          // CRITICAL: Blockchain mint failed - abort deposit approval
+          console.error(`❌ [Blockchain] Mint failed for deposit ${depositId}:`, mintError.message);
+          console.error(`⚠️ [Blockchain] Aborting deposit approval - database will NOT be updated`);
+          
+          return res.status(500).json({
+            success: false,
+            error: `Falha ao mintar tokens na blockchain. Depósito não foi aprovado.`,
+            technicalError: mintError.message,
+            txHash: mintTxHash, // May be undefined if transaction didn't broadcast
+            action: 'Tente novamente. Se o problema persistir, contate o suporte técnico.'
+          });
+        }
+      }
+
+      // Database operations AFTER successful blockchain mint
+      // Approve the deposit
+      const approved = await storage.approvePendingDeposit(depositId, user.id);
+
+      // Update user balance
       let newBalanceBrl = depositUser.balanceBrl;
       let newBalanceUsdc = depositUser.balanceUsdc;
 
@@ -961,19 +1003,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.updateUserBalance(deposit.userId, newBalanceBrl, newBalanceUsdc);
 
-      // Create transaction record
+      // Create transaction record with blockchain hash
       await storage.createTransaction(deposit.userId, {
         type: deposit.currency === "BRL" ? "deposit_pix" : "deposit_usdc",
         amount: deposit.amount,
         currency: deposit.currency,
-        description: `Depósito aprovado: ${depositAmount} ${deposit.currency}`,
+        description: `Depósito aprovado: ${depositAmount} ${deposit.currency}${mintTxHash ? ` (TX: ${mintTxHash})` : ''}`,
       });
 
-      console.log(`✅ [Deposit Approve] Success - user balance updated in database`);
+      console.log(`✅ [Deposit Approve] Success - ${mintTxHash ? 'tokens minted on blockchain AND ' : ''}user balance updated in database`);
       res.json({ 
         success: true, 
         deposit: approved,
-        message: `Depósito de ${depositAmount} ${deposit.currency} aprovado com sucesso.`
+        blockchain: mintTxHash ? {
+          txHash: mintTxHash,
+          blockNumber: mintBlockNumber,
+          polygonscan: `https://polygonscan.com/tx/${mintTxHash}`
+        } : undefined,
+        message: `Depósito de ${depositAmount} ${deposit.currency} aprovado com sucesso.${mintTxHash ? ` Tokens mintados na blockchain.` : ''}`
       });
     } catch (error) {
       console.error("Failed to approve deposit:", error);
@@ -1116,6 +1163,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send(`Saldo insuficiente no momento da aprovação. Saldo atual: ${currentBalance.toFixed(2)} ${withdrawal.currency}.`);
       }
 
+      // 🔥 BLOCKCHAIN FIRST: Burn BRL3 tokens from admin wallet BEFORE updating database
+      let burnTxHash: string | undefined;
+      let burnBlockNumber: number | undefined;
+      
+      if (withdrawal.currency === "BRL") {
+        try {
+          console.log(`🔥 [Blockchain] Burning ${withdrawAmount} BRL3 tokens for withdrawal ${withdrawalId}`);
+          const { getContract, toTokenUnits } = await import('./blockchain/contract');
+          
+          const contract = getContract();
+          const tokenUnits = toTokenUnits(withdrawAmount);
+          
+          console.log(`💱 [Blockchain] Converting ${withdrawAmount} BRL → ${tokenUnits.toString()} token units`);
+          
+          // Burn tokens from admin wallet
+          const tx = await contract.burn(tokenUnits);
+          burnTxHash = tx.hash;
+          console.log(`⏳ [Blockchain] Burn transaction broadcast: ${tx.hash}`);
+          console.log(`🔗 [Blockchain] Polygonscan: https://polygonscan.com/tx/${tx.hash}`);
+          
+          // Wait for 1 confirmation (fast feedback, low risk)
+          const receipt = await tx.wait(1);
+          burnBlockNumber = receipt.blockNumber;
+          console.log(`✅ [Blockchain] Burn confirmed in block ${receipt.blockNumber}`);
+        } catch (burnError: any) {
+          // CRITICAL: Blockchain burn failed - abort withdrawal approval
+          console.error(`❌ [Blockchain] Burn failed for withdrawal ${withdrawalId}:`, burnError.message);
+          console.error(`⚠️ [Blockchain] Aborting withdrawal approval - database will NOT be updated`);
+          
+          return res.status(500).json({
+            success: false,
+            error: `Falha ao queimar tokens na blockchain. Saque não foi aprovado.`,
+            technicalError: burnError.message,
+            txHash: burnTxHash, // May be undefined if transaction didn't broadcast
+            action: 'Tente novamente. Se o problema persistir, contate o suporte técnico.'
+          });
+        }
+      }
+
+      // Database operations AFTER successful blockchain burn
       // Approve the withdrawal
       const approved = await storage.approvePendingWithdrawal(withdrawalId, user.id);
 
@@ -1131,19 +1218,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.updateUserBalance(withdrawal.userId, newBalanceBrl, newBalanceUsdc);
 
-      // Create transaction record
+      // Create transaction record with blockchain hash
       await storage.createTransaction(withdrawal.userId, {
         type: withdrawal.currency === "BRL" ? "withdrawal_pix" : "withdrawal_usdc",
         amount: withdrawal.amount,
         currency: withdrawal.currency,
-        description: `Saque aprovado: ${withdrawAmount} ${withdrawal.currency} para ${withdrawal.pixKey}`,
+        description: `Saque aprovado: ${withdrawAmount} ${withdrawal.currency} para ${withdrawal.pixKey}${burnTxHash ? ` (TX: ${burnTxHash})` : ''}`,
       });
 
-      console.log(`✅ [Withdrawal Approve] Success - user balance updated in database`);
+      console.log(`✅ [Withdrawal Approve] Success - ${burnTxHash ? 'tokens burned on blockchain AND ' : ''}user balance updated in database`);
       res.json({ 
         success: true, 
         withdrawal: approved,
-        message: `Saque de ${withdrawAmount} ${withdrawal.currency} aprovado com sucesso.`
+        blockchain: burnTxHash ? {
+          txHash: burnTxHash,
+          blockNumber: burnBlockNumber,
+          polygonscan: `https://polygonscan.com/tx/${burnTxHash}`
+        } : undefined,
+        message: `Saque de ${withdrawAmount} ${withdrawal.currency} aprovado com sucesso.${burnTxHash ? ` Tokens queimados na blockchain.` : ''}`
       });
     } catch (error) {
       console.error("Failed to approve withdrawal:", error);

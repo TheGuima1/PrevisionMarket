@@ -21,8 +21,8 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
 - **Blockchain**: Polygon Mainnet integration with BRL3 ERC20 token contract. Admin-controlled mint/burn operations for supply management via ethers.js v6. All token routes (`/api/token/*`) are protected with `requireAuth` + `requireAdmin` middleware for security. Decimal precision handled via `ethers.parseUnits`/`formatUnits` to prevent floating-point errors.
 - **Authentication**: Passport.js with sessions
-- **Manual Deposit Approval Workflow**: Users upload PIX proof (PDF). Admin clicks "Aprovar" in admin panel. Backend updates user's database balance. Simple database-only flow.
-- **Manual Withdrawal Approval Workflow**: Users request withdrawal with PIX key. Admin clicks "Aprovar" in admin panel. Backend deducts user's database balance. Admin processes PIX transfer separately via manual process.
+- **Manual Deposit Approval Workflow**: Users upload PIX proof (PDF). Admin clicks "Aprovar" in admin panel. Backend updates user's database balance AND automatically mints corresponding BRL3 tokens to admin wallet on Polygon blockchain. Transaction hash logged for auditing.
+- **Manual Withdrawal Approval Workflow**: Users request withdrawal with PIX key. Admin clicks "Aprovar" in admin panel. Backend deducts user's database balance AND automatically burns corresponding BRL3 tokens from admin wallet on Polygon blockchain. Admin processes PIX transfer separately via manual process. Transaction hash logged for auditing.
 - **Dynamic Market Management**: An admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. A mirror worker automatically syncs odds from Polymarket.
 - **Polymarket Adapter**: Fetches market data from Polymarket's Gamma API with a 5-minute cache, extracting YES probabilities for pricing.
 - **Prediction Market Core**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 2% spread. Orders are instantly filled with real-time share estimates.
