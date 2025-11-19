@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, decimal, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, decimal, boolean, pgEnum, date } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -62,6 +62,20 @@ export const withdrawalStatusEnum = pgEnum("withdrawal_status", [
   "rejected",
 ]);
 
+export const kycStatusEnum = pgEnum("kyc_status", [
+  "not_started",
+  "pending",
+  "approved",
+  "rejected",
+]);
+
+export const kycTierEnum = pgEnum("kyc_tier", [
+  "0",
+  "1",
+  "2",
+  "3",
+]);
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -72,6 +86,27 @@ export const users = pgTable("users", {
   balanceUsdc: decimal("balance_usdc", { precision: 12, scale: 6 }).notNull().default("0.000000"),
   isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  
+  // KYC Fields (Tier 1 - Identidade Básica)
+  fullName: text("full_name"),
+  cpf: text("cpf").unique(),
+  birthDate: date("birth_date"),
+  phone: text("phone"),
+  
+  // Address
+  addressStreet: text("address_street"),
+  addressNumber: text("address_number"),
+  addressComplement: text("address_complement"),
+  addressDistrict: text("address_district"),
+  addressCity: text("address_city"),
+  addressState: text("address_state"),
+  addressZipCode: text("address_zip_code"),
+  
+  // KYC Status
+  kycTier: kycTierEnum("kyc_tier").notNull().default("0"),
+  kycStatus: kycStatusEnum("kyc_status").notNull().default("not_started"),
+  kycSubmittedAt: timestamp("kyc_submitted_at"),
+  kycApprovedAt: timestamp("kyc_approved_at"),
 });
 
 // Markets table - Hybrid AMM+Escrow system
@@ -358,6 +393,44 @@ export const setUsernameSchema = z.object({
     .min(3, "Username deve ter no mínimo 3 caracteres")
     .max(20, "Username deve ter no máximo 20 caracteres")
     .regex(/^[a-zA-Z0-9_]+$/, "Username deve conter apenas letras, números e underscores"),
+});
+
+// KYC Schema (Tier 1 - Identidade Básica)
+export const kycTier1Schema = z.object({
+  fullName: z.string()
+    .min(3, "Nome completo deve ter no mínimo 3 caracteres")
+    .max(100, "Nome completo deve ter no máximo 100 caracteres")
+    .regex(/^[a-zA-ZÀ-ÿ\s]+$/, "Nome deve conter apenas letras e espaços"),
+  cpf: z.string()
+    .length(11, "CPF deve conter 11 dígitos")
+    .regex(/^\d{11}$/, "CPF deve conter apenas números"),
+  birthDate: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data de nascimento deve estar no formato AAAA-MM-DD"),
+  phone: z.string()
+    .min(10, "Telefone deve ter no mínimo 10 dígitos")
+    .max(11, "Telefone deve ter no máximo 11 dígitos")
+    .regex(/^\d{10,11}$/, "Telefone deve conter apenas números"),
+  addressZipCode: z.string()
+    .length(8, "CEP deve conter 8 dígitos")
+    .regex(/^\d{8}$/, "CEP deve conter apenas números"),
+  addressStreet: z.string()
+    .min(3, "Rua deve ter no mínimo 3 caracteres")
+    .max(200, "Rua deve ter no máximo 200 caracteres"),
+  addressNumber: z.string()
+    .min(1, "Número é obrigatório")
+    .max(10, "Número deve ter no máximo 10 caracteres"),
+  addressComplement: z.string()
+    .max(100, "Complemento deve ter no máximo 100 caracteres")
+    .optional(),
+  addressDistrict: z.string()
+    .min(3, "Bairro deve ter no mínimo 3 caracteres")
+    .max(100, "Bairro deve ter no máximo 100 caracteres"),
+  addressCity: z.string()
+    .min(3, "Cidade deve ter no mínimo 3 caracteres")
+    .max(100, "Cidade deve ter no máximo 100 caracteres"),
+  addressState: z.string()
+    .length(2, "Estado deve ter 2 caracteres")
+    .regex(/^[A-Z]{2}$/, "Estado deve ser sigla com 2 letras maiúsculas (ex: SP, RJ)"),
 });
 
 // Insert schemas (for internal use)
