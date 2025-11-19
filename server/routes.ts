@@ -219,10 +219,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         balanceBrl: user.balanceBrl,
         balanceUsdc: user.balanceUsdc,
         isAdmin: user.isAdmin,
+        kycStatus: user.kycStatus,
+        kycTier: user.kycTier,
       });
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
       res.status(500).json({ error: "Falha ao buscar perfil do usuário" });
+    }
+  });
+
+  // PUT /api/user/kyc - Submit KYC data (Tier 1)
+  app.put("/api/user/kyc", ensureUsername, async (req, res) => {
+    try {
+      const { insertKycTier1Schema } = await import("@shared/schema");
+      const kycData = insertKycTier1Schema.parse(req.body);
+      
+      const updatedUser = await storage.updateUserKYC(req.user!.id, {
+        fullName: kycData.fullName,
+        cpf: kycData.cpf,
+        birthDate: kycData.birthDate,
+        phone: kycData.phone,
+        addressStreet: kycData.addressStreet,
+        addressNumber: kycData.addressNumber,
+        addressComplement: kycData.addressComplement,
+        addressDistrict: kycData.addressDistrict,
+        addressCity: kycData.addressCity,
+        addressState: kycData.addressState,
+        addressZipCode: kycData.addressZipCode,
+      });
+
+      res.json({
+        success: true,
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          username: updatedUser.username,
+          kycStatus: updatedUser.kycStatus,
+          kycTier: updatedUser.kycTier,
+        },
+      });
+    } catch (error: any) {
+      console.error("Failed to update KYC:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ 
+          error: "Dados inválidos", 
+          details: error.errors 
+        });
+      }
+      res.status(500).json({ error: "Falha ao enviar dados KYC" });
     }
   });
 

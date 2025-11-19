@@ -50,6 +50,19 @@ export interface IStorage {
   updateUserBalance(userId: string, balanceBrl: string, balanceUsdc: string): Promise<void>;
   updateUserUsername(userId: string, username: string): Promise<User>;
   updateUserPassword(userId: string, password: string): Promise<void>;
+  updateUserKYC(userId: string, kycData: {
+    fullName: string;
+    cpf: string;
+    birthDate: string;
+    phone: string;
+    addressStreet: string;
+    addressNumber: string;
+    addressComplement?: string;
+    addressDistrict: string;
+    addressCity: string;
+    addressState: string;
+    addressZipCode: string;
+  }): Promise<User>;
 
   // Market methods
   getMarkets(category?: string): Promise<Market[]>;
@@ -168,6 +181,42 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ password })
       .where(eq(users.id, userId));
+  }
+
+  async updateUserKYC(userId: string, kycData: {
+    fullName: string;
+    cpf: string;
+    birthDate: string;
+    phone: string;
+    addressStreet: string;
+    addressNumber: string;
+    addressComplement?: string;
+    addressDistrict: string;
+    addressCity: string;
+    addressState: string;
+    addressZipCode: string;
+  }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        fullName: kycData.fullName,
+        cpf: kycData.cpf,
+        birthDate: kycData.birthDate,
+        phone: kycData.phone,
+        addressStreet: kycData.addressStreet,
+        addressNumber: kycData.addressNumber,
+        addressComplement: kycData.addressComplement,
+        addressDistrict: kycData.addressDistrict,
+        addressCity: kycData.addressCity,
+        addressState: kycData.addressState,
+        addressZipCode: kycData.addressZipCode,
+        kycStatus: "pending",
+        kycSubmittedAt: new Date(),
+        kycTier: "1",
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 
   // Market methods
