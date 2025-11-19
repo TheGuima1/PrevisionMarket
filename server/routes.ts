@@ -231,8 +231,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PUT /api/user/kyc - Submit KYC data (Tier 1)
   app.put("/api/user/kyc", ensureUsername, async (req, res) => {
     try {
-      const { insertKycTier1Schema } = await import("@shared/schema");
-      const kycData = insertKycTier1Schema.parse(req.body);
+      const { kycTier1Schema } = await import("@shared/schema");
+      const kycData = kycTier1Schema.parse(req.body);
       
       const updatedUser = await storage.updateUserKYC(req.user!.id, {
         fullName: kycData.fullName,

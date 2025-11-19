@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { UsernameSetupModal } from "@/components/username-setup-modal";
+import { KYCSetupModal } from "@/components/kyc-setup-modal";
 import { useState } from "react";
 import HomePage from "@/pages/home-page";
 import MarketDetailPage from "@/pages/market-detail-page";
@@ -27,11 +28,23 @@ function UsernameGuard({ children }: { children: React.ReactNode }) {
 
   // Show modal if user is logged in but has no username
   const needsUsername = user && !user.username;
+  
+  // Show KYC modal if user has username but hasn't completed KYC
+  const needsKYC = user && user.username && user.kycStatus === 'not_started';
 
   return (
     <>
       {needsUsername && (
         <UsernameSetupModal
+          open={true}
+          onSuccess={() => {
+            setShowModal(false);
+            window.location.reload(); // Reload to update user data
+          }}
+        />
+      )}
+      {needsKYC && (
+        <KYCSetupModal
           open={true}
           onSuccess={() => {
             setShowModal(false);
