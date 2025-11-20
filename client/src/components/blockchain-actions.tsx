@@ -119,10 +119,10 @@ export function BlockchainActions() {
       return;
     }
 
-    // Validate env vars
+    // Validate env vars (optional for manual MetaMask operations)
     if (!CONTRACT_ADDRESS) {
       toast({
-        title: "Configuração inválida",
+        title: "MetaMask não configurado",
         description: "Endereço do contrato BRL3 não configurado. Verifique as variáveis de ambiente.",
         variant: "destructive",
       });

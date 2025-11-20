@@ -38,6 +38,7 @@ import {
   CircleDollarSign,
   LogOut,
   Shield,
+  AlertCircle,
 } from "lucide-react";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 import { BlockchainActions } from "@/components/blockchain-actions";
@@ -85,14 +86,10 @@ interface PolymarketPreview {
 type AdminView = 
   | "depositos" 
   | "saques" 
-  | "saldos" 
+  | "usuarios" 
   | "mercados" 
   | "polymarket" 
-  | "blockchain"
-  | "usuarios" 
-  | "historico" 
-  | "notificacoes" 
-  | "relatorios";
+  | "blockchain";
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -153,7 +150,7 @@ export default function AdminPage() {
     onSuccess: (data) => {
       toast({
         title: "Depósito aprovado!",
-        description: `BRL3 mintado e creditado com sucesso.`,
+        description: `Tokens BRL3 mintados automaticamente na carteira admin e saldo creditado ao usuário.`,
       });
       setSelectedDeposit(null);
       queryClient.invalidateQueries({ queryKey: ["/api/deposits/pending"] });
@@ -198,7 +195,7 @@ export default function AdminPage() {
     onSuccess: () => {
       toast({
         title: "Saque aprovado!",
-        description: "BRL3 foi queimado e saldo atualizado.",
+        description: "Tokens BRL3 queimados automaticamente da carteira admin e saldo deduzido do usuário.",
       });
       setSelectedWithdrawal(null);
       queryClient.invalidateQueries({ queryKey: ["/api/withdrawals/pending"] });
@@ -406,14 +403,10 @@ export default function AdminPage() {
   const menuItems = [
     { id: "depositos" as AdminView, label: "Depósitos", icon: CreditCard, badge: pendingCount },
     { id: "saques" as AdminView, label: "Saques", icon: CircleDollarSign },
-    { id: "saldos" as AdminView, label: "Saldos dos Usuários", icon: DollarSign },
+    { id: "usuarios" as AdminView, label: "Usuários", icon: Users, badge: allUsers?.length },
     { id: "mercados" as AdminView, label: "Mercados", icon: TrendingUp },
     { id: "polymarket" as AdminView, label: "Polymarket Oráculo", icon: Link2 },
     { id: "blockchain" as AdminView, label: "Blockchain (MetaMask)", icon: Shield },
-    { id: "usuarios" as AdminView, label: "Usuários", icon: Users, badge: allUsers?.length },
-    { id: "historico" as AdminView, label: "Histórico / Logs", icon: FileText },
-    { id: "notificacoes" as AdminView, label: "Notificações", icon: Bell },
-    { id: "relatorios" as AdminView, label: "Relatórios", icon: FileText },
   ];
 
   return (
@@ -643,7 +636,7 @@ export default function AdminPage() {
                     data-testid="button-approve-deposit"
                   >
                     <CheckCircle className="w-5 h-5" />
-                    {approveDepositMutation.isPending ? "Mintando..." : "APROVAR → Mint BRL3"}
+                    {approveDepositMutation.isPending ? "Processando..." : "APROVAR DEPÓSITO"}
                   </Button>
                   <Button
                     size="lg"
@@ -1232,7 +1225,17 @@ export default function AdminPage() {
 
           {/* View: Blockchain */}
           {currentView === "blockchain" && (
-            <BlockchainActions />
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-white text-3xl font-bold mb-2">Blockchain (MetaMask)</h1>
+                <p className="text-white/60">
+                  <strong>Opcional:</strong> Use esta interface para operações manuais de mint/burn via MetaMask. 
+                  <br />
+                  <strong>Nota:</strong> Ao aprovar depósitos e saques, o sistema já faz mint/burn automaticamente no backend.
+                </p>
+              </div>
+              <BlockchainActions />
+            </div>
           )}
 
           {/* View: Usuários */}
@@ -1415,13 +1418,6 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* Outras views (placeholder) */}
-          {!["depositos", "mercados", "polymarket", "usuarios"].includes(currentView) && (
-            <div className="text-white/40 text-center py-12">
-              <p className="text-xl mb-2">{menuItems.find(m => m.id === currentView)?.label}</p>
-              <p className="text-sm">Em desenvolvimento...</p>
-            </div>
-          )}
         </div>
       </div>
     </div>
