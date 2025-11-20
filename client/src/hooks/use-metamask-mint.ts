@@ -14,8 +14,11 @@ export function useMetaMaskMint() {
   const [isBurning, setIsBurning] = useState(false);
 
   const CONTRACT_ADDRESS = import.meta.env.VITE_TOKEN_CONTRACT_ADDRESS;
-  const TOKEN_DECIMALS = parseInt(import.meta.env.VITE_TOKEN_DECIMALS || "2");
+  const TOKEN_DECIMALS = parseInt(import.meta.env.VITE_TOKEN_DECIMALS || "18");
   const POLYGON_CHAIN_ID = "0x89"; // 137 in hex
+
+  // Log decimals configuration on hook initialization
+  console.log(`🔧 [MetaMask Hook] Usando ${TOKEN_DECIMALS} decimais para BRL3 token`);
 
   async function ensurePolygonNetwork(): Promise<boolean> {
     if (!window.ethereum) return false;
@@ -62,13 +65,14 @@ export function useMetaMaskMint() {
   }
 
   async function mintTokens(amount: string): Promise<{ success: boolean; txHash?: string; error?: string }> {
-    if (!window.ethereum) {
+    // Check if MetaMask is installed
+    if (typeof window.ethereum === 'undefined') {
       toast({
-        title: "MetaMask não encontrado",
-        description: "Por favor, instale a extensão MetaMask no seu navegador.",
+        title: "❌ MetaMask não instalado",
+        description: "Instale a extensão MetaMask no navegador e recarregue a página.",
         variant: "destructive",
       });
-      return { success: false, error: "MetaMask não encontrado" };
+      return { success: false, error: "MetaMask não instalado" };
     }
 
     if (!CONTRACT_ADDRESS) {
@@ -83,12 +87,25 @@ export function useMetaMaskMint() {
     try {
       setIsMinting(true);
 
-      // Request account access and verify accounts exist
+      // Show loading toast
+      toast({
+        title: "🔄 Conectando ao MetaMask...",
+        description: "Aguarde a janela do MetaMask abrir",
+      });
+
+      // Request account access with timeout
       let accounts;
       try {
-        accounts = await window.ethereum.request({
+        const accountsPromise = window.ethereum.request({
           method: "eth_requestAccounts",
         });
+        
+        // Add 30 second timeout
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("MetaMask não respondeu. Verifique se está desbloqueado.")), 30000)
+        );
+        
+        accounts = await Promise.race([accountsPromise, timeoutPromise]);
         
         if (!accounts || accounts.length === 0) {
           throw new Error("Nenhuma conta MetaMask conectada. Desbloqueie o MetaMask e tente novamente.");
@@ -170,13 +187,14 @@ export function useMetaMaskMint() {
   }
 
   async function burnTokens(amount: string): Promise<{ success: boolean; txHash?: string; error?: string }> {
-    if (!window.ethereum) {
+    // Check if MetaMask is installed
+    if (typeof window.ethereum === 'undefined') {
       toast({
-        title: "MetaMask não encontrado",
-        description: "Por favor, instale a extensão MetaMask no seu navegador.",
+        title: "❌ MetaMask não instalado",
+        description: "Instale a extensão MetaMask no navegador e recarregue a página.",
         variant: "destructive",
       });
-      return { success: false, error: "MetaMask não encontrado" };
+      return { success: false, error: "MetaMask não instalado" };
     }
 
     if (!CONTRACT_ADDRESS) {
@@ -191,12 +209,25 @@ export function useMetaMaskMint() {
     try {
       setIsBurning(true);
 
-      // Request account access and verify accounts exist
+      // Show loading toast
+      toast({
+        title: "🔄 Conectando ao MetaMask...",
+        description: "Aguarde a janela do MetaMask abrir",
+      });
+
+      // Request account access with timeout
       let accounts;
       try {
-        accounts = await window.ethereum.request({
+        const accountsPromise = window.ethereum.request({
           method: "eth_requestAccounts",
         });
+        
+        // Add 30 second timeout
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("MetaMask não respondeu. Verifique se está desbloqueado.")), 30000)
+        );
+        
+        accounts = await Promise.race([accountsPromise, timeoutPromise]);
         
         if (!accounts || accounts.length === 0) {
           throw new Error("Nenhuma conta MetaMask conectada. Desbloqueie o MetaMask e tente novamente.");
