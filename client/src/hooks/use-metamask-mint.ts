@@ -65,8 +65,8 @@ export function useMetaMaskMint() {
   }
 
   async function mintTokens(amount: string): Promise<{ success: boolean; txHash?: string; error?: string }> {
-    // Check if MetaMask is installed
-    if (typeof window.ethereum === 'undefined') {
+    // Check if MetaMask is installed and properly loaded
+    if (typeof window.ethereum === 'undefined' || !window.ethereum || typeof window.ethereum.request !== 'function') {
       toast({
         title: "❌ MetaMask não instalado",
         description: "Instale a extensão MetaMask no navegador e recarregue a página.",
@@ -102,7 +102,7 @@ export function useMetaMaskMint() {
         
         // Add 30 second timeout
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("MetaMask não respondeu. Verifique se está desbloqueado.")), 30000)
+          setTimeout(() => reject(new Error("MetaMask não respondeu em 30s. Verifique se está desbloqueado e tente novamente.")), 30000)
         );
         
         accounts = await Promise.race([accountsPromise, timeoutPromise]);
@@ -155,10 +155,14 @@ export function useMetaMaskMint() {
     } catch (error: any) {
       console.error("Erro ao mintar:", error);
       
-      let errorMessage = "Não foi possível realizar o mint";
+      let errorMessage = "Não foi possível realizar o mint. Verifique se o MetaMask está instalado e desbloqueado.";
       let errorTitle = "Erro no mint";
       
-      if (error.code === 4001) {
+      // Handle empty errors or errors without message
+      if (!error || Object.keys(error).length === 0) {
+        errorMessage = "MetaMask não está funcionando corretamente. Verifique se a extensão está instalada e ativa no navegador.";
+        errorTitle = "Erro de conexão";
+      } else if (error.code === 4001) {
         errorMessage = "Você cancelou a transação no MetaMask";
         errorTitle = "Transação cancelada";
       } else if (error.message?.includes("must has at least one account") || error.message?.includes("Nenhuma conta MetaMask")) {
@@ -167,6 +171,9 @@ export function useMetaMaskMint() {
       } else if (error.message?.includes("Conexão com MetaMask recusada")) {
         errorMessage = error.message;
         errorTitle = "Conexão recusada";
+      } else if (error.message?.includes("MetaMask não respondeu")) {
+        errorMessage = error.message;
+        errorTitle = "Timeout";
       } else if (error.message?.includes("AccessControl")) {
         errorMessage = "Você não tem permissão para mintar tokens (precisa de MINTER_ROLE)";
         errorTitle = "Sem permissão";
@@ -187,8 +194,8 @@ export function useMetaMaskMint() {
   }
 
   async function burnTokens(amount: string): Promise<{ success: boolean; txHash?: string; error?: string }> {
-    // Check if MetaMask is installed
-    if (typeof window.ethereum === 'undefined') {
+    // Check if MetaMask is installed and properly loaded
+    if (typeof window.ethereum === 'undefined' || !window.ethereum || typeof window.ethereum.request !== 'function') {
       toast({
         title: "❌ MetaMask não instalado",
         description: "Instale a extensão MetaMask no navegador e recarregue a página.",
@@ -275,10 +282,14 @@ export function useMetaMaskMint() {
     } catch (error: any) {
       console.error("Erro ao queimar:", error);
       
-      let errorMessage = "Não foi possível realizar o burn";
+      let errorMessage = "Não foi possível realizar o burn. Verifique se o MetaMask está instalado e desbloqueado.";
       let errorTitle = "Erro no burn";
       
-      if (error.code === 4001) {
+      // Handle empty errors or errors without message
+      if (!error || Object.keys(error).length === 0) {
+        errorMessage = "MetaMask não está funcionando corretamente. Verifique se a extensão está instalada e ativa no navegador.";
+        errorTitle = "Erro de conexão";
+      } else if (error.code === 4001) {
         errorMessage = "Você cancelou a transação no MetaMask";
         errorTitle = "Transação cancelada";
       } else if (error.message?.includes("must has at least one account") || error.message?.includes("Nenhuma conta MetaMask")) {
@@ -287,6 +298,9 @@ export function useMetaMaskMint() {
       } else if (error.message?.includes("Conexão com MetaMask recusada")) {
         errorMessage = error.message;
         errorTitle = "Conexão recusada";
+      } else if (error.message?.includes("MetaMask não respondeu")) {
+        errorMessage = error.message;
+        errorTitle = "Timeout";
       } else if (error.message?.includes("ERC20: burn amount exceeds balance")) {
         errorMessage = "Saldo insuficiente de BRL3 tokens para queimar";
         errorTitle = "Saldo insuficiente";
