@@ -1,10 +1,7 @@
-// Code based on javascript_database blueprint
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+// Database connection for Supabase using postgres.js driver
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -12,17 +9,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
+// Supabase requires { prepare: false } for Transaction pooling mode
+export const client = postgres(process.env.DATABASE_URL, { 
+  prepare: false,
   max: 3,
-  idleTimeoutMillis: 5000,
-  maxUses: 1000,
-  allowExitOnIdle: true,
-  connectionTimeoutMillis: 10000,
+  idle_timeout: 5,
+  max_lifetime: 1000,
+  connect_timeout: 10,
 });
 
-pool.on('error', (err) => {
-  console.error('[DB Pool] Unexpected error on idle client:', err);
-});
-
-export const db = drizzle({ client: pool, schema });
+export const db = drizzle({ client, schema });

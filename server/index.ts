@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { pool } from "./db";
+import { client } from "./db";
 import { stopMirror } from "./mirror/worker";
 
 const app = express();
@@ -95,8 +95,8 @@ app.use((req, res, next) => {
     });
 
     try {
-      await pool.end();
-      console.log('[Server] Database pool closed');
+      await client.end();
+      console.log('[Server] Database connection closed');
       process.exit(0);
     } catch (err) {
       console.error('[Server] Error during shutdown:', err);
