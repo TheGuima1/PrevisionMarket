@@ -1068,6 +1068,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/deposits/:id/confirm-mint - Frontend confirms MetaMask mint with txHash
+  app.post("/api/deposits/:id/confirm-mint", requireAuth, async (req, res) => {
+    try {
+      console.log(`🪙 [Deposit Confirm] Mint confirmation received for deposit ID: ${req.params.id}`);
+      const user = req.user!;
+      
+      if (!user.isAdmin) {
+        console.log(`❌ [Deposit Confirm] Forbidden - user is not admin`);
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const depositId = req.params.id;
+      const { txHash } = req.body;
+
+      if (!txHash || typeof txHash !== 'string') {
+        return res.status(400).send("Transaction hash é obrigatório.");
+      }
+
+      const deposit = await storage.getPendingDeposit(depositId);
+      console.log(`💼 [Deposit Confirm] Deposit found:`, deposit ? `ID ${deposit.id}, status: ${deposit.status}` : 'NOT FOUND');
+
+      if (!deposit) {
+        return res.status(404).send("Depósito não encontrado.");
+      }
+
+      if (deposit.status !== "pending") {
+        return res.status(400).send("Depósito já foi processado.");
+      }
+
+      // Get the user who made the deposit
+      const depositUser = await storage.getUser(deposit.userId);
+      if (!depositUser) {
+        return res.status(404).send("Usuário não encontrado.");
+      }
+
+      const depositAmount = parseFloat(deposit.amount);
+
+      // Approve the deposit
+      const approved = await storage.approvePendingDeposit(depositId, user.id);
+
+      // Update user balance
+      let newBalanceBrl = depositUser.balanceBrl;
+      let newBalanceUsdc = depositUser.balanceUsdc;
+
+      if (deposit.currency === "BRL") {
+        newBalanceBrl = (parseFloat(depositUser.balanceBrl) + depositAmount).toFixed(2);
+      } else if (deposit.currency === "USDC") {
+        newBalanceUsdc = (parseFloat(depositUser.balanceUsdc) + depositAmount).toFixed(6);
+      }
+
+      await storage.updateUserBalance(deposit.userId, newBalanceBrl, newBalanceUsdc);
+
+      // Create transaction record with blockchain hash
+      await storage.createTransaction(deposit.userId, {
+        type: deposit.currency === "BRL" ? "deposit_pix" : "deposit_usdc",
+        amount: deposit.amount,
+        currency: deposit.currency,
+        description: `Depósito aprovado: ${depositAmount} ${deposit.currency} (TX: ${txHash})`,
+      });
+
+      console.log(`✅ [Deposit Confirm] Success - Balance updated, txHash: ${txHash}`);
+      console.log(`🔗 [Deposit Confirm] Polygonscan: https://polygonscan.com/tx/${txHash}`);
+      
+      res.json({ 
+        success: true, 
+        deposit: approved,
+        blockchain: {
+          txHash,
+          polygonscan: `https://polygonscan.com/tx/${txHash}`
+        },
+        newBalance: newBalanceBrl,
+        message: `Depósito de ${depositAmount} ${deposit.currency} aprovado com sucesso! Tokens mintados na blockchain.`
+      });
+    } catch (error) {
+      console.error("Failed to confirm deposit mint:", error);
+      res.status(500).send("Falha ao confirmar mint do depósito.");
+    }
+  });
+
   // ===== WITHDRAWAL ROUTES =====
   
   // POST /api/wallet/withdraw/request - User requests withdrawal
@@ -1218,6 +1297,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to reject withdrawal:", error);
       res.status(500).send("Falha ao rejeitar saque.");
+    }
+  });
+
+  // POST /api/withdrawals/:id/confirm-burn - Frontend confirms MetaMask burn with txHash
+  app.post("/api/withdrawals/:id/confirm-burn", requireAuth, async (req, res) => {
+    try {
+      console.log(`🔥 [Withdrawal Confirm] Burn confirmation received for withdrawal ID: ${req.params.id}`);
+      const user = req.user!;
+      
+      if (!user.isAdmin) {
+        console.log(`❌ [Withdrawal Confirm] Forbidden - user is not admin`);
+        return res.status(403).send(errorMessages.FORBIDDEN);
+      }
+
+      const withdrawalId = req.params.id;
+      const { txHash } = req.body;
+
+      if (!txHash || typeof txHash !== 'string') {
+        return res.status(400).send("Transaction hash é obrigatório.");
+      }
+
+      const withdrawal = await storage.getPendingWithdrawal(withdrawalId);
+      console.log(`💼 [Withdrawal Confirm] Withdrawal found:`, withdrawal ? `ID ${withdrawal.id}, status: ${withdrawal.status}` : 'NOT FOUND');
+
+      if (!withdrawal) {
+        return res.status(404).send("Saque não encontrado.");
+      }
+
+      if (withdrawal.status !== "pending") {
+        return res.status(400).send("Saque já foi processado.");
+      }
+
+      // Get the user who made the withdrawal
+      const withdrawUser = await storage.getUser(withdrawal.userId);
+      if (!withdrawUser) {
+        return res.status(404).send("Usuário não encontrado.");
+      }
+
+      const withdrawAmount = parseFloat(withdrawal.amount);
+
+      // Double check balance before processing
+      const currentBalance = withdrawal.currency === "BRL" 
+        ? parseFloat(withdrawUser.balanceBrl) 
+        : parseFloat(withdrawUser.balanceUsdc);
+      
+      if (currentBalance < withdrawAmount) {
+        return res.status(400).send(`Saldo insuficiente no momento da confirmação. Saldo atual: ${currentBalance.toFixed(2)} ${withdrawal.currency}.`);
+      }
+
+      // Approve the withdrawal
+      const approved = await storage.approvePendingWithdrawal(withdrawalId, user.id);
+
+      // Update user balance (deduct amount)
+      let newBalanceBrl = withdrawUser.balanceBrl;
+      let newBalanceUsdc = withdrawUser.balanceUsdc;
+
+      if (withdrawal.currency === "BRL") {
+        newBalanceBrl = (parseFloat(withdrawUser.balanceBrl) - withdrawAmount).toFixed(2);
+      } else if (withdrawal.currency === "USDC") {
+        newBalanceUsdc = (parseFloat(withdrawUser.balanceUsdc) - withdrawAmount).toFixed(6);
+      }
+
+      await storage.updateUserBalance(withdrawal.userId, newBalanceBrl, newBalanceUsdc);
+
+      // Create transaction record with blockchain hash
+      await storage.createTransaction(withdrawal.userId, {
+        type: withdrawal.currency === "BRL" ? "withdrawal_pix" : "withdrawal_usdc",
+        amount: withdrawal.amount,
+        currency: withdrawal.currency,
+        description: `Saque aprovado: ${withdrawAmount} ${withdrawal.currency} para ${withdrawal.pixKey} (TX: ${txHash})`,
+      });
+
+      console.log(`✅ [Withdrawal Confirm] Success - Balance updated, txHash: ${txHash}`);
+      console.log(`🔗 [Withdrawal Confirm] Polygonscan: https://polygonscan.com/tx/${txHash}`);
+      
+      res.json({ 
+        success: true, 
+        withdrawal: approved,
+        blockchain: {
+          txHash,
+          polygonscan: `https://polygonscan.com/tx/${txHash}`
+        },
+        newBalance: newBalanceBrl,
+        message: `Saque de ${withdrawAmount} ${withdrawal.currency} aprovado com sucesso! Tokens queimados na blockchain.`
+      });
+    } catch (error) {
+      console.error("Failed to confirm withdrawal burn:", error);
+      res.status(500).send("Falha ao confirmar burn do saque.");
     }
   });
 
