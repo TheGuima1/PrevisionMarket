@@ -42,7 +42,6 @@ import {
 } from "lucide-react";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 import { BlockchainActions } from "@/components/blockchain-actions";
-import { useMetaMaskMint } from "@/hooks/use-metamask-mint";
 
 // Interfaces
 interface PendingDeposit {
@@ -98,7 +97,6 @@ export default function AdminPage() {
   const [selectedDeposit, setSelectedDeposit] = useState<PendingDeposit | null>(null);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<any | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const { mintTokens, burnTokens, isMinting, isBurning } = useMetaMaskMint();
   
   // Market creation state
   const [newMarket, setNewMarket] = useState({
@@ -143,42 +141,13 @@ export default function AdminPage() {
     enabled: !!selectedUserId,
   });
 
-  // Handle deposit approval with MetaMask
+  // TODO: Implement MetaMask mint workflow
   const handleApproveDeposit = async (deposit: PendingDeposit) => {
-    const amount = parseFloat(deposit.amount);
-    
-    // Step 1: Mint tokens via MetaMask (mints to admin wallet)
-    const mintResult = await mintTokens(amount.toString());
-    
-    if (!mintResult.success) {
-      // Mint failed, don't proceed with approval
-      return;
-    }
-
-    // Step 2: Confirm mint with backend (update user balance + save txHash)
-    try {
-      const res = await apiRequest("POST", `/api/deposits/${deposit.id}/confirm-mint`, {
-        txHash: mintResult.txHash,
-      });
-      
-      const data = await res.json();
-      
-      toast({
-        title: "Depósito aprovado! ✅",
-        description: `${amount} BRL3 mintados e creditados ao usuário. TX: ${mintResult.txHash?.slice(0, 10)}...`,
-      });
-      
-      setSelectedDeposit(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/deposits/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-    } catch (error: any) {
-      toast({
-        title: "Erro ao confirmar mint",
-        description: "Tokens foram mintados na blockchain, mas houve erro ao atualizar o saldo no banco. Contate o suporte técnico.",
-        variant: "destructive",
-      });
-      console.error("Failed to confirm mint:", error);
-    }
+    toast({
+      title: "MetaMask em reconstrução",
+      description: "Funcionalidade será reimplementada",
+      variant: "destructive",
+    });
   };
 
   // Mutations (kept for rejections)
@@ -208,42 +177,13 @@ export default function AdminPage() {
     },
   });
 
-  // Handle withdrawal approval with MetaMask
+  // TODO: Implement MetaMask burn workflow
   const handleApproveWithdrawal = async (withdrawal: any) => {
-    const amount = parseFloat(withdrawal.amount);
-    
-    // Step 1: Burn tokens via MetaMask (burns from admin wallet)
-    const burnResult = await burnTokens(amount.toString());
-    
-    if (!burnResult.success) {
-      // Burn failed, don't proceed with approval
-      return;
-    }
-
-    // Step 2: Confirm burn with backend (deduct user balance + save txHash)
-    try {
-      const res = await apiRequest("POST", `/api/withdrawals/${withdrawal.id}/confirm-burn`, {
-        txHash: burnResult.txHash,
-      });
-      
-      const data = await res.json();
-      
-      toast({
-        title: "Saque aprovado! ✅",
-        description: `${amount} BRL3 queimados e deduzidos do usuário. TX: ${burnResult.txHash?.slice(0, 10)}...`,
-      });
-      
-      setSelectedWithdrawal(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/withdrawals/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-    } catch (error: any) {
-      toast({
-        title: "Erro ao confirmar burn",
-        description: "Tokens foram queimados na blockchain, mas houve erro ao atualizar o saldo no banco. Contate o suporte técnico.",
-        variant: "destructive",
-      });
-      console.error("Failed to confirm burn:", error);
-    }
+    toast({
+      title: "MetaMask em reconstrução",
+      description: "Funcionalidade será reimplementada",
+      variant: "destructive",
+    });
   };
 
   const approveWithdrawalMutation = useMutation({
@@ -672,11 +612,11 @@ export default function AdminPage() {
                     size="lg"
                     className="flex-1 bg-primary hover:bg-primary/90 text-white gap-2"
                     onClick={() => approveDepositMutation.mutate(selectedDeposit)}
-                    disabled={approveDepositMutation.isPending || isMinting}
+                    disabled={approveDepositMutation.isPending}
                     data-testid="button-approve-deposit"
                   >
                     <CheckCircle className="w-5 h-5" />
-                    {isMinting ? "Mintando no MetaMask..." : approveDepositMutation.isPending ? "Salvando..." : "APROVAR → Mint via MetaMask"}
+                    {approveDepositMutation.isPending ? "Processando..." : "APROVAR → Mint via MetaMask"}
                   </Button>
                   <Button
                     size="lg"
@@ -839,11 +779,11 @@ export default function AdminPage() {
                     size="lg"
                     className="flex-1 bg-primary hover:bg-primary/90 text-white gap-2"
                     onClick={() => approveWithdrawalMutation.mutate(selectedWithdrawal)}
-                    disabled={approveWithdrawalMutation.isPending || isBurning}
+                    disabled={approveWithdrawalMutation.isPending}
                     data-testid="button-approve-withdrawal"
                   >
                     <CheckCircle className="w-5 h-5" />
-                    {isBurning ? "Queimando no MetaMask..." : approveWithdrawalMutation.isPending ? "Salvando..." : "APROVAR → Burn via MetaMask"}
+                    {approveWithdrawalMutation.isPending ? "Processando..." : "APROVAR → Burn via MetaMask"}
                   </Button>
                   <Button
                     size="lg"
