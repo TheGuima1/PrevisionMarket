@@ -1,0 +1,214 @@
+Perfeito — você pode **usar 18 decimais (padrão global)** e **ainda mintar exatamente 100 tokens** quando o cliente depositar 100 reais.
+
+Isso é **super simples**:
+
+👉 O segredo é:
+**o backend converte 100 reais → 100 * (10¹⁸) unidades internas**
+👉 Mas na carteira e na blockchain, aparecerá **100.000000000000000000 BRL3** (ou seja, 100 tokens).
+
+Isso é o comportamento NORMAL de um token ERC-20.
+
+Agora eu vou te entregar o **PROMPT COMPLETO**, profissional, pronto para colar no Replit e fazer tudo funcionar.
+
+---
+
+# ✅ **PROMPT COMPLETO PARA CORRIGIR O BACKEND DA PALPITESAI (USANDO 18 DECIMAIS E MINTANDO 1:1)**
+
+Cole EXACTAMENTE isso no Replit:
+
+---
+
+## **PROMPT PARA O REPLIT — SISTEMA BRL3 (18 DECIMAIS, MINT 1:1)**
+
+### **Objetivo do prompt**
+
+Modificar toda a lógica de mint/burn na plataforma PalpitesAI para integrar corretamente com o token BRL3 usando **18 decimais**, garantindo que **100 reais depositados = 100 tokens mintados**.
+
+Apenas a **carteira do admin** deve interagir com o contrato.
+
+---
+
+## **1. CONFIGURAÇÕES INICIAIS**
+
+Atualize (ou crie) variáveis no `.env`:
+
+```env
+ADMIN_PRIVATE_KEY="CHAVE_PRIVADA_ADMIN"
+ADMIN_PUBLIC_ADDRESS="0xcd83c3f36396bcb3569240a3cb34f037ba310926"
+TOKEN_CONTRACT_ADDRESS="ENDERECO_DO_CONTRATO_BRL3"
+RPC_URL="https://polygon-rpc.com"
+TOKEN_DECIMALS=18
+```
+
+---
+
+## **2. CRIE/ATUALIZE O ARQUIVO `services/tokenService.ts`**
+
+Colar este arquivo inteiro:
+
+```ts
+import { ethers } from "ethers";
+import TokenABI from "../abis/BRL3.json";
+
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const wallet = new ethers.Wallet(process.env.ADMIN_PRIVATE_KEY, provider);
+
+const token = new ethers.Contract(
+  process.env.TOKEN_CONTRACT_ADDRESS,
+  TokenABI,
+  wallet
+);
+
+// Convert reais → unidades internas do ERC-20
+// Ex: 100 reais → 100 * 10^18 = 100000000000000000000
+function toUnits(amount) {
+  return ethers.parseUnits(amount.toString(), Number(process.env.TOKEN_DECIMALS));
+}
+
+export async function mintToAdmin(amountBRL) {
+  const units = toUnits(amountBRL);
+  const tx = await token.mint(process.env.ADMIN_PUBLIC_ADDRESS, units);
+  await tx.wait();
+  return tx.hash;
+}
+
+export async function burnFromAdmin(amountBRL) {
+  const units = toUnits(amountBRL);
+  const tx = await token.burn(units);
+  await tx.wait();
+  return tx.hash;
+}
+```
+
+---
+
+## **3. ATUALIZE O PROCESSO DE DEPÓSITO (MINT)**
+
+No arquivo onde o admin APROVA depósito (`controllers/depositController.ts` ou similar):
+
+Substitua o trecho que chamava mint incorretamente.
+
+Use:
+
+```ts
+import { mintToAdmin } from "../services/tokenService";
+
+export async function approveDeposit(req, res) {
+  const { userId, amount } = req.body; // amount = reais depositados
+
+  // 1. Atualizar saldo off-chain do usuário
+  await creditUser(userId, amount);
+
+  // 2. Mint on-chain para a carteira do admin
+  const txHash = await mintToAdmin(amount);
+
+  return res.json({
+    success: true,
+    message: "Depósito aprovado e tokens criados na carteira admin",
+    txHash
+  });
+}
+```
+
+---
+
+## **4. ATUALIZE O PROCESSO DE SAQUE (BURN)**
+
+No arquivo onde o admin aprova saque:
+
+```ts
+import { burnFromAdmin } from "../services/tokenService";
+
+export async function approveWithdraw(req, res) {
+  const { userId, amount } = req.body; // amount = reais solicitados
+
+  const userHasBalance = await hasBalance(userId, amount);
+  if (!userHasBalance) {
+    return res.status(400).json({ error: "Saldo insuficiente" });
+  }
+
+  // 1. Debitar saldo off-chain
+  await debitUser(userId, amount);
+
+  // 2. Burn on-chain
+  const txHash = await burnFromAdmin(amount);
+
+  return res.json({
+    success: true,
+    message: "Saque aprovado e tokens queimados da carteira admin",
+    txHash
+  });
+}
+```
+
+---
+
+## **5. REMOVA TODA A LÓGICA ANTIGA RELACIONADA A userWallet**
+
+Apague qualquer trecho parecido com:
+
+❌ `mint(userWallet, ...)`
+❌ `burnFrom(userWallet, ...)`
+❌ `burn(userWallet, ...)`
+❌ `send tokens to user`
+❌ `wallet connected user`
+
+BRL3 **NÃO** vai para a wallet do usuário.
+Usuário é **off-chain**.
+Somente admin interage on-chain.
+
+---
+
+## **6. CONFIRME O FLUXO FINAL**
+
+### DEPÓSITO:
+
+* Cliente envia PIX
+* Admin aprova
+* Platafoma chama:
+
+```
+mintToAdmin(100)
+```
+
+* Contrato recebe:
+
+```
+mint(admin, 100 * 10^18)
+```
+
+* Carteira do admin mostra **100 BRL3**
+
+### SAQUE:
+
+* Cliente solicita
+* Admin aprova
+* Plataforma chama:
+
+```
+burnFromAdmin(100)
+```
+
+* Contrato queima **100 * 10^18**
+* Saldo off-chain reduzido
+
+---
+
+# 🎯 **Resultado Final**
+
+✔ Usa 18 decimais (padrão do Ethereum/Polygon)
+✔ Cliente deposita 100 → Admin recebe exatamente 100 tokens
+✔ Burn funciona igual
+✔ Compatibilidade máxima com carteiras, DeFi, RPC, Fireblocks
+✔ Zero dor de cabeça no futuro
+✔ Fluxo 100% correto para stablecoin 1:1
+
+---
+
+Se quiser, eu também posso:
+
+✅ atualizar seu contrato BRL3 para 18 decimais
+ou
+✅ revisar seu backend atual e aplicar automaticamente todas essas mudanças.
+
+É só pedir.
