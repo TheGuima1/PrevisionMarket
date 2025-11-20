@@ -5,6 +5,7 @@ import { setupAuth } from "./auth";
 import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, insertPendingDepositSchema, insertPendingWithdrawalSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots, pendingDeposits, pendingWithdrawals, transactions, comments } from "@shared/schema";
 import OpenAI from "openai";
 import { z } from "zod";
+import { ethers } from "ethers";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { sql, desc, and, gte, eq, inArray } from "drizzle-orm";
@@ -16,7 +17,6 @@ import { fetchPolyBySlug } from "./mirror/adapter";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import tokenRoutes from "./routes/tokenRoutes";
 
 // Configure multer for deposit proof file uploads
 const uploadDir = path.join(process.cwd(), "uploads", "deposit-proofs");
@@ -80,6 +80,8 @@ const errorMessages = {
   INVALID_FILE_TYPE: "Tipo de arquivo inválido. Envie um arquivo PDF.",
   FILE_TOO_LARGE: "Arquivo muito grande. Tamanho máximo: 5MB.",
 } as const;
+
+const TOKEN_DECIMALS = 18;
 
 // Initialize OpenAI for AI assistant
 // Using Replit's AI Integrations service (no API key needed)
@@ -859,20 +861,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Valor deve ser maior que zero"
         }),
         currency: z.enum(["BRL", "USDC"]).default("BRL"),
+        walletAddress: z.string().refine(addr => ethers.isAddress(addr), {
+          message: "Endereço de carteira inválido"
+        }),
       });
 
       const validated = depositSchema.parse(req.body);
+      const normalizedWallet = ethers.getAddress(validated.walletAddress);
       
       try {
         const pendingDeposit = await storage.createPendingDeposit(user.id, {
           amount: validated.amount,
           currency: validated.currency,
+          walletAddress: normalizedWallet,
           proofFilePath: req.file.path,
         });
 
         res.json({ 
           success: true, 
           depositId: pendingDeposit.id,
+          walletAddress: normalizedWallet,
           message: "Depósito enviado para aprovação. Aguarde a análise do comprovante." 
         });
       } catch (storageError) {
@@ -1008,6 +1016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: deposit.userId,
           amount: deposit.amount,
           currency: deposit.currency,
+          walletAddress: deposit.walletAddress,
           status: deposit.status,
           user: {
             username: depositUser.username,
@@ -1080,11 +1089,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const depositId = req.params.id;
-      const { txHash } = req.body;
-
-      if (!txHash || typeof txHash !== 'string') {
-        return res.status(400).send("Transaction hash é obrigatório.");
-      }
+      const bodySchema = z.object({
+        txHash: z.string().min(1),
+        amountRaw: z.string().optional(),
+      });
+      const { txHash, amountRaw } = bodySchema.parse(req.body);
 
       const deposit = await storage.getPendingDeposit(depositId);
       console.log(`💼 [Deposit Confirm] Deposit found:`, deposit ? `ID ${deposit.id}, status: ${deposit.status}` : 'NOT FOUND');
@@ -1104,9 +1113,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const depositAmount = parseFloat(deposit.amount);
+      const depositAmountRaw = ethers.parseUnits(deposit.amount.toString(), TOKEN_DECIMALS);
+
+      if (amountRaw && BigInt(amountRaw) !== depositAmountRaw) {
+        console.warn(
+          `[Deposit Confirm] amountRaw mismatch provided=${amountRaw} computed=${depositAmountRaw.toString()}`
+        );
+      }
 
       // Approve the deposit
-      const approved = await storage.approvePendingDeposit(depositId, user.id);
+      const approved = await storage.approvePendingDeposit(depositId, user.id, {
+        txHash,
+        mintedTokenAmount: deposit.amount.toString(),
+        mintedTokenAmountRaw: depositAmountRaw.toString(),
+      });
 
       // Update user balance
       let newBalanceBrl = depositUser.balanceBrl;
@@ -1141,8 +1161,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newBalance: newBalanceBrl,
         message: `Depósito de ${depositAmount} ${deposit.currency} aprovado com sucesso! Tokens mintados na blockchain.`
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to confirm deposit mint:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).send("Dados inválidos para confirmação do mint.");
+      }
       res.status(500).send("Falha ao confirmar mint do depósito.");
     }
   });
@@ -1156,12 +1179,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validated = insertPendingWithdrawalSchema.parse(req.body);
       const withdrawAmount = parseFloat(validated.amount);
+      const normalizedWallet = ethers.getAddress(validated.walletAddress);
       
       // Note: Balance check removed - pending withdrawals are created before balance verification
       // Admin will verify balance before approving the withdrawal
       // This allows users to request withdrawals before deposits are approved
 
-      const withdrawal = await storage.createPendingWithdrawal(user.id, validated);
+      const withdrawal = await storage.createPendingWithdrawal(user.id, {
+        ...validated,
+        walletAddress: normalizedWallet,
+      });
 
       res.json({ 
         success: true, 
@@ -1249,6 +1276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           amount: withdrawal.amount,
           currency: withdrawal.currency,
           pixKey: withdrawal.pixKey,
+          walletAddress: withdrawal.walletAddress,
           status: withdrawal.status,
           user: {
             username: withdrawUser.username,
@@ -1312,11 +1340,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const withdrawalId = req.params.id;
-      const { txHash } = req.body;
-
-      if (!txHash || typeof txHash !== 'string') {
-        return res.status(400).send("Transaction hash é obrigatório.");
-      }
+      const bodySchema = z.object({
+        txHash: z.string().min(1),
+        amountRaw: z.string().optional(),
+      });
+      const { txHash, amountRaw } = bodySchema.parse(req.body);
 
       const withdrawal = await storage.getPendingWithdrawal(withdrawalId);
       console.log(`💼 [Withdrawal Confirm] Withdrawal found:`, withdrawal ? `ID ${withdrawal.id}, status: ${withdrawal.status}` : 'NOT FOUND');
@@ -1336,6 +1364,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const withdrawAmount = parseFloat(withdrawal.amount);
+      const withdrawAmountRaw = ethers.parseUnits(withdrawal.amount.toString(), TOKEN_DECIMALS);
+
+      if (amountRaw && BigInt(amountRaw) !== withdrawAmountRaw) {
+        console.warn(
+          `[Withdrawal Confirm] amountRaw mismatch provided=${amountRaw} computed=${withdrawAmountRaw.toString()}`
+        );
+      }
 
       // Double check balance before processing
       const currentBalance = withdrawal.currency === "BRL" 
@@ -1347,7 +1382,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Approve the withdrawal
-      const approved = await storage.approvePendingWithdrawal(withdrawalId, user.id);
+      const approved = await storage.approvePendingWithdrawal(withdrawalId, user.id, {
+        txHash,
+        burnedTokenAmount: withdrawal.amount.toString(),
+        burnedTokenAmountRaw: withdrawAmountRaw.toString(),
+      });
 
       // Update user balance (deduct amount)
       let newBalanceBrl = withdrawUser.balanceBrl;
@@ -1382,8 +1421,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newBalance: newBalanceBrl,
         message: `Saque de ${withdrawAmount} ${withdrawal.currency} aprovado com sucesso! Tokens queimados na blockchain.`
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to confirm withdrawal burn:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).send("Dados inválidos para confirmação do burn.");
+      }
       res.status(500).send("Falha ao confirmar burn do saque.");
     }
   });
@@ -1490,9 +1532,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).send(errorMessages.FAILED_FETCH_ORDERS);
     }
   });
-
-  // ===== BLOCKCHAIN TOKEN ROUTES =====
-  app.use("/api/token", tokenRoutes);
 
   // ===== AI ASSISTANT ROUTES =====
   

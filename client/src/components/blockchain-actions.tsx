@@ -7,7 +7,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useMetaMask } from "@/contexts/MetaMaskContext";
 import { Loader2, Wallet, ChevronRight, ExternalLink, AlertCircle, Chrome } from "lucide-react";
-import { BRL3_ABI } from "@/lib/brl3-abi";
+import { BRL3_ABI } from "@/blockchain/brl3Abi";
+import { BRL3_TOKEN_ADDRESS, TOKEN_DECIMALS as BRL3_TOKEN_DECIMALS } from "@/blockchain/config";
 
 export function BlockchainActions() {
   const { toast } = useToast();
@@ -18,8 +19,8 @@ export function BlockchainActions() {
   const [isBurning, setIsBurning] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
-  const CONTRACT_ADDRESS = import.meta.env.VITE_TOKEN_CONTRACT_ADDRESS;
-  const TOKEN_DECIMALS = parseInt(import.meta.env.VITE_TOKEN_DECIMALS || "18");
+  const CONTRACT_ADDRESS = BRL3_TOKEN_ADDRESS;
+  const TOKEN_DECIMALS = BRL3_TOKEN_DECIMALS;
 
   // Refresh balance when account changes or becomes ready
   useEffect(() => {

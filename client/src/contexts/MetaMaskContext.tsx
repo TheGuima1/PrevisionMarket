@@ -1,5 +1,8 @@
 import { createContext, useContext, useReducer, useEffect, ReactNode } from "react";
+import { ethers } from "ethers";
 import { useToast } from "@/hooks/use-toast";
+import { BRL3_TOKEN_ADDRESS, POLYGON_CHAIN_ID_HEX, TOKEN_DECIMALS as BRL3_TOKEN_DECIMALS } from "@/blockchain/config";
+import { BRL3_ABI } from "@/blockchain/brl3Abi";
 
 declare global {
   interface Window {
@@ -34,7 +37,9 @@ type MetaMaskAction =
   | { type: "DISCONNECT" }
   | { type: "RESET" };
 
-const POLYGON_CHAIN_ID = "0x89"; // 137 in hex
+const POLYGON_CHAIN_ID = POLYGON_CHAIN_ID_HEX;
+const CONTRACT_ADDRESS = BRL3_TOKEN_ADDRESS;
+const TOKEN_DECIMALS = BRL3_TOKEN_DECIMALS;
 
 const initialState: MetaMaskState = {
   status: "not-installed",
@@ -382,14 +387,8 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
     if (!state.account || !window.ethereum) return;
 
     try {
-      const CONTRACT_ADDRESS = import.meta.env.VITE_TOKEN_CONTRACT_ADDRESS;
-      const TOKEN_DECIMALS = parseInt(import.meta.env.VITE_TOKEN_DECIMALS || "18");
-      
       if (!CONTRACT_ADDRESS) return;
 
-      const { ethers } = await import("ethers");
-      const { BRL3_ABI } = await import("@/lib/brl3-abi");
-      
       const provider = new ethers.BrowserProvider(window.ethereum);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, BRL3_ABI, provider);
       const balanceWei = await contract.balanceOf(state.account);

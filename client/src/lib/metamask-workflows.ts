@@ -1,130 +1,132 @@
-import { BRL3_ABI } from "@/lib/brl3-abi";
+import { ethers } from "ethers";
+import { BRL3_ABI } from "@/blockchain/brl3Abi";
+import {
+  ADMIN_WALLET_ADDRESS,
+  BRL3_TOKEN_ADDRESS,
+  POLYGON_CHAIN_ID_HEX,
+  toTokenUnits,
+  isAdminAddress,
+} from "@/blockchain/config";
 
 interface MintResult {
   success: boolean;
   txHash?: string;
+  amountRaw?: string;
   error?: string;
 }
 
 interface BurnResult {
   success: boolean;
   txHash?: string;
+  amountRaw?: string;
   error?: string;
 }
 
-const CONTRACT_ADDRESS = import.meta.env.VITE_TOKEN_CONTRACT_ADDRESS;
-const TOKEN_DECIMALS = parseInt(import.meta.env.VITE_TOKEN_DECIMALS || "18");
-const POLYGON_CHAIN_ID = "0x89"; // 137 in hex
+const ADMIN_ADDRESS_LOWER = ADMIN_WALLET_ADDRESS.toLowerCase();
 
-/**
- * Ensures MetaMask is connected and returns the current account
- */
-async function ensureConnected(): Promise<string> {
+function ensureWindowEthereum() {
   if (!window.ethereum) {
     throw new Error("MetaMask não está instalado");
   }
+}
 
-  const accounts = await window.ethereum.request({
-    method: "eth_requestAccounts",
-  });
+async function ensurePolygonNetwork(): Promise<void> {
+  ensureWindowEthereum();
+
+  const chainId = await window.ethereum.request({ method: "eth_chainId" });
+  if (chainId === POLYGON_CHAIN_ID_HEX) return;
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: POLYGON_CHAIN_ID_HEX }],
+    });
+  } catch (switchError: any) {
+    if (switchError.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: POLYGON_CHAIN_ID_HEX,
+            chainName: "Polygon Mainnet",
+            nativeCurrency: {
+              name: "MATIC",
+              symbol: "MATIC",
+              decimals: 18,
+            },
+            rpcUrls: ["https://polygon-rpc.com"],
+            blockExplorerUrls: ["https://polygonscan.com"],
+          },
+        ],
+      });
+    } else {
+      throw new Error("Não foi possível trocar para a rede Polygon");
+    }
+  }
+}
+
+async function requireAdminSigner() {
+  ensureWindowEthereum();
+
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const accounts = await provider.send("eth_requestAccounts", []);
 
   if (!accounts || accounts.length === 0) {
     throw new Error("Nenhuma conta conectada. Desbloqueie o MetaMask e tente novamente.");
   }
 
-  return accounts[0];
-}
+  await ensurePolygonNetwork();
 
-/**
- * Ensures we're on Polygon network, switches if needed
- */
-async function ensurePolygonNetwork(): Promise<void> {
-  if (!window.ethereum) {
-    throw new Error("MetaMask não está instalado");
+  const signer = await provider.getSigner();
+  const account = (await signer.getAddress()).toLowerCase();
+
+  if (account !== ADMIN_ADDRESS_LOWER) {
+    throw new Error(`Apenas a carteira admin pode executar esta ação. Troque para ${ADMIN_WALLET_ADDRESS}.`);
   }
 
-  const chainId = await window.ethereum.request({ method: "eth_chainId" });
-
-  if (chainId !== POLYGON_CHAIN_ID) {
-    try {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: POLYGON_CHAIN_ID }],
-      });
-    } catch (switchError: any) {
-      // Chain not added, try to add it
-      if (switchError.code === 4902) {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [
-            {
-              chainId: POLYGON_CHAIN_ID,
-              chainName: "Polygon Mainnet",
-              nativeCurrency: {
-                name: "MATIC",
-                symbol: "MATIC",
-                decimals: 18,
-              },
-              rpcUrls: ["https://polygon-rpc.com"],
-              blockExplorerUrls: ["https://polygonscan.com"],
-            },
-          ],
-        });
-      } else {
-        throw new Error("Não foi possível trocar para a rede Polygon");
-      }
-    }
-  }
+  return { provider, signer, account };
 }
 
-/**
- * Executes a mint transaction via MetaMask
- * @param amount Amount in BRL3 (e.g., "100" for 100 BRL3)
- * @returns Transaction hash on success
- */
-export async function executeMintWorkflow(amount: string): Promise<MintResult> {
+function withFriendlyError(error: any, defaultMessage: string) {
+  if (error?.code === 4001) {
+    return "Você cancelou a transação no MetaMask";
+  }
+  if (error?.code === -32002) {
+    return "Já existe uma solicitação pendente no MetaMask. Aprove ou rejeite a solicitação atual.";
+  }
+  if (typeof error?.message === "string" && error.message.length > 0) {
+    return error.message;
+  }
+  return defaultMessage;
+}
+
+export async function executeMintWorkflow(params: { amount: string; to: string }): Promise<MintResult> {
   try {
-    if (!CONTRACT_ADDRESS) {
+    if (!BRL3_TOKEN_ADDRESS) {
       throw new Error("Endereço do contrato BRL3 não configurado");
     }
 
-    // Step 1: Ensure connected
-    const account = await ensureConnected();
+    const toAddress = ethers.getAddress(params.to);
+    const { signer } = await requireAdminSigner();
+    const tokenAmountRaw = toTokenUnits(params.amount);
 
-    // Step 2: Ensure on Polygon network
-    await ensurePolygonNetwork();
-
-    // Step 3: Execute mint transaction
-    const { ethers } = await import("ethers");
-    const provider = new ethers.BrowserProvider(window.ethereum!);
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, BRL3_ABI, signer);
-    const tokenAmount = ethers.parseUnits(amount, TOKEN_DECIMALS);
-
-    // Mint to admin's own wallet
-    const tx = await contract.mint(account, tokenAmount);
-
-    // Wait for confirmation (1 block)
+    const contract = new ethers.Contract(BRL3_TOKEN_ADDRESS, BRL3_ABI, signer);
+    const tx = await contract.mint(toAddress, tokenAmountRaw);
     await tx.wait(1);
 
     return {
       success: true,
       txHash: tx.hash,
+      amountRaw: tokenAmountRaw.toString(),
     };
   } catch (error: any) {
     console.error("Mint workflow error:", error);
 
-    let errorMessage = "Erro ao mintar tokens";
-    
-    if (error.code === 4001) {
-      errorMessage = "Você cancelou a transação no MetaMask";
-    } else if (error.code === -32002) {
-      errorMessage = "Já existe uma solicitação pendente no MetaMask. Aprove ou rejeite a solicitação atual.";
-    } else if (error.message?.includes("AccessControl")) {
-      errorMessage = "Você não tem permissão para mintar tokens (precisa de MINTER_ROLE)";
-    } else if (error.message?.includes("nenhuma conta")) {
-      errorMessage = "MetaMask não está conectado ou está bloqueado";
-    } else if (error.message) {
+    let errorMessage = withFriendlyError(error, "Erro ao mintar tokens");
+    if (error?.message?.includes("AccessControl") || error?.message?.includes("MINTER_ROLE")) {
+      errorMessage = "A carteira conectada não possui permissão de mint";
+    }
+    if (error?.message?.includes("carteira admin")) {
       errorMessage = error.message;
     }
 
@@ -135,54 +137,39 @@ export async function executeMintWorkflow(amount: string): Promise<MintResult> {
   }
 }
 
-/**
- * Executes a burn transaction via MetaMask
- * @param amount Amount in BRL3 (e.g., "50" for 50 BRL3)
- * @returns Transaction hash on success
- */
-export async function executeBurnWorkflow(amount: string): Promise<BurnResult> {
+export async function executeBurnWorkflow(params: { amount: string; from?: string }): Promise<BurnResult> {
   try {
-    if (!CONTRACT_ADDRESS) {
+    if (!BRL3_TOKEN_ADDRESS) {
       throw new Error("Endereço do contrato BRL3 não configurado");
     }
 
-    // Step 1: Ensure connected
-    await ensureConnected();
+    const { signer, account } = await requireAdminSigner();
+    const targetAddress = params.from ? ethers.getAddress(params.from) : undefined;
+    const burnFromAddress = targetAddress || ethers.getAddress(account);
+    const useBurnFrom = !isAdminAddress(burnFromAddress);
 
-    // Step 2: Ensure on Polygon network
-    await ensurePolygonNetwork();
+    const tokenAmountRaw = toTokenUnits(params.amount);
+    const contract = new ethers.Contract(BRL3_TOKEN_ADDRESS, BRL3_ABI, signer);
+    const tx = useBurnFrom
+      ? await contract.burnFrom(burnFromAddress, tokenAmountRaw)
+      : await contract.burn(tokenAmountRaw);
 
-    // Step 3: Execute burn transaction
-    const { ethers } = await import("ethers");
-    const provider = new ethers.BrowserProvider(window.ethereum!);
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, BRL3_ABI, signer);
-    const tokenAmount = ethers.parseUnits(amount, TOKEN_DECIMALS);
-
-    // Burn from admin's wallet
-    const tx = await contract.burn(tokenAmount);
-
-    // Wait for confirmation (1 block)
     await tx.wait(1);
 
     return {
       success: true,
       txHash: tx.hash,
+      amountRaw: tokenAmountRaw.toString(),
     };
   } catch (error: any) {
     console.error("Burn workflow error:", error);
 
-    let errorMessage = "Erro ao queimar tokens";
-    
-    if (error.code === 4001) {
-      errorMessage = "Você cancelou a transação no MetaMask";
-    } else if (error.code === -32002) {
-      errorMessage = "Já existe uma solicitação pendente no MetaMask. Aprove ou rejeite a solicitação atual.";
-    } else if (error.message?.includes("burn amount exceeds balance")) {
-      errorMessage = "Saldo insuficiente de BRL3 tokens para queimar";
-    } else if (error.message?.includes("nenhuma conta")) {
-      errorMessage = "MetaMask não está conectado ou está bloqueado";
-    } else if (error.message) {
+    let errorMessage = withFriendlyError(error, "Erro ao queimar tokens");
+    if (error?.message?.includes("burn amount exceeds allowance")) {
+      errorMessage = "A carteira do usuário não deu permissão suficiente para queimar";
+    } else if (error?.message?.includes("burn amount exceeds balance")) {
+      errorMessage = "Saldo insuficiente de BRL3 para queimar";
+    } else if (error?.message?.includes("carteira admin")) {
       errorMessage = error.message;
     }
 

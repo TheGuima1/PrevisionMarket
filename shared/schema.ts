@@ -206,6 +206,7 @@ export const pendingDeposits = pgTable("pending_deposits", {
   userId: varchar("user_id").notNull().references(() => users.id),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("BRL"), // 'BRL' or 'USDC'
+  walletAddress: text("wallet_address").notNull().default(""),
   proofFilePath: text("proof_file_path"), // Path to uploaded PIX proof PDF file
   status: depositStatusEnum("status").notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -213,6 +214,9 @@ export const pendingDeposits = pgTable("pending_deposits", {
   rejectedAt: timestamp("rejected_at"),
   approvedBy: varchar("approved_by").references(() => users.id), // Admin who approved
   rejectionReason: text("rejection_reason"),
+  txHash: text("tx_hash"),
+  mintedTokenAmount: text("minted_token_amount"),
+  mintedTokenAmountRaw: text("minted_token_amount_raw"),
 });
 
 // Pending Withdrawals table (manual approval workflow)
@@ -222,6 +226,7 @@ export const pendingWithdrawals = pgTable("pending_withdrawals", {
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("BRL"), // 'BRL' or 'USDC'
   pixKey: text("pix_key").notNull(), // PIX key provided by user (CPF, email, phone, random)
+  walletAddress: text("wallet_address").notNull().default(""),
   status: withdrawalStatusEnum("status").notNull().default("pending"),
   // EIP-2612 permit signature data (for gasless BRL token burns)
   permitDeadline: text("permit_deadline"), // BigInt stored as string
@@ -233,6 +238,9 @@ export const pendingWithdrawals = pgTable("pending_withdrawals", {
   rejectedAt: timestamp("rejected_at"),
   approvedBy: varchar("approved_by").references(() => users.id), // Admin who approved
   rejectionReason: text("rejection_reason"),
+  txHash: text("tx_hash"),
+  burnedTokenAmount: text("burned_token_amount"),
+  burnedTokenAmountRaw: text("burned_token_amount_raw"),
 });
 
 // Polymarket Markets table (mirrored from Polymarket API)
@@ -515,6 +523,9 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
 
 export const insertPendingDepositSchema = createInsertSchema(pendingDeposits).omit({
   id: true,
+  txHash: true,
+  mintedTokenAmount: true,
+  mintedTokenAmountRaw: true,
   createdAt: true,
   approvedAt: true,
   rejectedAt: true,
@@ -525,11 +536,14 @@ export const insertPendingDepositSchema = createInsertSchema(pendingDeposits).om
   amount: z.union([z.string(), z.number()])
     .transform(val => typeof val === "string" ? val : val.toFixed(2)),
   currency: z.enum(["BRL", "USDC"]).default("BRL"),
-  proofFileUrl: z.string().url().optional(),
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Endereço de carteira inválido"),
 });
 
 export const insertPendingWithdrawalSchema = createInsertSchema(pendingWithdrawals).omit({
   id: true,
+  txHash: true,
+  burnedTokenAmount: true,
+  burnedTokenAmountRaw: true,
   createdAt: true,
   approvedAt: true,
   rejectedAt: true,
@@ -540,6 +554,7 @@ export const insertPendingWithdrawalSchema = createInsertSchema(pendingWithdrawa
   amount: z.union([z.string(), z.number()])
     .transform(val => typeof val === "string" ? val : val.toFixed(2)),
   currency: z.enum(["BRL", "USDC"]).default("BRL"),
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Endereço de carteira inválido"),
   pixKey: z.string().min(1, "Chave PIX obrigatória"),
   permitDeadline: z.string().optional(),
   permitV: z.number().optional(),

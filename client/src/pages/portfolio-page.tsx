@@ -12,23 +12,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, DollarSign, Settings, AlertCircle, Info, Copy, Check } from "lucide-react";
 import type { Position, Market, Transaction } from "@shared/schema";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 import { getYesPriceFromReserves, getNoPriceFromReserves } from "@shared/utils/odds";
+import { useMetaMask } from "@/contexts/MetaMaskContext";
+import { ethers } from "ethers";
 
 export default function PortfolioPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { state: metaMaskState, connect: connectMetaMask } = useMetaMask();
   const [, setLocation] = useLocation();
+  const [walletAddress, setWalletAddress] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
   const [depositProofFile, setDepositProofFile] = useState<File | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [pixKey, setPixKey] = useState("");
   const [cnpjCopied, setCnpjCopied] = useState(false);
+
+  useEffect(() => {
+    if (metaMaskState.account) {
+      setWalletAddress(metaMaskState.account);
+    }
+  }, [metaMaskState.account]);
 
   const { data: positions, isLoading: positionsLoading } = useQuery<
     (Position & { market: Market })[]
@@ -41,11 +51,12 @@ export default function PortfolioPage() {
   });
 
   const depositMutation = useMutation({
-    mutationFn: async (data: { amount: string; currency: "BRL"; proofFile: File }) => {
+    mutationFn: async (data: { amount: string; currency: "BRL"; proofFile: File; walletAddress: string }) => {
       const formData = new FormData();
       formData.append("amount", data.amount);
       formData.append("currency", data.currency);
       formData.append("proofFile", data.proofFile);
+      formData.append("walletAddress", data.walletAddress);
 
       const res = await fetch("/api/deposits/request", {
         method: "POST",
@@ -82,6 +93,7 @@ export default function PortfolioPage() {
     mutationFn: async (data: { 
       amount: string; 
       pixKey: string;
+      walletAddress: string;
     }) => {
       const res = await apiRequest("POST", "/api/wallet/withdraw/request", data);
       return await res.json();
@@ -116,9 +128,19 @@ export default function PortfolioPage() {
       return;
     }
 
+    if (!walletAddress || !ethers.isAddress(walletAddress)) {
+      toast({
+        title: "Carteira inválida",
+        description: "Conecte sua carteira no MetaMask ou informe um endereço válido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     await withdrawMutation.mutateAsync({
       amount: withdrawAmount,
       pixKey: pixKey,
+      walletAddress,
     });
   };
 
@@ -374,6 +396,30 @@ export default function PortfolioPage() {
                       />
                     </div>
                     <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="deposit-wallet" className="text-white">Carteira para receber BRL3</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-primary/50 hover:bg-primary/10"
+                          onClick={() => connectMetaMask()}
+                        >
+                          Conectar MetaMask
+                        </Button>
+                      </div>
+                      <Input
+                        id="deposit-wallet"
+                        type="text"
+                        placeholder="0x..."
+                        value={walletAddress}
+                        onChange={(e) => setWalletAddress(e.target.value)}
+                        className="bg-white/5 backdrop-blur-sm border-white/10 text-white placeholder:text-purple-muted focus-visible:ring-primary focus-visible:border-white/30 font-mono"
+                      />
+                      <p className="text-xs text-purple-muted">
+                        Tokens BRL3 serão mintados para este endereço na aprovação do admin.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="deposit-proof-file" className="text-white">Comprovante PIX (PDF) *</Label>
                       <Input
                         id="deposit-proof-file"
@@ -425,13 +471,22 @@ export default function PortfolioPage() {
                           });
                           return;
                         }
+                        if (!walletAddress || !ethers.isAddress(walletAddress)) {
+                          toast({
+                            title: "Carteira inválida",
+                            description: "Conecte ou insira um endereço de carteira válido para receber BRL3.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
                         depositMutation.mutate({
                           amount: depositAmount,
                           currency: "BRL",
                           proofFile: depositProofFile,
+                          walletAddress,
                         });
                       }}
-                      disabled={!depositAmount || !depositProofFile || depositMutation.isPending}
+                      disabled={!depositAmount || !depositProofFile || !walletAddress || depositMutation.isPending}
                       className="w-full gradient-purple border border-primary shadow-purple"
                       data-testid="button-deposit-pix"
                     >
@@ -471,6 +526,30 @@ export default function PortfolioPage() {
                       />
                     </div>
                     <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="withdraw-wallet" className="text-white">Carteira de onde queimar BRL3</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-primary/50 hover:bg-primary/10"
+                          onClick={() => connectMetaMask()}
+                        >
+                          Conectar MetaMask
+                        </Button>
+                      </div>
+                      <Input
+                        id="withdraw-wallet"
+                        type="text"
+                        placeholder="0x..."
+                        value={walletAddress}
+                        onChange={(e) => setWalletAddress(e.target.value)}
+                        className="bg-white/5 backdrop-blur-sm border-white/10 text-white placeholder:text-purple-muted focus-visible:ring-primary focus-visible:border-white/30 font-mono"
+                      />
+                      <p className="text-xs text-purple-muted">
+                        O admin queimará tokens deste endereço antes de processar o saque.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="pix-key" className="text-white">Chave PIX *</Label>
                       <Input
                         id="pix-key"
@@ -491,6 +570,7 @@ export default function PortfolioPage() {
                       disabled={
                         !withdrawAmount || 
                         !pixKey || 
+                        !walletAddress ||
                         withdrawMutation.isPending
                       }
                       className="w-full gradient-purple border border-primary shadow-purple"

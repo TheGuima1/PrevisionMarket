@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useMetaMask } from "@/contexts/MetaMaskContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import {
 import type { Market, Transaction } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { truncateAddress } from "@/lib/utils";
 import {
   CreditCard,
   Users,
@@ -43,6 +45,7 @@ import {
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 import { BlockchainActions } from "@/components/blockchain-actions";
 import { executeMintWorkflow, executeBurnWorkflow } from "@/lib/metamask-workflows";
+import { ADMIN_WALLET_ADDRESS, toTokenUnits } from "@/blockchain/config";
 
 // Interfaces
 interface PendingDeposit {
@@ -50,9 +53,13 @@ interface PendingDeposit {
   userId: string;
   amount: string;
   currency: string;
+  walletAddress: string;
   proofFilePath: string | null;
   status: "pending" | "approved" | "rejected";
   createdAt: Date;
+  txHash?: string | null;
+  mintedTokenAmount?: string | null;
+  mintedTokenAmountRaw?: string | null;
   user: {
     username: string;
     email: string;
@@ -67,6 +74,24 @@ interface AdminUser {
   balanceUsdc: string;
   isAdmin: boolean;
   createdAt: Date;
+}
+
+interface PendingWithdrawal {
+  id: string;
+  userId: string;
+  amount: string;
+  currency: string;
+  pixKey: string;
+  walletAddress: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: Date;
+  txHash?: string | null;
+  burnedTokenAmount?: string | null;
+  burnedTokenAmountRaw?: string | null;
+  user: {
+    username: string;
+    email: string;
+  };
 }
 
 interface UserDetails {
@@ -94,10 +119,13 @@ type AdminView =
 
 export default function AdminPage() {
   const { toast } = useToast();
+  const { state: metaMaskState, connect: connectMetaMask } = useMetaMask();
   const [currentView, setCurrentView] = useState<AdminView>("depositos");
   const [selectedDeposit, setSelectedDeposit] = useState<PendingDeposit | null>(null);
-  const [selectedWithdrawal, setSelectedWithdrawal] = useState<any | null>(null);
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<PendingWithdrawal | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const adminAddressLabel = truncateAddress(ADMIN_WALLET_ADDRESS, 4);
+  const isAdminWalletConnected = metaMaskState.account?.toLowerCase() === ADMIN_WALLET_ADDRESS.toLowerCase();
   
   // Market creation state
   const [newMarket, setNewMarket] = useState({
@@ -127,7 +155,7 @@ export default function AdminPage() {
     refetchInterval: 30000,
   });
 
-  const { data: pendingWithdrawals } = useQuery<any[]>({
+  const { data: pendingWithdrawals } = useQuery<PendingWithdrawal[]>({
     queryKey: ["/api/withdrawals/pending"],
     refetchInterval: 30000,
   });
@@ -144,15 +172,19 @@ export default function AdminPage() {
 
   const handleApproveDeposit = async (deposit: PendingDeposit) => {
     const amount = parseFloat(deposit.amount);
+    const targetWallet = deposit.walletAddress && truncateAddress(deposit.walletAddress);
     
     // Step 1: Show loading toast
     toast({
       title: "🔄 Iniciando mint...",
-      description: "Aguarde a janela do MetaMask abrir",
+      description: `Aguarde a janela do MetaMask abrir para mintar para ${targetWallet}`,
     });
     
-    // Step 2: Execute mint via MetaMask (mints to admin wallet)
-    const mintResult = await executeMintWorkflow(amount.toString());
+    // Step 2: Execute mint via MetaMask (mints to user wallet)
+    const mintResult = await executeMintWorkflow({
+      amount: amount.toString(),
+      to: deposit.walletAddress,
+    });
     
     if (!mintResult.success) {
       // Mint failed, show error and don't proceed
@@ -164,17 +196,29 @@ export default function AdminPage() {
       return;
     }
 
+    if (!mintResult.txHash) {
+      toast({
+        title: "Transação não encontrada",
+        description: "Não recebemos o hash da transação. Verifique o MetaMask e tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const amountRaw = mintResult.amountRaw ?? toTokenUnits(amount.toString()).toString();
+
     // Step 3: Confirm mint with backend (update user balance + save txHash)
     try {
       const res = await apiRequest("POST", `/api/deposits/${deposit.id}/confirm-mint`, {
         txHash: mintResult.txHash,
+        amountRaw,
       });
       
       const data = await res.json();
       
       toast({
         title: "Depósito aprovado! ✅",
-        description: `${amount} BRL3 mintados e creditados ao usuário. TX: ${mintResult.txHash?.slice(0, 10)}...`,
+        description: `${amount} BRL3 mintados para ${targetWallet}. TX: ${mintResult.txHash?.slice(0, 10)}...`,
       });
       
       setSelectedDeposit(null);
@@ -217,17 +261,21 @@ export default function AdminPage() {
     },
   });
 
-  const handleApproveWithdrawal = async (withdrawal: any) => {
+  const handleApproveWithdrawal = async (withdrawal: PendingWithdrawal) => {
     const amount = parseFloat(withdrawal.amount);
+    const targetWallet = truncateAddress(withdrawal.walletAddress);
     
     // Step 1: Show loading toast
     toast({
       title: "🔄 Iniciando burn...",
-      description: "Aguarde a janela do MetaMask abrir",
+      description: `Aguarde a janela do MetaMask abrir para queimar de ${targetWallet}`,
     });
     
-    // Step 2: Execute burn via MetaMask (burns from admin wallet)
-    const burnResult = await executeBurnWorkflow(amount.toString());
+    // Step 2: Execute burn via MetaMask (burns from user's wallet)
+    const burnResult = await executeBurnWorkflow({
+      amount: amount.toString(),
+      from: withdrawal.walletAddress,
+    });
     
     if (!burnResult.success) {
       // Burn failed, show error and don't proceed
@@ -239,17 +287,29 @@ export default function AdminPage() {
       return;
     }
 
+    if (!burnResult.txHash) {
+      toast({
+        title: "Transação não encontrada",
+        description: "Não recebemos o hash da transação de burn. Verifique o MetaMask e tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const amountRaw = burnResult.amountRaw ?? toTokenUnits(amount.toString()).toString();
+
     // Step 3: Confirm burn with backend (deduct user balance + save txHash)
     try {
       const res = await apiRequest("POST", `/api/withdrawals/${withdrawal.id}/confirm-burn`, {
         txHash: burnResult.txHash,
+        amountRaw,
       });
       
       const data = await res.json();
       
       toast({
         title: "Saque aprovado! ✅",
-        description: `${amount} BRL3 queimados e deduzidos do usuário. TX: ${burnResult.txHash?.slice(0, 10)}...`,
+        description: `${amount} BRL3 queimados da carteira ${targetWallet}. TX: ${burnResult.txHash?.slice(0, 10)}...`,
       });
       
       setSelectedWithdrawal(null);
@@ -266,7 +326,7 @@ export default function AdminPage() {
   };
 
   const approveWithdrawalMutation = useMutation({
-    mutationFn: async (withdrawal: any) => handleApproveWithdrawal(withdrawal),
+    mutationFn: async (withdrawal: PendingWithdrawal) => handleApproveWithdrawal(withdrawal),
   });
 
   const rejectWithdrawalMutation = useMutation({
@@ -517,8 +577,8 @@ export default function AdminPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-[#2A2640] border-b border-white/5 px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="bg-[#2A2640] border-b border-white/5 px-8 py-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <Button variant="ghost" className="text-white/80 hover:text-white gap-2" size="sm" data-testid="button-admin-balance">
               Saldo da Carteira Admin:
               <span className="font-mono font-bold text-white">
@@ -526,12 +586,32 @@ export default function AdminPage() {
               </span>
               <ChevronRight className="w-4 h-4" />
             </Button>
+            <div className="flex items-center gap-2 text-sm text-white/70">
+              <span className="text-white/60">Admin:</span>
+              <span className="font-mono text-white">{adminAddressLabel}</span>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => connectMetaMask()}
+              className="gap-2"
+              data-testid="button-connect-wallet"
+            >
+              <Wallet className="w-4 h-4" />
+              {metaMaskState.account ? truncateAddress(metaMaskState.account) : "Conectar Wallet"}
+            </Button>
+            {metaMaskState.status === "wrong-network" && (
+              <Badge variant="destructive" className="bg-red-500/20 text-red-100 border-red-500/30">
+                Use a Polygon Mainnet
+              </Badge>
+            )}
+            {metaMaskState.account && !isAdminWalletConnected && (
+              <Badge variant="secondary" className="bg-amber-500/20 text-amber-100 border-amber-500/30">
+                Troque para {adminAddressLabel}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-white/60">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              Status, Conectado 3 JBitX
-            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -566,6 +646,7 @@ export default function AdminPage() {
                       <tr className="text-white/60 text-sm">
                         <th className="px-6 py-4 text-left font-medium">Usuário</th>
                         <th className="px-6 py-4 text-left font-medium">Valor PIX</th>
+                        <th className="px-6 py-4 text-left font-medium">Carteira</th>
                         <th className="px-6 py-4 text-left font-medium">Comprovante</th>
                         <th className="px-6 py-4 text-left font-medium">Data/Hora</th>
                         <th className="px-6 py-4 text-left font-medium">Status</th>
@@ -589,6 +670,9 @@ export default function AdminPage() {
                           <td className="px-6 py-4 text-white font-mono">
                             {formatBRL3(deposit.amount)}
                           </td>
+                          <td className="px-6 py-4 text-white/70 font-mono text-sm">
+                            {truncateAddress(deposit.walletAddress)}
+                          </td>
                           <td className="px-6 py-4">
                             <span className="text-primary underline text-sm">ver img</span>
                           </td>
@@ -604,7 +688,7 @@ export default function AdminPage() {
                       ))}
                       {(!pendingDeposits || pendingDeposits.filter(d => d.status === "pending").length === 0) && (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-white/40">
+                          <td colSpan={6} className="px-6 py-12 text-center text-white/40">
                             Nenhum depósito pendente no momento
                           </td>
                         </tr>
@@ -636,6 +720,13 @@ export default function AdminPage() {
                       </div>
 
                       <div className="flex items-center justify-between">
+                        <span className="text-white/60">Carteira destino</span>
+                        <span className="text-white font-mono text-sm">
+                          {truncateAddress(selectedDeposit.walletAddress)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
                         <span className="text-white/60">Data</span>
                         <span className="text-white">
                           {formatDateTimeBR(new Date(selectedDeposit.createdAt))}
@@ -649,7 +740,7 @@ export default function AdminPage() {
                         data-testid="button-download-proof"
                       >
                         <a
-                          href={`/api/deposits/${selectedDeposit.id}/proof`}
+                          href={`/api/deposits/proof/${selectedDeposit.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -672,6 +763,11 @@ export default function AdminPage() {
                       <div>
                         <p className="text-gray-900 font-mono text-2xl font-bold">
                           {formatBRL3(selectedDeposit.amount)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 text-sm font-mono">
+                          {truncateAddress(selectedDeposit.walletAddress)}
                         </p>
                       </div>
                       <div>
@@ -735,6 +831,7 @@ export default function AdminPage() {
                       <tr className="text-white/60 text-sm">
                         <th className="px-6 py-4 text-left font-medium">Usuário</th>
                         <th className="px-6 py-4 text-left font-medium">Valor</th>
+                        <th className="px-6 py-4 text-left font-medium">Carteira</th>
                         <th className="px-6 py-4 text-left font-medium">Chave PIX</th>
                         <th className="px-6 py-4 text-left font-medium">Data/Hora</th>
                         <th className="px-6 py-4 text-left font-medium">Status</th>
@@ -758,6 +855,9 @@ export default function AdminPage() {
                           <td className="px-6 py-4 text-white font-mono">
                             {formatBRL3(withdrawal.amount)}
                           </td>
+                          <td className="px-6 py-4 text-white/70 font-mono text-sm">
+                            {truncateAddress(withdrawal.walletAddress)}
+                          </td>
                           <td className="px-6 py-4 text-white/60 text-sm font-mono">
                             {withdrawal.pixKey}
                           </td>
@@ -773,7 +873,7 @@ export default function AdminPage() {
                       ))}
                       {!pendingWithdrawals || pendingWithdrawals.filter(w => w.status === "pending").length === 0 && (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-white/40">
+                          <td colSpan={6} className="px-6 py-12 text-center text-white/40">
                             Nenhum saque pendente
                           </td>
                         </tr>
@@ -801,6 +901,13 @@ export default function AdminPage() {
                         <span className="text-white/60">Valor</span>
                         <span className="text-white font-mono text-xl font-bold">
                           {formatBRL3(selectedWithdrawal.amount)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/60">Carteira origem</span>
+                        <span className="text-white font-mono text-sm">
+                          {truncateAddress(selectedWithdrawal.walletAddress)}
                         </span>
                       </div>
 
@@ -834,6 +941,11 @@ export default function AdminPage() {
                       <div>
                         <p className="text-gray-900 font-mono text-2xl font-bold">
                           {formatBRL3(selectedWithdrawal.amount)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 text-sm font-mono">
+                          {truncateAddress(selectedWithdrawal.walletAddress)}
                         </p>
                       </div>
                       <div>

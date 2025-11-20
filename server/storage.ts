@@ -107,14 +107,22 @@ export interface IStorage {
   createPendingDeposit(userId: string, deposit: Omit<InsertPendingDeposit, "userId">): Promise<PendingDeposit>;
   getPendingDeposits(status?: "pending" | "approved" | "rejected"): Promise<(PendingDeposit & { user: { username: string; email: string } })[]>;
   getPendingDeposit(id: string): Promise<PendingDeposit | undefined>;
-  approvePendingDeposit(depositId: string, adminUserId: string): Promise<PendingDeposit>;
+  approvePendingDeposit(
+    depositId: string,
+    adminUserId: string,
+    opts?: { txHash?: string; mintedTokenAmount?: string; mintedTokenAmountRaw?: string }
+  ): Promise<PendingDeposit>;
   rejectPendingDeposit(depositId: string, adminUserId: string, reason?: string): Promise<PendingDeposit>;
 
   // Pending Withdrawal methods (manual approval workflow)
   createPendingWithdrawal(userId: string, withdrawal: Omit<InsertPendingWithdrawal, "userId">): Promise<PendingWithdrawal>;
   getPendingWithdrawals(status?: "pending" | "approved" | "rejected"): Promise<(PendingWithdrawal & { user: { username: string; email: string } })[]>;
   getPendingWithdrawal(id: string): Promise<PendingWithdrawal | undefined>;
-  approvePendingWithdrawal(withdrawalId: string, adminUserId: string): Promise<PendingWithdrawal>;
+  approvePendingWithdrawal(
+    withdrawalId: string,
+    adminUserId: string,
+    opts?: { txHash?: string; burnedTokenAmount?: string; burnedTokenAmountRaw?: string }
+  ): Promise<PendingWithdrawal>;
   rejectPendingWithdrawal(withdrawalId: string, adminUserId: string, reason?: string): Promise<PendingWithdrawal>;
 
   // Recent trades method
@@ -644,13 +652,20 @@ export class DatabaseStorage implements IStorage {
     return deposit || undefined;
   }
 
-  async approvePendingDeposit(depositId: string, adminUserId: string): Promise<PendingDeposit> {
+  async approvePendingDeposit(
+    depositId: string,
+    adminUserId: string,
+    opts?: { txHash?: string; mintedTokenAmount?: string; mintedTokenAmountRaw?: string }
+  ): Promise<PendingDeposit> {
     const [approved] = await db
       .update(pendingDeposits)
       .set({
         status: "approved",
         approvedAt: new Date(),
         approvedBy: adminUserId,
+        txHash: opts?.txHash,
+        mintedTokenAmount: opts?.mintedTokenAmount,
+        mintedTokenAmountRaw: opts?.mintedTokenAmountRaw,
       })
       .where(eq(pendingDeposits.id, depositId))
       .returning();
@@ -714,13 +729,20 @@ export class DatabaseStorage implements IStorage {
     return withdrawal || undefined;
   }
 
-  async approvePendingWithdrawal(withdrawalId: string, adminUserId: string): Promise<PendingWithdrawal> {
+  async approvePendingWithdrawal(
+    withdrawalId: string,
+    adminUserId: string,
+    opts?: { txHash?: string; burnedTokenAmount?: string; burnedTokenAmountRaw?: string }
+  ): Promise<PendingWithdrawal> {
     const [approved] = await db
       .update(pendingWithdrawals)
       .set({
         status: "approved",
         approvedAt: new Date(),
         approvedBy: adminUserId,
+        txHash: opts?.txHash,
+        burnedTokenAmount: opts?.burnedTokenAmount,
+        burnedTokenAmountRaw: opts?.burnedTokenAmountRaw,
       })
       .where(eq(pendingWithdrawals.id, withdrawalId))
       .returning();
