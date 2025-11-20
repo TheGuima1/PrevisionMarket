@@ -83,10 +83,22 @@ export function useMetaMaskMint() {
     try {
       setIsMinting(true);
 
-      // Request account access
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
+      // Request account access and verify accounts exist
+      let accounts;
+      try {
+        accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+        
+        if (!accounts || accounts.length === 0) {
+          throw new Error("Nenhuma conta MetaMask conectada. Desbloqueie o MetaMask e tente novamente.");
+        }
+      } catch (connectionError: any) {
+        if (connectionError.code === 4001) {
+          throw new Error("Conexão com MetaMask recusada. Aprove a conexão no popup do MetaMask.");
+        }
+        throw connectionError;
+      }
 
       // Ensure we're on Polygon
       const onPolygon = await ensurePolygonNetwork();
@@ -127,16 +139,26 @@ export function useMetaMaskMint() {
       console.error("Erro ao mintar:", error);
       
       let errorMessage = "Não foi possível realizar o mint";
+      let errorTitle = "Erro no mint";
+      
       if (error.code === 4001) {
-        errorMessage = "Transação cancelada pelo usuário no MetaMask";
+        errorMessage = "Você cancelou a transação no MetaMask";
+        errorTitle = "Transação cancelada";
+      } else if (error.message?.includes("must has at least one account") || error.message?.includes("Nenhuma conta MetaMask")) {
+        errorMessage = "MetaMask não está conectado ou desbloqueado. Abra a extensão MetaMask, desbloqueie sua carteira e tente novamente.";
+        errorTitle = "MetaMask não conectado";
+      } else if (error.message?.includes("Conexão com MetaMask recusada")) {
+        errorMessage = error.message;
+        errorTitle = "Conexão recusada";
       } else if (error.message?.includes("AccessControl")) {
         errorMessage = "Você não tem permissão para mintar tokens (precisa de MINTER_ROLE)";
+        errorTitle = "Sem permissão";
       } else if (error.message) {
         errorMessage = error.message;
       }
 
       toast({
-        title: "Erro no mint",
+        title: errorTitle,
         description: errorMessage,
         variant: "destructive",
       });
@@ -169,10 +191,22 @@ export function useMetaMaskMint() {
     try {
       setIsBurning(true);
 
-      // Request account access
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
+      // Request account access and verify accounts exist
+      let accounts;
+      try {
+        accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+        
+        if (!accounts || accounts.length === 0) {
+          throw new Error("Nenhuma conta MetaMask conectada. Desbloqueie o MetaMask e tente novamente.");
+        }
+      } catch (connectionError: any) {
+        if (connectionError.code === 4001) {
+          throw new Error("Conexão com MetaMask recusada. Aprove a conexão no popup do MetaMask.");
+        }
+        throw connectionError;
+      }
 
       // Ensure we're on Polygon
       const onPolygon = await ensurePolygonNetwork();
@@ -211,16 +245,26 @@ export function useMetaMaskMint() {
       console.error("Erro ao queimar:", error);
       
       let errorMessage = "Não foi possível realizar o burn";
+      let errorTitle = "Erro no burn";
+      
       if (error.code === 4001) {
-        errorMessage = "Transação cancelada pelo usuário no MetaMask";
+        errorMessage = "Você cancelou a transação no MetaMask";
+        errorTitle = "Transação cancelada";
+      } else if (error.message?.includes("must has at least one account") || error.message?.includes("Nenhuma conta MetaMask")) {
+        errorMessage = "MetaMask não está conectado ou desbloqueado. Abra a extensão MetaMask, desbloqueie sua carteira e tente novamente.";
+        errorTitle = "MetaMask não conectado";
+      } else if (error.message?.includes("Conexão com MetaMask recusada")) {
+        errorMessage = error.message;
+        errorTitle = "Conexão recusada";
       } else if (error.message?.includes("ERC20: burn amount exceeds balance")) {
         errorMessage = "Saldo insuficiente de BRL3 tokens para queimar";
+        errorTitle = "Saldo insuficiente";
       } else if (error.message) {
         errorMessage = error.message;
       }
 
       toast({
-        title: "Erro no burn",
+        title: errorTitle,
         description: errorMessage,
         variant: "destructive",
       });
