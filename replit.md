@@ -38,6 +38,13 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
   6. Backend verifies withdrawal is pending, validates user balance, deducts balance (-amount), creates transaction record with txHash, marks withdrawal as approved
   7. Admin processes PIX transfer manually via bank, user sees deducted balance in app
 - **Blockchain Token Management**: Admin panel includes dedicated "Blockchain (MetaMask)" tab for optional manual mint/burn operations outside the deposit/withdrawal flow. Features automatic Polygon network detection/switching, MetaMask wallet connection, real-time BRL3 balance display, mint/burn interfaces with transaction hash links to Polygonscan, and comprehensive error handling. Event listeners detect account/chain changes for proper state management.
+- **MetaMask Architecture (Nov 2025 Refactor)**: Complete rebuild of MetaMask integration with robust state management:
+  - **MetaMaskContext**: Global state provider with reducer pattern managing 7 states (not-installed, iframe-blocked, locked, needs-approval, ready, wrong-network, connecting)
+  - **Iframe Detection**: Automatically detects Replit iframe context and shows "Open in new tab" alert with one-click button
+  - **Event Listeners**: Monitors accountsChanged, chainChanged, disconnect with safe cleanup to prevent crashes
+  - **Staged Workflows**: Separated mint/burn into explicit stages (ensureConnected → ensurePolygonNetwork → execute → confirm) with specific error messages for each failure point
+  - **Status-Specific UI**: Different UI states for each MetaMask condition (installation prompts, network switch buttons, connection alerts)
+  - **Error Resilience**: Guards prevent async calls during cleanup, safe disconnect preserves iframe/not-installed states
 - **Dynamic Market Management**: An admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. A mirror worker automatically syncs odds from Polymarket.
 - **Polymarket Adapter**: Fetches market data from Polymarket's Gamma API with a 5-minute cache, extracting YES probabilities for pricing.
 - **Prediction Market Core**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 2% spread. Orders are instantly filled with real-time share estimates.

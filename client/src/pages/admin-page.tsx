@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 import { BlockchainActions } from "@/components/blockchain-actions";
+import { executeMintWorkflow, executeBurnWorkflow } from "@/lib/metamask-workflows";
 
 // Interfaces
 interface PendingDeposit {
@@ -141,13 +142,52 @@ export default function AdminPage() {
     enabled: !!selectedUserId,
   });
 
-  // TODO: Implement MetaMask mint workflow
   const handleApproveDeposit = async (deposit: PendingDeposit) => {
+    const amount = parseFloat(deposit.amount);
+    
+    // Step 1: Show loading toast
     toast({
-      title: "MetaMask em reconstrução",
-      description: "Funcionalidade será reimplementada",
-      variant: "destructive",
+      title: "🔄 Iniciando mint...",
+      description: "Aguarde a janela do MetaMask abrir",
     });
+    
+    // Step 2: Execute mint via MetaMask (mints to admin wallet)
+    const mintResult = await executeMintWorkflow(amount.toString());
+    
+    if (!mintResult.success) {
+      // Mint failed, show error and don't proceed
+      toast({
+        title: "Erro no mint",
+        description: mintResult.error || "Não foi possível mintar tokens",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Step 3: Confirm mint with backend (update user balance + save txHash)
+    try {
+      const res = await apiRequest("POST", `/api/deposits/${deposit.id}/confirm-mint`, {
+        txHash: mintResult.txHash,
+      });
+      
+      const data = await res.json();
+      
+      toast({
+        title: "Depósito aprovado! ✅",
+        description: `${amount} BRL3 mintados e creditados ao usuário. TX: ${mintResult.txHash?.slice(0, 10)}...`,
+      });
+      
+      setSelectedDeposit(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/deposits/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    } catch (error: any) {
+      toast({
+        title: "⚠️ Atenção: Erro no banco de dados",
+        description: "Tokens foram mintados na blockchain, mas houve erro ao atualizar o saldo no banco. Contate o suporte técnico.",
+        variant: "destructive",
+      });
+      console.error("Failed to confirm mint in database:", error);
+    }
   };
 
   // Mutations (kept for rejections)
@@ -177,13 +217,52 @@ export default function AdminPage() {
     },
   });
 
-  // TODO: Implement MetaMask burn workflow
   const handleApproveWithdrawal = async (withdrawal: any) => {
+    const amount = parseFloat(withdrawal.amount);
+    
+    // Step 1: Show loading toast
     toast({
-      title: "MetaMask em reconstrução",
-      description: "Funcionalidade será reimplementada",
-      variant: "destructive",
+      title: "🔄 Iniciando burn...",
+      description: "Aguarde a janela do MetaMask abrir",
     });
+    
+    // Step 2: Execute burn via MetaMask (burns from admin wallet)
+    const burnResult = await executeBurnWorkflow(amount.toString());
+    
+    if (!burnResult.success) {
+      // Burn failed, show error and don't proceed
+      toast({
+        title: "Erro no burn",
+        description: burnResult.error || "Não foi possível queimar tokens",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Step 3: Confirm burn with backend (deduct user balance + save txHash)
+    try {
+      const res = await apiRequest("POST", `/api/withdrawals/${withdrawal.id}/confirm-burn`, {
+        txHash: burnResult.txHash,
+      });
+      
+      const data = await res.json();
+      
+      toast({
+        title: "Saque aprovado! ✅",
+        description: `${amount} BRL3 queimados e deduzidos do usuário. TX: ${burnResult.txHash?.slice(0, 10)}...`,
+      });
+      
+      setSelectedWithdrawal(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/withdrawals/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    } catch (error: any) {
+      toast({
+        title: "⚠️ Atenção: Erro no banco de dados",
+        description: "Tokens foram queimados na blockchain, mas houve erro ao atualizar o saldo no banco. Contate o suporte técnico.",
+        variant: "destructive",
+      });
+      console.error("Failed to confirm burn in database:", error);
+    }
   };
 
   const approveWithdrawalMutation = useMutation({

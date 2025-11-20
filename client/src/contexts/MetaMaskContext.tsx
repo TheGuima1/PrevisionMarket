@@ -68,9 +68,13 @@ function metaMaskReducer(
         error: null,
       };
     case "DISCONNECT":
+      // Return to needs-approval if MetaMask is still available, otherwise check why it's unavailable
+      const nextStatus = state.status === "iframe-blocked" ? "iframe-blocked" : 
+                         state.status === "not-installed" ? "not-installed" :
+                         "needs-approval";
       return {
         ...state,
-        status: "needs-approval",
+        status: nextStatus,
         account: null,
         chainId: null,
         balance: null,
@@ -167,7 +171,7 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
 
   // Setup event listeners
   useEffect(() => {
-    if (!window.ethereum || state.status === "iframe-blocked") return;
+    if (!window.ethereum || state.status === "iframe-blocked" || state.status === "not-installed") return;
 
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) {
@@ -178,17 +182,22 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
         });
       } else {
         dispatch({ type: "SET_ACCOUNT", account: accounts[0] });
-        // Refresh chain ID in case it changed
-        window.ethereum
-          .request({ method: "eth_chainId" })
-          .then((chainId: string) => {
-            dispatch({ type: "SET_CHAIN_ID", chainId });
-            if (chainId !== POLYGON_CHAIN_ID) {
-              dispatch({ type: "SET_STATUS", status: "wrong-network" });
-            } else if (state.status === "wrong-network") {
-              dispatch({ type: "SET_STATUS", status: "ready" });
-            }
-          });
+        // Safely refresh chain ID in case it changed
+        if (window.ethereum) {
+          window.ethereum
+            .request({ method: "eth_chainId" })
+            .then((chainId: string) => {
+              dispatch({ type: "SET_CHAIN_ID", chainId });
+              if (chainId !== POLYGON_CHAIN_ID) {
+                dispatch({ type: "SET_STATUS", status: "wrong-network" });
+              } else if (state.status === "wrong-network") {
+                dispatch({ type: "SET_STATUS", status: "ready" });
+              }
+            })
+            .catch(() => {
+              // Silently fail if MetaMask request fails during cleanup
+            });
+        }
       }
     };
 
@@ -202,11 +211,14 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
           variant: "destructive",
         });
       } else {
-        dispatch({ type: "SET_STATUS", status: "ready" });
-        toast({
-          title: "Conectado à Polygon",
-          description: "Rede correta!",
-        });
+        // If we're connected and on Polygon, status should be ready
+        if (state.account) {
+          dispatch({ type: "SET_STATUS", status: "ready" });
+          toast({
+            title: "Conectado à Polygon",
+            description: "Rede correta!",
+          });
+        }
       }
     };
 
@@ -223,13 +235,19 @@ export function MetaMaskProvider({ children }: { children: ReactNode }) {
     window.ethereum.on("disconnect", handleDisconnect);
 
     return () => {
-      if (window.ethereum.removeListener) {
-        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
-        window.ethereum.removeListener("chainChanged", handleChainChanged);
-        window.ethereum.removeListener("disconnect", handleDisconnect);
+      // Safe cleanup without async calls
+      if (window.ethereum && window.ethereum.removeListener) {
+        try {
+          window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+          window.ethereum.removeListener("chainChanged", handleChainChanged);
+          window.ethereum.removeListener("disconnect", handleDisconnect);
+        } catch (error) {
+          // Silently fail if removeListener fails during unmount
+          console.error("Error removing MetaMask listeners:", error);
+        }
       }
     };
-  }, [state.status, toast]);
+  }, [state.status, state.account, toast]);
 
   async function connect() {
     if (state.status === "iframe-blocked") {

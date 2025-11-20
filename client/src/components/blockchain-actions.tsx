@@ -3,22 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Wallet, ChevronRight, ExternalLink } from "lucide-react";
+import { useMetaMask } from "@/contexts/MetaMaskContext";
+import { Loader2, Wallet, ChevronRight, ExternalLink, AlertCircle, Chrome } from "lucide-react";
 import { BRL3_ABI } from "@/lib/brl3-abi";
-
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
 
 export function BlockchainActions() {
   const { toast } = useToast();
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [connected, setConnected] = useState(false);
-  const [account, setAccount] = useState<string>("");
-  const [balance, setBalance] = useState<string>("0");
+  const { state, connect, switchToPolygon, refreshBalance } = useMetaMask();
   const [mintAmount, setMintAmount] = useState("");
   const [burnAmount, setBurnAmount] = useState("");
   const [isMinting, setIsMinting] = useState(false);
@@ -26,159 +19,14 @@ export function BlockchainActions() {
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
   const CONTRACT_ADDRESS = import.meta.env.VITE_TOKEN_CONTRACT_ADDRESS;
-  const TOKEN_DECIMALS = parseInt(import.meta.env.VITE_TOKEN_DECIMALS || "2");
-  const POLYGON_CHAIN_ID = "0x89"; // 137 in hex
+  const TOKEN_DECIMALS = parseInt(import.meta.env.VITE_TOKEN_DECIMALS || "18");
 
-  // Setup MetaMask event listeners with cleanup
+  // Refresh balance when account changes or becomes ready
   useEffect(() => {
-    if (!window.ethereum || !connected) return;
-
-    const handleAccountsChanged = (accounts: string[]) => {
-      if (accounts.length === 0) {
-        // User disconnected
-        setConnected(false);
-        setAccount("");
-        setBalance("0");
-      } else {
-        setAccount(accounts[0]);
-        loadBalance(accounts[0]);
-      }
-    };
-
-    const handleChainChanged = () => {
-      // Reload page on chain change to reset state
-      window.location.reload();
-    };
-
-    window.ethereum.on("accountsChanged", handleAccountsChanged);
-    window.ethereum.on("chainChanged", handleChainChanged);
-
-    // Cleanup listeners on unmount or when connected changes
-    return () => {
-      if (window.ethereum.removeListener) {
-        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
-        window.ethereum.removeListener("chainChanged", handleChainChanged);
-      }
-    };
-  }, [connected]);
-
-  // Helper to ensure we're on Polygon network
-  async function ensurePolygonNetwork(): Promise<boolean> {
-    if (!window.ethereum) return false;
-
-    try {
-      const chainId = await window.ethereum.request({ method: "eth_chainId" });
-      
-      if (chainId !== POLYGON_CHAIN_ID) {
-        // Try to switch to Polygon
-        try {
-          await window.ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: POLYGON_CHAIN_ID }],
-          });
-          return true;
-        } catch (switchError: any) {
-          // Chain not added, try to add it
-          if (switchError.code === 4902) {
-            await window.ethereum.request({
-              method: "wallet_addEthereumChain",
-              params: [
-                {
-                  chainId: POLYGON_CHAIN_ID,
-                  chainName: "Polygon Mainnet",
-                  nativeCurrency: {
-                    name: "MATIC",
-                    symbol: "MATIC",
-                    decimals: 18,
-                  },
-                  rpcUrls: ["https://polygon-rpc.com"],
-                  blockExplorerUrls: ["https://polygonscan.com"],
-                },
-              ],
-            });
-            return true;
-          } else {
-            throw switchError;
-          }
-        }
-      }
-      return true;
-    } catch (error) {
-      console.error("Failed to ensure Polygon network:", error);
-      return false;
+    if (state.status === "ready" && state.account) {
+      refreshBalance();
     }
-  }
-
-  async function connectMetaMask() {
-    if (!window.ethereum) {
-      toast({
-        title: "MetaMask não encontrado",
-        description: "Por favor, instale a extensão MetaMask no seu navegador.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate env vars (optional for manual MetaMask operations)
-    if (!CONTRACT_ADDRESS) {
-      toast({
-        title: "MetaMask não configurado",
-        description: "Endereço do contrato BRL3 não configurado. Verifique as variáveis de ambiente.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setIsConnecting(true);
-
-      // Request account access
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-
-      // Ensure we're on Polygon
-      const onPolygon = await ensurePolygonNetwork();
-      if (!onPolygon) {
-        throw new Error("Não foi possível conectar à rede Polygon");
-      }
-
-      setAccount(accounts[0]);
-      setConnected(true);
-
-      // Load balance
-      await loadBalance(accounts[0]);
-
-      toast({
-        title: "MetaMask conectado",
-        description: `Carteira ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)} conectada à Polygon`,
-      });
-    } catch (error: any) {
-      console.error("Erro ao conectar MetaMask:", error);
-      toast({
-        title: "Erro ao conectar",
-        description: error.message || "Não foi possível conectar com MetaMask",
-        variant: "destructive",
-      });
-    } finally {
-      setIsConnecting(false);
-    }
-  }
-
-  async function loadBalance(address: string) {
-    if (!window.ethereum) return;
-
-    try {
-      const { ethers } = await import("ethers");
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, BRL3_ABI, provider);
-      const balanceWei = await contract.balanceOf(address);
-      const balanceFormatted = ethers.formatUnits(balanceWei, TOKEN_DECIMALS);
-      setBalance(balanceFormatted);
-    } catch (error) {
-      console.error("Erro ao carregar saldo:", error);
-    }
-  }
+  }, [state.status, state.account]);
 
   async function handleMint() {
     if (!mintAmount || parseFloat(mintAmount) <= 0) {
@@ -190,7 +38,7 @@ export function BlockchainActions() {
       return;
     }
 
-    if (!connected) {
+    if (state.status !== "ready" || !state.account) {
       toast({
         title: "MetaMask não conectado",
         description: "Conecte sua carteira primeiro",
@@ -202,23 +50,10 @@ export function BlockchainActions() {
     try {
       setIsMinting(true);
 
-      // Ensure we're on Polygon network before transaction
-      const onPolygon = await ensurePolygonNetwork();
-      if (!onPolygon) {
-        throw new Error("Por favor, conecte à rede Polygon para realizar esta operação");
-      }
-
       const { ethers } = await import("ethers");
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(window.ethereum!);
       const signer = await provider.getSigner();
-      
-      // Get current account from signer (in case user switched accounts)
-      const currentAccount = await signer.getAddress();
-      setAccount(currentAccount); // Update UI with current account
-
       const contract = new ethers.Contract(CONTRACT_ADDRESS, BRL3_ABI, signer);
-
-      // Convert amount to token units
       const amount = ethers.parseUnits(mintAmount, TOKEN_DECIMALS);
 
       toast({
@@ -226,8 +61,7 @@ export function BlockchainActions() {
         description: "Confirme a transação no MetaMask...",
       });
 
-      // Call mint function to current account
-      const tx = await contract.mint(currentAccount, amount);
+      const tx = await contract.mint(state.account, amount);
       setLastTxHash(tx.hash);
 
       toast({
@@ -235,16 +69,14 @@ export function BlockchainActions() {
         description: `Hash: ${tx.hash.slice(0, 10)}...`,
       });
 
-      // Wait for confirmation
       const receipt = await tx.wait(1);
 
       toast({
-        title: "Mint realizado com sucesso",
+        title: "Mint realizado com sucesso! ✅",
         description: `${mintAmount} BRL3 mintados no bloco ${receipt.blockNumber}`,
       });
 
-      // Reload balance
-      await loadBalance(currentAccount);
+      await refreshBalance();
       setMintAmount("");
     } catch (error: any) {
       console.error("Erro ao mintar:", error);
@@ -278,7 +110,7 @@ export function BlockchainActions() {
       return;
     }
 
-    if (!connected) {
+    if (state.status !== "ready" || !state.account) {
       toast({
         title: "MetaMask não conectado",
         description: "Conecte sua carteira primeiro",
@@ -290,23 +122,10 @@ export function BlockchainActions() {
     try {
       setIsBurning(true);
 
-      // Ensure we're on Polygon network before transaction
-      const onPolygon = await ensurePolygonNetwork();
-      if (!onPolygon) {
-        throw new Error("Por favor, conecte à rede Polygon para realizar esta operação");
-      }
-
       const { ethers } = await import("ethers");
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(window.ethereum!);
       const signer = await provider.getSigner();
-      
-      // Get current account from signer (in case user switched accounts)
-      const currentAccount = await signer.getAddress();
-      setAccount(currentAccount); // Update UI with current account
-
       const contract = new ethers.Contract(CONTRACT_ADDRESS, BRL3_ABI, signer);
-
-      // Convert amount to token units
       const amount = ethers.parseUnits(burnAmount, TOKEN_DECIMALS);
 
       toast({
@@ -314,7 +133,6 @@ export function BlockchainActions() {
         description: "Confirme a transação no MetaMask...",
       });
 
-      // Call burn function
       const tx = await contract.burn(amount);
       setLastTxHash(tx.hash);
 
@@ -323,16 +141,14 @@ export function BlockchainActions() {
         description: `Hash: ${tx.hash.slice(0, 10)}...`,
       });
 
-      // Wait for confirmation
       const receipt = await tx.wait(1);
 
       toast({
-        title: "Burn realizado com sucesso",
+        title: "Burn realizado com sucesso! ✅",
         description: `${burnAmount} BRL3 queimados no bloco ${receipt.blockNumber}`,
       });
 
-      // Reload balance
-      await loadBalance(currentAccount);
+      await refreshBalance();
       setBurnAmount("");
     } catch (error: any) {
       console.error("Erro ao queimar:", error);
@@ -356,6 +172,125 @@ export function BlockchainActions() {
     }
   }
 
+  // Helper to render status-specific UI
+  function renderConnectionStatus() {
+    switch (state.status) {
+      case "iframe-blocked":
+        return (
+          <Alert className="border-yellow-500/20 bg-yellow-500/10">
+            <AlertCircle className="h-5 w-5 text-yellow-500" />
+            <AlertDescription className="text-white/90">
+              <div className="space-y-2">
+                <p className="font-semibold">MetaMask não funciona em iframe</p>
+                <p className="text-sm text-white/70">
+                  Para usar o MetaMask, você precisa abrir esta página em uma nova aba do navegador.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/20"
+                  onClick={() => window.open(window.location.href, '_blank')}
+                >
+                  <Chrome className="w-4 h-4 mr-2" />
+                  Abrir em Nova Aba
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        );
+
+      case "not-installed":
+        return (
+          <Alert className="border-red-500/20 bg-red-500/10">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            <AlertDescription className="text-white/90">
+              <div className="space-y-2">
+                <p className="font-semibold">MetaMask não está instalado</p>
+                <p className="text-sm text-white/70">
+                  Instale a extensão MetaMask no seu navegador e recarregue esta página.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 border-red-500/40 text-red-400 hover:bg-red-500/20"
+                  onClick={() => window.open('https://metamask.io/download/', '_blank')}
+                >
+                  <Chrome className="w-4 h-4 mr-2" />
+                  Instalar MetaMask
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        );
+
+      case "locked":
+        return (
+          <Alert className="border-yellow-500/20 bg-yellow-500/10">
+            <AlertCircle className="h-5 w-5 text-yellow-500" />
+            <AlertDescription className="text-white/90">
+              <div className="space-y-2">
+                <p className="font-semibold">MetaMask está bloqueado</p>
+                <p className="text-sm text-white/70">
+                  Abra a extensão MetaMask e desbloqueie sua carteira.
+                </p>
+              </div>
+            </AlertDescription>
+          </Alert>
+        );
+
+      case "wrong-network":
+        return (
+          <Alert className="border-yellow-500/20 bg-yellow-500/10">
+            <AlertCircle className="h-5 w-5 text-yellow-500" />
+            <AlertDescription className="text-white/90">
+              <div className="space-y-2">
+                <p className="font-semibold">Rede incorreta</p>
+                <p className="text-sm text-white/70">
+                  Você está conectado, mas precisa mudar para a rede Polygon Mainnet.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/20"
+                  onClick={switchToPolygon}
+                >
+                  Trocar para Polygon
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        );
+
+      case "ready":
+        return (
+          <div className="bg-[#1F1B2E] rounded-lg p-4 border border-green-500/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/60 text-sm">Conectado:</p>
+                <p className="text-white font-mono text-sm">
+                  {state.account?.slice(0, 6)}...{state.account?.slice(-4)}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-white/60 text-sm">Saldo BRL3:</p>
+                <p className="text-white font-mono font-bold text-lg" data-testid="text-balance-brl3">
+                  {state.balance || "0"} BRL3
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "needs-approval":
+      case "connecting":
+        return null; // Will show connect button below
+    }
+  }
+
+  const isConnected = state.status === "ready";
+  const canConnect = ["needs-approval", "connecting"].includes(state.status);
+  const isConnecting = state.status === "connecting";
+
   return (
     <div className="space-y-6">
       <h2 className="text-white text-2xl font-bold">Ações Blockchain</h2>
@@ -367,15 +302,16 @@ export function BlockchainActions() {
             <div>
               <h3 className="text-white font-semibold text-lg mb-1">Status da Conexão</h3>
               <p className="text-white/60 text-sm" data-testid="text-connection-status">
-                {connected 
-                  ? `Conectado: ${account.slice(0, 6)}...${account.slice(-4)}` 
-                  : "MetaMask não conectado"
-                }
+                {isConnected
+                  ? "Conectado à Polygon"
+                  : canConnect
+                  ? "MetaMask disponível"
+                  : "MetaMask não disponível"}
               </p>
             </div>
-            {!connected && (
-              <Button 
-                onClick={connectMetaMask} 
+            {canConnect && (
+              <Button
+                onClick={connect}
                 disabled={isConnecting}
                 className="bg-primary hover:bg-primary/90"
                 data-testid="button-connect-metamask"
@@ -395,14 +331,7 @@ export function BlockchainActions() {
             )}
           </div>
 
-          {connected && (
-            <div className="bg-[#1F1B2E] rounded-lg p-4 border border-white/5">
-              <div className="flex items-center justify-between">
-                <span className="text-white/60 text-sm">Saldo BRL3:</span>
-                <span className="text-white font-mono font-bold text-lg" data-testid="text-balance-brl3">{balance} BRL3</span>
-              </div>
-            </div>
-          )}
+          {renderConnectionStatus()}
         </div>
       </Card>
 
@@ -423,14 +352,14 @@ export function BlockchainActions() {
               placeholder="100.00"
               value={mintAmount}
               onChange={(e) => setMintAmount(e.target.value)}
-              disabled={!connected || isMinting}
+              disabled={!isConnected || isMinting}
               className="bg-[#1F1B2E] border-white/10 text-white placeholder:text-white/40"
               data-testid="input-mint-amount"
             />
           </div>
           <Button
             onClick={handleMint}
-            disabled={!connected || isMinting || !mintAmount}
+            disabled={!isConnected || isMinting || !mintAmount}
             className="w-full bg-primary hover:bg-primary/90"
             size="lg"
             data-testid="button-mint"
@@ -468,14 +397,14 @@ export function BlockchainActions() {
               placeholder="50.00"
               value={burnAmount}
               onChange={(e) => setBurnAmount(e.target.value)}
-              disabled={!connected || isBurning}
+              disabled={!isConnected || isBurning}
               className="bg-[#1F1B2E] border-white/10 text-white placeholder:text-white/40"
               data-testid="input-burn-amount"
             />
           </div>
           <Button
             onClick={handleBurn}
-            disabled={!connected || isBurning || !burnAmount}
+            disabled={!isConnected || isBurning || !burnAmount}
             className="w-full bg-red-600 hover:bg-red-700"
             size="lg"
             data-testid="button-burn"
