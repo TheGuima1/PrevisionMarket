@@ -266,6 +266,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: error.errors 
         });
       }
+      // Check for unique constraint violation (duplicate CPF)
+      if (error.code === "23505" && error.constraint === "users_cpf_key") {
+        return res.status(409).json({ 
+          error: "CPF já cadastrado no sistema" 
+        });
+      }
       res.status(500).json({ error: "Falha ao enviar dados KYC" });
     }
   });

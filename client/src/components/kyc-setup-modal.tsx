@@ -79,7 +79,17 @@ export function KYCSetupModal({ open, onSuccess }: KYCSetupModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    kycMutation.mutate(formData);
+    
+    // Sanitize data before submission
+    const sanitizedData = {
+      ...formData,
+      cpf: formData.cpf.replace(/\D/g, ''),
+      phone: formData.phone.replace(/\D/g, ''),
+      addressZipCode: formData.addressZipCode.replace(/\D/g, ''),
+      addressState: formData.addressState.toUpperCase().replace(/[^A-Z]/g, ''),
+    };
+    
+    kycMutation.mutate(sanitizedData);
   };
 
   return (
