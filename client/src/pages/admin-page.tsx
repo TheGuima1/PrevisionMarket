@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 import { BlockchainActions } from "@/components/blockchain-actions";
+import { useMetaMaskMint } from "@/hooks/use-metamask-mint";
 
 // Interfaces
 interface PendingDeposit {
@@ -97,6 +98,7 @@ export default function AdminPage() {
   const [selectedDeposit, setSelectedDeposit] = useState<PendingDeposit | null>(null);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<any | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const { mintTokens, burnTokens, isMinting, isBurning } = useMetaMaskMint();
   
   // Market creation state
   const [newMarket, setNewMarket] = useState({
@@ -141,28 +143,44 @@ export default function AdminPage() {
     enabled: !!selectedUserId,
   });
 
-  // Mutations
-  const approveDepositMutation = useMutation({
-    mutationFn: async (depositId: string) => {
-      const res = await apiRequest("POST", `/api/deposits/${depositId}/approve`, {});
-      return await res.json();
-    },
-    onSuccess: (data) => {
+  // Handle deposit approval with MetaMask
+  const handleApproveDeposit = async (deposit: PendingDeposit) => {
+    const amount = parseFloat(deposit.amount);
+    
+    // Step 1: Mint tokens via MetaMask
+    const mintResult = await mintTokens(amount.toString());
+    
+    if (!mintResult.success) {
+      // Mint failed, don't approve in database
+      return;
+    }
+
+    // Step 2: Approve in database (mint succeeded)
+    try {
+      const res = await apiRequest("POST", `/api/deposits/${deposit.id}/approve`, {
+        blockchainTxHash: mintResult.txHash, // Save blockchain hash
+      });
+      
       toast({
         title: "Depósito aprovado!",
-        description: `Tokens BRL3 mintados automaticamente na carteira admin e saldo creditado ao usuário.`,
+        description: `${amount} BRL3 mintados via MetaMask e creditados ao usuário.`,
       });
+      
       setSelectedDeposit(null);
       queryClient.invalidateQueries({ queryKey: ["/api/deposits/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast({
-        title: "Erro ao aprovar depósito",
-        description: error.message,
+        title: "Erro ao aprovar depósito no banco",
+        description: "Tokens foram mintados, mas houve erro ao atualizar o saldo. Contate o suporte.",
         variant: "destructive",
       });
-    },
+    }
+  };
+
+  // Mutations (kept for rejections)
+  const approveDepositMutation = useMutation({
+    mutationFn: async (deposit: PendingDeposit) => handleApproveDeposit(deposit),
   });
 
   const rejectDepositMutation = useMutation({
@@ -187,27 +205,43 @@ export default function AdminPage() {
     },
   });
 
-  const approveWithdrawalMutation = useMutation({
-    mutationFn: async (withdrawalId: string) => {
-      const res = await apiRequest("POST", `/api/withdrawals/${withdrawalId}/approve`, {});
-      return await res.json();
-    },
-    onSuccess: () => {
+  // Handle withdrawal approval with MetaMask
+  const handleApproveWithdrawal = async (withdrawal: any) => {
+    const amount = parseFloat(withdrawal.amount);
+    
+    // Step 1: Burn tokens via MetaMask
+    const burnResult = await burnTokens(amount.toString());
+    
+    if (!burnResult.success) {
+      // Burn failed, don't approve in database
+      return;
+    }
+
+    // Step 2: Approve in database (burn succeeded)
+    try {
+      const res = await apiRequest("POST", `/api/withdrawals/${withdrawal.id}/approve`, {
+        blockchainTxHash: burnResult.txHash, // Save blockchain hash
+      });
+      
       toast({
         title: "Saque aprovado!",
-        description: "Tokens BRL3 queimados automaticamente da carteira admin e saldo deduzido do usuário.",
+        description: `${amount} BRL3 queimados via MetaMask e deduzidos do usuário.`,
       });
+      
       setSelectedWithdrawal(null);
       queryClient.invalidateQueries({ queryKey: ["/api/withdrawals/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast({
-        title: "Erro ao aprovar saque",
-        description: error.message,
+        title: "Erro ao aprovar saque no banco",
+        description: "Tokens foram queimados, mas houve erro ao atualizar o saldo. Contate o suporte.",
         variant: "destructive",
       });
-    },
+    }
+  };
+
+  const approveWithdrawalMutation = useMutation({
+    mutationFn: async (withdrawal: any) => handleApproveWithdrawal(withdrawal),
   });
 
   const rejectWithdrawalMutation = useMutation({
@@ -631,12 +665,12 @@ export default function AdminPage() {
                   <Button
                     size="lg"
                     className="flex-1 bg-primary hover:bg-primary/90 text-white gap-2"
-                    onClick={() => approveDepositMutation.mutate(selectedDeposit.id)}
-                    disabled={approveDepositMutation.isPending}
+                    onClick={() => approveDepositMutation.mutate(selectedDeposit)}
+                    disabled={approveDepositMutation.isPending || isMinting}
                     data-testid="button-approve-deposit"
                   >
                     <CheckCircle className="w-5 h-5" />
-                    {approveDepositMutation.isPending ? "Processando..." : "APROVAR DEPÓSITO"}
+                    {isMinting ? "Mintando no MetaMask..." : approveDepositMutation.isPending ? "Salvando..." : "APROVAR → Mint via MetaMask"}
                   </Button>
                   <Button
                     size="lg"
@@ -798,12 +832,12 @@ export default function AdminPage() {
                   <Button
                     size="lg"
                     className="flex-1 bg-primary hover:bg-primary/90 text-white gap-2"
-                    onClick={() => approveWithdrawalMutation.mutate(selectedWithdrawal.id)}
-                    disabled={approveWithdrawalMutation.isPending}
+                    onClick={() => approveWithdrawalMutation.mutate(selectedWithdrawal)}
+                    disabled={approveWithdrawalMutation.isPending || isBurning}
                     data-testid="button-approve-withdrawal"
                   >
                     <CheckCircle className="w-5 h-5" />
-                    APROVAR → Burn BRL3
+                    {isBurning ? "Queimando no MetaMask..." : approveWithdrawalMutation.isPending ? "Salvando..." : "APROVAR → Burn via MetaMask"}
                   </Button>
                   <Button
                     size="lg"
@@ -1229,9 +1263,9 @@ export default function AdminPage() {
               <div>
                 <h1 className="text-white text-3xl font-bold mb-2">Blockchain (MetaMask)</h1>
                 <p className="text-white/60">
-                  <strong>Opcional:</strong> Use esta interface para operações manuais de mint/burn via MetaMask. 
+                  <strong>🦊 MetaMask Obrigatório:</strong> Ao aprovar depósitos e saques, o MetaMask abrirá automaticamente para você confirmar o mint/burn de tokens BRL3.
                   <br />
-                  <strong>Nota:</strong> Ao aprovar depósitos e saques, o sistema já faz mint/burn automaticamente no backend.
+                  <strong>Opcional:</strong> Use esta interface abaixo apenas para operações manuais adicionais.
                 </p>
               </div>
               <BlockchainActions />

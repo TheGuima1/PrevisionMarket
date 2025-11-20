@@ -19,11 +19,23 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Frontend**: React, TypeScript, Tailwind CSS, Shadcn UI
 - **Backend**: Node.js, Express
 - **Database**: PostgreSQL (Neon) via Drizzle ORM
-- **Blockchain**: Polygon Mainnet integration with BRL3 ERC20 token contract. Admin performs mint/burn operations manually via MetaMask interface in admin panel using ethers.js v6. All token routes (`/api/token/*`) are protected with `requireAuth` + `requireAdmin` middleware for security. Decimal precision handled via `ethers.parseUnits`/`formatUnits` to prevent floating-point errors.
+- **Blockchain**: Polygon Mainnet integration with BRL3 ERC20 token contract using ethers.js v6. **MetaMask is REQUIRED** for all deposit/withdrawal approvals - the extension opens automatically showing mint/burn transaction details for admin confirmation. All token routes (`/api/token/*`) are protected with `requireAuth` + `requireAdmin` middleware for security. Decimal precision handled via `ethers.parseUnits`/`formatUnits` to prevent floating-point errors.
 - **Authentication**: Passport.js with sessions
-- **Manual Deposit Approval Workflow**: Users upload PIX proof (PDF). Admin clicks "Aprovar" in admin panel to update user's database balance. Admin then manually mints corresponding BRL3 tokens via MetaMask in the "Blockchain (MetaMask)" section of admin panel.
-- **Manual Withdrawal Approval Workflow**: Users request withdrawal with PIX key. Admin clicks "Aprovar" in admin panel to deduct user's database balance. Admin then manually burns corresponding BRL3 tokens via MetaMask in the "Blockchain (MetaMask)" section. Admin processes PIX transfer separately via manual process.
-- **Blockchain Token Management**: Admin panel includes dedicated "Blockchain (MetaMask)" view for manual token operations. Features automatic Polygon network detection/switching, MetaMask wallet connection, real-time BRL3 balance display, mint/burn interfaces with transaction hash links to Polygonscan, and comprehensive error handling. Event listeners detect account/chain changes for proper state management.
+- **MetaMask-Integrated Deposit Workflow**: 
+  1. User uploads PIX proof (PDF) → Status: pending
+  2. Admin clicks "APROVAR → Mint via MetaMask" button
+  3. **MetaMask extension opens automatically** showing exact token amount to mint (e.g., "Mint 100.00 BRL3")
+  4. Admin confirms transaction in MetaMask popup
+  5. Upon blockchain confirmation, database updates user balance and saves transaction hash
+  6. User sees credited balance in app
+- **MetaMask-Integrated Withdrawal Workflow**: 
+  1. User requests withdrawal with PIX key → Status: pending
+  2. Admin clicks "APROVAR → Burn via MetaMask" button
+  3. **MetaMask extension opens automatically** showing exact token amount to burn (e.g., "Burn 50.00 BRL3")
+  4. Admin confirms transaction in MetaMask popup
+  5. Upon blockchain confirmation, database deducts user balance and saves transaction hash
+  6. Admin processes PIX transfer manually via bank
+- **Blockchain Token Management**: Admin panel includes dedicated "Blockchain (MetaMask)" tab for optional manual mint/burn operations outside the deposit/withdrawal flow. Features automatic Polygon network detection/switching, MetaMask wallet connection, real-time BRL3 balance display, mint/burn interfaces with transaction hash links to Polygonscan, and comprehensive error handling. Event listeners detect account/chain changes for proper state management.
 - **Dynamic Market Management**: An admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. A mirror worker automatically syncs odds from Polymarket.
 - **Polymarket Adapter**: Fetches market data from Polymarket's Gamma API with a 5-minute cache, extracting YES probabilities for pricing.
 - **Prediction Market Core**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 2% spread. Orders are instantly filled with real-time share estimates.
