@@ -147,23 +147,25 @@ export default function AdminPage() {
   const handleApproveDeposit = async (deposit: PendingDeposit) => {
     const amount = parseFloat(deposit.amount);
     
-    // Step 1: Mint tokens via MetaMask
+    // Step 1: Mint tokens via MetaMask (mints to admin wallet)
     const mintResult = await mintTokens(amount.toString());
     
     if (!mintResult.success) {
-      // Mint failed, don't approve in database
+      // Mint failed, don't proceed with approval
       return;
     }
 
-    // Step 2: Approve in database (mint succeeded)
+    // Step 2: Confirm mint with backend (update user balance + save txHash)
     try {
-      const res = await apiRequest("POST", `/api/deposits/${deposit.id}/approve`, {
-        blockchainTxHash: mintResult.txHash, // Save blockchain hash
+      const res = await apiRequest("POST", `/api/deposits/${deposit.id}/confirm-mint`, {
+        txHash: mintResult.txHash,
       });
       
+      const data = await res.json();
+      
       toast({
-        title: "Depósito aprovado!",
-        description: `${amount} BRL3 mintados via MetaMask e creditados ao usuário.`,
+        title: "Depósito aprovado! ✅",
+        description: `${amount} BRL3 mintados e creditados ao usuário. TX: ${mintResult.txHash?.slice(0, 10)}...`,
       });
       
       setSelectedDeposit(null);
@@ -171,10 +173,11 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
     } catch (error: any) {
       toast({
-        title: "Erro ao aprovar depósito no banco",
-        description: "Tokens foram mintados, mas houve erro ao atualizar o saldo. Contate o suporte.",
+        title: "Erro ao confirmar mint",
+        description: "Tokens foram mintados na blockchain, mas houve erro ao atualizar o saldo no banco. Contate o suporte técnico.",
         variant: "destructive",
       });
+      console.error("Failed to confirm mint:", error);
     }
   };
 
@@ -209,23 +212,25 @@ export default function AdminPage() {
   const handleApproveWithdrawal = async (withdrawal: any) => {
     const amount = parseFloat(withdrawal.amount);
     
-    // Step 1: Burn tokens via MetaMask
+    // Step 1: Burn tokens via MetaMask (burns from admin wallet)
     const burnResult = await burnTokens(amount.toString());
     
     if (!burnResult.success) {
-      // Burn failed, don't approve in database
+      // Burn failed, don't proceed with approval
       return;
     }
 
-    // Step 2: Approve in database (burn succeeded)
+    // Step 2: Confirm burn with backend (deduct user balance + save txHash)
     try {
-      const res = await apiRequest("POST", `/api/withdrawals/${withdrawal.id}/approve`, {
-        blockchainTxHash: burnResult.txHash, // Save blockchain hash
+      const res = await apiRequest("POST", `/api/withdrawals/${withdrawal.id}/confirm-burn`, {
+        txHash: burnResult.txHash,
       });
       
+      const data = await res.json();
+      
       toast({
-        title: "Saque aprovado!",
-        description: `${amount} BRL3 queimados via MetaMask e deduzidos do usuário.`,
+        title: "Saque aprovado! ✅",
+        description: `${amount} BRL3 queimados e deduzidos do usuário. TX: ${burnResult.txHash?.slice(0, 10)}...`,
       });
       
       setSelectedWithdrawal(null);
@@ -233,10 +238,11 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
     } catch (error: any) {
       toast({
-        title: "Erro ao aprovar saque no banco",
-        description: "Tokens foram queimados, mas houve erro ao atualizar o saldo. Contate o suporte.",
+        title: "Erro ao confirmar burn",
+        description: "Tokens foram queimados na blockchain, mas houve erro ao atualizar o saldo no banco. Contate o suporte técnico.",
         variant: "destructive",
       });
+      console.error("Failed to confirm burn:", error);
     }
   };
 
