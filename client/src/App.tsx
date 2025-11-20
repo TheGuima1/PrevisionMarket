@@ -9,7 +9,7 @@ import { MetaMaskProvider } from "@/contexts/MetaMaskContext";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { UsernameSetupModal } from "@/components/username-setup-modal";
 import { KYCSetupModal } from "@/components/kyc-setup-modal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import HomePage from "@/pages/home-page";
 import MarketDetailPage from "@/pages/market-detail-page";
 import PolymarketDetailPage from "@/pages/polymarket-detail-page";
@@ -82,6 +82,19 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error("Unhandled promise rejection:", event.reason);
+      event.preventDefault();
+    };
+
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

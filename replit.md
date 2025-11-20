@@ -18,7 +18,7 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 ### Technical Implementations
 - **Frontend**: React, TypeScript, Tailwind CSS, Shadcn UI
 - **Backend**: Node.js, Express
-- **Database**: PostgreSQL (Neon) via Drizzle ORM
+- **Database**: PostgreSQL (Supabase) via Drizzle ORM with hybrid driver architecture (postgres.js for Drizzle, pg.Pool for session store)
 - **Blockchain**: Polygon Mainnet integration with BRL3 ERC20 token contract using ethers.js v6. **MetaMask is REQUIRED** for all deposit/withdrawal approvals - the extension opens automatically showing mint/burn transaction details for admin confirmation. All token routes (`/api/token/*`) are protected with `requireAuth` + `requireAdmin` middleware for security. Decimal precision handled via `ethers.parseUnits`/`formatUnits` to prevent floating-point errors.
 - **Authentication**: Passport.js with sessions
 - **MetaMask-First Deposit Workflow** (BRL3 tokens minted to admin wallet):
@@ -73,8 +73,14 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Code Cleanup**: Repository cleaned of unused assets (attached_assets/, docs/), with all legacy routes and duplicated code removed. All 12 pages, components, and server files actively used and tested.
 
 ## External Dependencies
-- **Database**: PostgreSQL (Neon)
+- **Database**: PostgreSQL (Supabase) in Session pooling mode
 - **Blockchain**: Polygon Mainnet (via ethers.js v6)
 - **AI**: OpenAI (via Replit AI Integrations for GPT-5)
 - **Frontend Frameworks/Libraries**: React, Tailwind CSS, Shadcn UI, TanStack Query
-- **Backend Libraries**: Node.js, Express, Drizzle ORM, Passport.js, scrypt, ethers
+- **Backend Libraries**: Node.js, Express, Drizzle ORM (postgres.js driver), Passport.js (pg.Pool for sessions), scrypt, ethers
+
+## Recent Changes (Nov 20, 2025)
+- **Database Migration**: Migrated from Neon to Supabase PostgreSQL for improved reliability
+- **Hybrid Database Architecture**: Implemented postgres.js for Drizzle ORM operations and separate pg.Pool for connect-pg-simple session store
+- **Error Handling**: Added global unhandled promise rejection handler in App.tsx to prevent silent errors in production
+- **Connection Mode**: Using Supabase Session pooling mode (port 5432) with `prepare: false` for compatibility
