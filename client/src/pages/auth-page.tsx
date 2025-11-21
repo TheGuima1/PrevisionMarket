@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +28,13 @@ export default function AuthPage() {
   const [registerData, setRegisterData] = useState({ email: "", password: "", confirmPassword: "" });
   const [adminPassword, setAdminPassword] = useState("");
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+
+  // Redirect authenticated users to home page
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   const adminLoginMutation = useMutation({
     mutationFn: async (password: string) => {
@@ -69,10 +76,6 @@ export default function AuthPage() {
     e.preventDefault();
     adminLoginMutation.mutate(adminPassword);
   };
-
-  if (user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
