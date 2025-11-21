@@ -103,7 +103,7 @@ function extractProbYes(raw: PolymarketRawMarket): number {
  */
 let marketsCache: PolymarketRawMarket[] = [];
 let cacheExpiry = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes (optimized for performance)
 
 export async function fetchPolyBySlug(slug: string): Promise<AdapterMarketData> {
   try {
@@ -210,10 +210,8 @@ async function fetchBrazilElectionMarket(slug: string): Promise<AdapterMarketDat
             oneDayPriceChange: market.oneDayPriceChange,
             oneWeekPriceChange: market.oneWeekPriceChange,
           });
-        } else if (candidateName) {
-          // Log unmapped candidates (for debugging) but continue processing
-          console.log(`[Adapter] Brazil election: candidate "${candidateName}" not mapped, skipping`);
         }
+        // Unmapped candidates silently skipped (reduces log noise)
       }
       
       brazilElectionCacheExpiry = Date.now() + CACHE_TTL_MS;

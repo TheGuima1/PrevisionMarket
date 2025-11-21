@@ -13,7 +13,7 @@ import { db } from '../db';
 import { markets, polymarketSnapshots } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-const POLL_INTERVAL = Number(process.env.MIRROR_POLL_MS || 60000); // 60s default
+const POLL_INTERVAL = Number(process.env.MIRROR_POLL_MS || 300000); // 5min default (optimized for performance)
 
 let intervalId: NodeJS.Timeout | null = null;
 let validatedSlugs: string[] = []; // Only contains slugs that passed validation
