@@ -865,7 +865,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use admin wallet address for all PIX deposits (admin approves mint via MetaMask)
       // Fallback chain: validated.walletAddress -> env var -> shared config constant
-      const { ADMIN_WALLET_ADDRESS } = await import('@shared/blockchain-config');
       const finalWalletAddress = validated.walletAddress || process.env.ADMIN_WALLET_ADDRESS || ADMIN_WALLET_ADDRESS;
       
       try {
@@ -1180,7 +1179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Fallback chain: validated.walletAddress → ADMIN_WALLET_ADDRESS env var → shared config constant
       const walletToUse = validated.walletAddress 
-        || process.env.VITE_ADMIN_ADDRESS 
+        || process.env.ADMIN_WALLET_ADDRESS 
         || ADMIN_WALLET_ADDRESS;
       const normalizedWallet = ethers.getAddress(walletToUse);
       
