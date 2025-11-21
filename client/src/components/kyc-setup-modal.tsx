@@ -17,6 +17,7 @@ import { ShieldCheck } from "lucide-react";
 interface KYCSetupModalProps {
   open: boolean;
   onSuccess: () => void;
+  onSkip?: () => void;
 }
 
 interface KYCFormData {
@@ -33,7 +34,7 @@ interface KYCFormData {
   addressState: string;
 }
 
-export function KYCSetupModal({ open, onSuccess }: KYCSetupModalProps) {
+export function KYCSetupModal({ open, onSuccess, onSkip }: KYCSetupModalProps) {
   const [formData, setFormData] = useState<KYCFormData>({
     fullName: "",
     cpf: "",
@@ -93,10 +94,9 @@ export function KYCSetupModal({ open, onSuccess }: KYCSetupModalProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen && onSkip) onSkip(); }}>
       <DialogContent 
-        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" 
-        onInteractOutside={(e) => e.preventDefault()}
+        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -260,14 +260,27 @@ export function KYCSetupModal({ open, onSuccess }: KYCSetupModalProps) {
             </div>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={kycMutation.isPending}
-            data-testid="button-kyc-submit"
-          >
-            {kycMutation.isPending ? "Enviando..." : "Enviar Verificação"}
-          </Button>
+          <div className="flex gap-3">
+            {onSkip && (
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={onSkip}
+                data-testid="button-kyc-skip"
+              >
+                Fazer Depois
+              </Button>
+            )}
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={kycMutation.isPending}
+              data-testid="button-kyc-submit"
+            >
+              {kycMutation.isPending ? "Enviando..." : "Enviar Verificação"}
+            </Button>
+          </div>
 
           <p className="text-xs text-muted-foreground text-center">
             Ao enviar, você concorda com nossa política de privacidade e aceita que seus dados sejam verificados.

@@ -268,8 +268,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: error.errors 
         });
       }
-      // Check for unique constraint violation (duplicate CPF)
-      if (error.code === "23505" && error.constraint === "users_cpf_key") {
+      // Check for unique constraint violation (duplicate CPF) - Postgres error code 23505
+      if (error.code === "23505" && (error.constraint?.includes("cpf") || error.detail?.includes("cpf"))) {
         return res.status(409).json({ 
           error: "CPF já cadastrado no sistema" 
         });

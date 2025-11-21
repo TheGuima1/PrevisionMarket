@@ -25,13 +25,13 @@ import NotFound from "@/pages/not-found";
 
 function UsernameGuard({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [, setShowModal] = useState(false);
+  const [showKYCModal, setShowKYCModal] = useState(true);
 
   // Show modal if user is logged in but has no username
   const needsUsername = user && !user.username;
   
   // Show KYC modal if user has username but hasn't completed KYC
-  const needsKYC = user && user.username && user.kycStatus === 'not_started';
+  const needsKYC = user && user.username && user.kycStatus === 'not_started' && showKYCModal;
 
   return (
     <>
@@ -39,7 +39,6 @@ function UsernameGuard({ children }: { children: React.ReactNode }) {
         <UsernameSetupModal
           open={true}
           onSuccess={() => {
-            setShowModal(false);
             window.location.reload(); // Reload to update user data
           }}
         />
@@ -48,8 +47,11 @@ function UsernameGuard({ children }: { children: React.ReactNode }) {
         <KYCSetupModal
           open={true}
           onSuccess={() => {
-            setShowModal(false);
+            setShowKYCModal(false);
             window.location.reload(); // Reload to update user data
+          }}
+          onSkip={() => {
+            setShowKYCModal(false);
           }}
         />
       )}
