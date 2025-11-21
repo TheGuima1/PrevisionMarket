@@ -861,26 +861,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Valor deve ser maior que zero"
         }),
         currency: z.enum(["BRL", "USDC"]).default("BRL"),
-        walletAddress: z.string().refine(addr => ethers.isAddress(addr), {
-          message: "Endereço de carteira inválido"
-        }),
       });
 
       const validated = depositSchema.parse(req.body);
-      const normalizedWallet = ethers.getAddress(validated.walletAddress);
+      
+      // Use admin wallet address as default for all deposits (admin approves via MetaMask)
+      const adminWalletAddress = process.env.VITE_ADMIN_ADDRESS || "0x0000000000000000000000000000000000000000";
       
       try {
         const pendingDeposit = await storage.createPendingDeposit(user.id, {
           amount: validated.amount,
           currency: validated.currency,
-          walletAddress: normalizedWallet,
+          walletAddress: adminWalletAddress,
           proofFilePath: req.file.path,
         });
 
         res.json({ 
           success: true, 
           depositId: pendingDeposit.id,
-          walletAddress: normalizedWallet,
           message: "Depósito enviado para aprovação. Aguarde a análise do comprovante." 
         });
       } catch (storageError) {
