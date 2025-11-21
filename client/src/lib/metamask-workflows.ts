@@ -100,6 +100,20 @@ function withFriendlyError(error: any, defaultMessage: string) {
   return defaultMessage;
 }
 
+async function checkMinterRole(contract: ethers.Contract, account: string): Promise<{ hasRole: boolean; error?: string }> {
+  try {
+    const MINTER_ROLE = await contract.MINTER_ROLE();
+    const hasRole = await contract.hasRole(MINTER_ROLE, account);
+    return { hasRole };
+  } catch (error: any) {
+    console.error("Error checking MINTER_ROLE:", error);
+    return { 
+      hasRole: false, 
+      error: "Não foi possível verificar permissões do contrato. O contrato pode não ter AccessControl implementado." 
+    };
+  }
+}
+
 export async function executeMintWorkflow(params: { amount: string; to: string }): Promise<MintResult> {
   try {
     if (!BRL3_TOKEN_ADDRESS) {
@@ -107,10 +121,32 @@ export async function executeMintWorkflow(params: { amount: string; to: string }
     }
 
     const toAddress = ethers.getAddress(params.to);
-    const { signer } = await requireAdminSigner();
+    const { signer, account } = await requireAdminSigner();
     const tokenAmountRaw = toTokenUnits(params.amount);
 
     const contract = new ethers.Contract(BRL3_TOKEN_ADDRESS, BRL3_ABI, signer);
+    
+    // Try to check MINTER_ROLE (graceful fallback if unavailable)
+    const roleCheck = await checkMinterRole(contract, account);
+    
+    // Only block if we successfully verified the role AND the account doesn't have it
+    // If verification failed (error), allow the mint attempt to proceed
+    if (!roleCheck.error && !roleCheck.hasRole) {
+      const errorMsg = 
+        `❌ A carteira ${account} não possui permissão MINTER_ROLE no contrato BRL3.\n\n` +
+        `📋 Para resolver:\n` +
+        `1. Conecte a carteira owner/admin do contrato no MetaMask\n` +
+        `2. Acesse Polygonscan: https://polygonscan.com/address/${BRL3_TOKEN_ADDRESS}#writeContract\n` +
+        `3. Clique em "Connect to Web3" e conecte a carteira owner\n` +
+        `4. Execute: grantRole(MINTER_ROLE, ${account})\n` +
+        `5. Tente novamente o mint\n\n` +
+        `💡 MINTER_ROLE permite que a carteira execute a função mint() no contrato.`;
+      
+      throw new Error(errorMsg);
+    }
+    
+    // If verification passed OR failed to verify, attempt the mint
+    // MetaMask will open and the blockchain will enforce permissions
     const tx = await contract.mint(toAddress, tokenAmountRaw);
     await tx.wait(1);
 
@@ -123,9 +159,22 @@ export async function executeMintWorkflow(params: { amount: string; to: string }
     console.error("Mint workflow error:", error);
 
     let errorMessage = withFriendlyError(error, "Erro ao mintar tokens");
-    if (error?.message?.includes("AccessControl") || error?.message?.includes("MINTER_ROLE")) {
-      errorMessage = "A carteira conectada não possui permissão de mint";
+    
+    // Enhanced error messages for common permission issues
+    if (error?.message?.includes("AccessControl") || error?.code === "CALL_EXCEPTION") {
+      errorMessage = 
+        `❌ Transação rejeitada pelo contrato. Possíveis causas:\n\n` +
+        `1. Carteira não possui MINTER_ROLE\n` +
+        `2. Contrato pausado ou com restrições\n\n` +
+        `💡 Para verificar permissões:\n` +
+        `Acesse: https://polygonscan.com/address/${BRL3_TOKEN_ADDRESS}#readContract\n` +
+        `Execute: hasRole(MINTER_ROLE, sua_carteira)`;
     }
+    
+    if (error?.message?.includes("MINTER_ROLE") || error?.message?.includes("não possui permissão MINTER_ROLE")) {
+      errorMessage = error.message;
+    }
+    
     if (error?.message?.includes("carteira admin")) {
       errorMessage = error.message;
     }
