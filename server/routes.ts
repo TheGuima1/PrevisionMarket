@@ -856,26 +856,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Comprovante PDF é obrigatório" });
       }
 
-      const depositSchema = z.object({
-        amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-          message: "Valor deve ser maior que zero"
-        }),
-        currency: z.enum(["BRL", "USDC"]).default("BRL"),
+      // Use shared schema for validation (walletAddress is optional, proofFilePath required)
+      const validated = insertPendingDepositSchema.parse({
+        ...req.body,
+        proofFilePath: req.file.path,
       });
-
-      const validated = depositSchema.parse(req.body);
       
       // Use admin wallet address for all PIX deposits (admin approves mint via MetaMask)
-      // Import from shared config to ensure consistency with frontend
+      // Fallback chain: validated.walletAddress -> env var -> shared config constant
       const { ADMIN_WALLET_ADDRESS } = await import('@shared/blockchain-config');
-      const adminWalletAddress = process.env.ADMIN_WALLET || ADMIN_WALLET_ADDRESS;
+      const finalWalletAddress = validated.walletAddress || process.env.ADMIN_WALLET_ADDRESS || ADMIN_WALLET_ADDRESS;
       
       try {
         const pendingDeposit = await storage.createPendingDeposit(user.id, {
           amount: validated.amount,
-          currency: validated.currency,
-          walletAddress: adminWalletAddress,
-          proofFilePath: req.file.path,
+          currency: validated.currency || "BRL",
+          walletAddress: finalWalletAddress,
+          proofFilePath: validated.proofFilePath || req.file.path,
         });
 
         res.json({ 

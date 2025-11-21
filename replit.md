@@ -46,14 +46,14 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
   - **Status-Specific UI**: Different UI states for each MetaMask condition (installation prompts, network switch buttons, connection alerts)
   - **Error Resilience**: Guards prevent async calls during cleanup, safe disconnect preserves iframe/not-installed states
 - **Dynamic Market Management**: An admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. A mirror worker automatically syncs odds from Polymarket.
-- **Polymarket Adapter**: Fetches market data from Polymarket's Gamma API with a 5-minute cache, extracting YES probabilities for pricing.
+- **Polymarket Adapter**: Fetches market data from Polymarket's Gamma API with a 10-minute cache, extracting YES probabilities for pricing.
 - **Prediction Market Core**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 2% spread. Orders are instantly filled with real-time share estimates.
 - **Localization**: Full PT-BR localization for UI and backend messages.
 
 ### Feature Specifications
 - **Authentication**: Standard email/password login/registration with unique usernames and protected routes. Admin quick access via password-only login.
 - **KYC (Know Your Customer)**: Tier 1 identity verification integrated into onboarding flow. After username selection, users complete KYC form with full name, CPF (11 digits), birth date, phone (10-11 digits with area code), and complete Brazilian address (CEP, street, number, complement, district, city, state). Validation enforces correct formats (CPF digits only, state as 2 uppercase letters). Status transitions: not_started → pending (after submission) → approved/rejected (admin review). KYC data stored securely with tier-based verification levels (0-3).
-- **Public Landing Page**: Displays available markets with real-time Polymarket odds. Features special grouped display for multi-candidate markets like "Eleição Presidencial Brasil 2026" showing **8 candidates** (Lula, Tarcísio, Haddad, Renan Santos, Ratinho Jr, Jair Bolsonaro, Michelle Bolsonaro, Eduardo Bolsonaro) with **authentic Polymarket price changes** synchronized every 60 seconds. Data includes daily/weekly price deltas and real-time volumes - no simulated historical charts.
+- **Public Landing Page**: Displays available markets with real-time Polymarket odds. Features special grouped display for multi-candidate markets like "Eleição Presidencial Brasil 2026" showing **8 candidates** (Lula, Tarcísio, Haddad, Renan Santos, Ratinho Jr, Jair Bolsonaro, Michelle Bolsonaro, Eduardo Bolsonaro) with **authentic Polymarket price changes** synchronized every 5 minutes. Data includes daily/weekly price deltas and real-time volumes - no simulated historical charts.
 - **Brazil Election Event Page** (`/brazil-election-2026`): Dedicated page matching Polymarket's event layout, featuring all 8 presidential candidates in a unified view. Includes summary bar with colored candidate dots, professional probability chart (top 4 candidates with solid lines, clean X-axis, dynamic Y-axis), and detailed candidate rows with Buy Yes/No buttons. Navigation flows from homepage card to event page to individual market detail pages.
   - **Chart Design**: Matches Polymarket's professional style with top 4 candidates as solid smooth curves, clean X-axis without date labels, dynamic Y-axis (rounded to nearest 10%), no background grid, and tooltip showing dates only on hover.
 - **Market Detail Page**: Comprehensive market information, multiple odds formats, discussion system, and integrated trading panel.
@@ -79,7 +79,21 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **Frontend Frameworks/Libraries**: React, Tailwind CSS, Shadcn UI, TanStack Query
 - **Backend Libraries**: Node.js, Express, Drizzle ORM (postgres.js driver), Passport.js (pg.Pool for sessions), scrypt, ethers
 
-## Recent Changes (Nov 20, 2025)
+## Recent Changes
+
+### Nov 21, 2025 - Performance Optimizations & Deposit Flow Fix
+- **Deposit Validation Fix**: Removed mandatory walletAddress from PIX deposit requests - users no longer need MetaMask, admin wallet is used automatically
+- **Shared Blockchain Config**: Created `shared/blockchain-config.ts` to centralize BRL3_TOKEN_ADDRESS and ADMIN_WALLET_ADDRESS constants
+- **Schema Alignment**: Updated `insertPendingDepositSchema` with robust validation:
+  - `amount`: Validates > 0, formats to 2 decimal places
+  - `walletAddress`: Optional with empty string → undefined transform
+  - `proofFilePath`: Required (aligned with route logic)
+- **Mirror Worker Optimization**: Increased polling interval from 60s to 5 minutes (300000ms) to reduce API load
+- **API Cache Extension**: Extended Polymarket Gamma API cache from 5min to 10min to minimize external requests
+- **Logging Optimization**: Silenced verbose "candidate not mapped" messages to reduce log noise
+- **Environment Fallback**: Admin wallet now uses fallback chain: validated.walletAddress → ADMIN_WALLET_ADDRESS env var → shared config constant
+
+### Nov 20, 2025 - Database Migration
 - **Database Migration**: Migrated from Neon to Supabase PostgreSQL for improved reliability
 - **Hybrid Database Architecture**: Implemented postgres.js for Drizzle ORM operations and separate pg.Pool for connect-pg-simple session store
 - **Error Handling**: Added global unhandled promise rejection handler in App.tsx to prevent silent errors in production

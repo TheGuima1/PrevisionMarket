@@ -534,9 +534,21 @@ export const insertPendingDepositSchema = createInsertSchema(pendingDeposits).om
   userId: true,
 }).extend({
   amount: z.union([z.string(), z.number()])
-    .transform(val => typeof val === "string" ? val : val.toFixed(2)),
+    .transform(val => {
+      const num = typeof val === "string" ? parseFloat(val) : val;
+      if (isNaN(num) || num <= 0) {
+        throw new Error("Valor deve ser maior que zero");
+      }
+      return num.toFixed(2); // Ensure 2 decimal places for BRL/USDC
+    }),
   currency: z.enum(["BRL", "USDC"]).default("BRL"),
-  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Endereço de carteira inválido"),
+  // walletAddress is optional - defaults to admin wallet for PIX deposits
+  // Empty string or undefined both trigger fallback to admin wallet
+  walletAddress: z.string()
+    .regex(/^0x[a-fA-F0-9]{40}$/, "Endereço de carteira inválido")
+    .optional()
+    .transform(val => val === "" ? undefined : val),
+  proofFilePath: z.string().min(1, "Comprovante PDF é obrigatório"), // Required for PIX deposits
 });
 
 export const insertPendingWithdrawalSchema = createInsertSchema(pendingWithdrawals).omit({
