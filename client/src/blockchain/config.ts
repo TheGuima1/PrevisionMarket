@@ -1,11 +1,15 @@
 import { ethers } from "ethers";
 import { BRL3_ABI } from "./brl3Abi";
+import { 
+  BRL3_TOKEN_ADDRESS, 
+  ADMIN_WALLET_ADDRESS, 
+  TOKEN_DECIMALS,
+  POLYGON_CHAIN_ID_HEX,
+  POLYGON_CHAIN_ID_DEC
+} from "@shared/blockchain-config";
 
-export const BRL3_TOKEN_ADDRESS = "0x2F6370EC3b1ebB60cF359fb264E5e576ceEb6dcE";
-export const ADMIN_WALLET_ADDRESS = "0xCD83c3f36396bcb3569240a3Cb34f037ba310926";
-export const TOKEN_DECIMALS = 18;
-export const POLYGON_CHAIN_ID_HEX = "0x89"; // 137
-export const POLYGON_CHAIN_ID_DEC = 137;
+// Re-export for backward compatibility
+export { BRL3_TOKEN_ADDRESS, ADMIN_WALLET_ADDRESS, TOKEN_DECIMALS, POLYGON_CHAIN_ID_HEX, POLYGON_CHAIN_ID_DEC };
 
 export function getPolygonRpcUrl() {
   return import.meta.env.VITE_POLYGON_RPC_URL || "https://polygon-rpc.com";

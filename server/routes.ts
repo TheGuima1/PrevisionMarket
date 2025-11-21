@@ -865,8 +865,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validated = depositSchema.parse(req.body);
       
-      // Use admin wallet address as default for all deposits (admin approves via MetaMask)
-      const adminWalletAddress = process.env.VITE_ADMIN_ADDRESS || "0x0000000000000000000000000000000000000000";
+      // Use admin wallet address for all PIX deposits (admin approves mint via MetaMask)
+      // Import from shared config to ensure consistency with frontend
+      const { ADMIN_WALLET_ADDRESS } = await import('@shared/blockchain-config');
+      const adminWalletAddress = process.env.ADMIN_WALLET || ADMIN_WALLET_ADDRESS;
       
       try {
         const pendingDeposit = await storage.createPendingDeposit(user.id, {
