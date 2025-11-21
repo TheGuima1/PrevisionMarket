@@ -81,7 +81,7 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 
 ## Recent Changes
 
-### Nov 21, 2025 - Performance Optimizations & Deposit Flow Fix
+### Nov 21, 2025 - Performance Optimizations & Critical UX Fixes
 - **Deposit Validation Fix**: Removed mandatory walletAddress from PIX deposit requests - users no longer need MetaMask, admin wallet is used automatically
 - **Shared Blockchain Config**: Created `shared/blockchain-config.ts` to centralize BRL3_TOKEN_ADDRESS and ADMIN_WALLET_ADDRESS constants
 - **Schema Alignment**: Updated `insertPendingDepositSchema` with robust validation:
@@ -92,7 +92,11 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **API Cache Extension**: Extended Polymarket Gamma API cache from 5min to 10min to minimize external requests
 - **Logging Optimization**: Silenced verbose "candidate not mapped" messages to reduce log noise
 - **Environment Fallback**: Admin wallet now uses fallback chain: validated.walletAddress → ADMIN_WALLET_ADDRESS env var → shared config constant
-- **UX Fix**: Removed auto-redirect from homepage to admin panel - admins can now view landing page normally and navigate to admin panel via navbar
+- **Critical UX Fixes** (Resolved blank admin page issue):
+  - Removed auto-redirect from `home-page.tsx` - admins can view landing page
+  - **Removed auto-redirect from `auth-page.tsx`** - users stay on current page after login (no forced redirect to /admin)
+  - **Fixed missing Wallet icon import** in `admin-page.tsx` - resolved "Wallet is not defined" runtime error
+  - Admin panel now fully functional - accessible via navbar, all components rendering correctly
 
 ### Nov 20, 2025 - Database Migration
 - **Database Migration**: Migrated from Neon to Supabase PostgreSQL for improved reliability

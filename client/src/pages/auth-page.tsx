@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,15 +48,6 @@ export default function AuthPage() {
       });
     },
   });
-
-  useEffect(() => {
-    if (user) {
-      const targetPath = user.isAdmin ? "/admin" : "/";
-      if (location !== targetPath) {
-        setLocation(targetPath);
-      }
-    }
-  }, [user, location, setLocation]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();

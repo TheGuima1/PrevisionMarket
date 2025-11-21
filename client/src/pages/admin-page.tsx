@@ -41,6 +41,7 @@ import {
   LogOut,
   Shield,
   AlertCircle,
+  Wallet,
 } from "lucide-react";
 import { formatBRL3, formatDateTimeBR } from "@shared/utils/currency";
 import { BlockchainActions } from "@/components/blockchain-actions";
