@@ -92,6 +92,7 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 - **API Cache Extension**: Extended Polymarket Gamma API cache from 5min to 10min to minimize external requests
 - **Logging Optimization**: Silenced verbose "candidate not mapped" messages to reduce log noise
 - **Environment Fallback**: Admin wallet now uses fallback chain: validated.walletAddress → ADMIN_WALLET_ADDRESS env var → shared config constant
+- **UX Fix**: Removed auto-redirect from homepage to admin panel - admins can now view landing page normally and navigate to admin panel via navbar
 
 ### Nov 20, 2025 - Database Migration
 - **Database Migration**: Migrated from Neon to Supabase PostgreSQL for improved reliability

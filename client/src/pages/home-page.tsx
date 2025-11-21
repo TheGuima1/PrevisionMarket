@@ -7,20 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
 import type { Market } from "@shared/schema";
 import { Zap, Lock, TrendingUp, LineChart } from "lucide-react";
 
 export default function HomePage() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
-  
-  // Redirect admins to admin panel
-  useEffect(() => {
-    if (user?.isAdmin && location === "/") {
-      setLocation("/admin");
-    }
-  }, [user, location, setLocation]);
   
   // Fetch markets
   const { data: markets, isLoading, error } = useQuery<Market[]>({
