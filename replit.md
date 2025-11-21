@@ -81,6 +81,13 @@ The platform utilizes a **Purple Tech Masculino** design with neutral gray-purpl
 
 ## Recent Changes
 
+### Nov 21, 2025 - MetaMask Error Handling Fix
+- **Global Error Handler Update**: Fixed runtime error overlay appearing when users cancel MetaMask transactions
+- **Filtered MetaMask Errors**: App.tsx now ignores code 4001 (user rejected) and -32002 (already processing) in global unhandled rejection handler
+- **Improved UX**: Users can now reject MetaMask popups without seeing scary error overlays - handled gracefully with toast messages
+- **KYC Modal Enhancement**: Added "Fazer Depois" (Skip) button to KYC modal for better user onboarding flow
+- **Modal Dismissibility**: KYC modal can now be closed via X button or clicking outside, improving user control
+
 ### Nov 21, 2025 - Performance Optimizations & Critical UX Fixes
 - **Deposit Validation Fix**: Removed mandatory walletAddress from PIX deposit requests - users no longer need MetaMask, admin wallet is used automatically
 - **Shared Blockchain Config**: Created `shared/blockchain-config.ts` to centralize BRL3_TOKEN_ADDRESS and ADMIN_WALLET_ADDRESS constants

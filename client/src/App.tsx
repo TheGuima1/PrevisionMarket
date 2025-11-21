@@ -86,7 +86,22 @@ function Router() {
 function App() {
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error("Unhandled promise rejection:", event.reason);
+      const error = event.reason;
+      
+      // Ignore MetaMask user rejection errors (code 4001) - these are handled by the app
+      if (error?.code === 4001) {
+        event.preventDefault();
+        return;
+      }
+      
+      // Ignore MetaMask "already processing" errors (code -32002)
+      if (error?.code === -32002) {
+        event.preventDefault();
+        return;
+      }
+      
+      // Log other unhandled rejections
+      console.error("Unhandled promise rejection:", error);
       event.preventDefault();
     };
 
