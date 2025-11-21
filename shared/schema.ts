@@ -566,7 +566,11 @@ export const insertPendingWithdrawalSchema = createInsertSchema(pendingWithdrawa
   amount: z.union([z.string(), z.number()])
     .transform(val => typeof val === "string" ? val : val.toFixed(2)),
   currency: z.enum(["BRL", "USDC"]).default("BRL"),
-  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Endereço de carteira inválido"),
+  // walletAddress is optional - defaults to admin wallet for PIX withdrawals
+  // Empty string or undefined both trigger fallback to admin wallet
+  walletAddress: z.string()
+    .optional()
+    .transform(val => val === "" ? undefined : val),
   pixKey: z.string().min(1, "Chave PIX obrigatória"),
   permitDeadline: z.string().optional(),
   permitV: z.number().optional(),

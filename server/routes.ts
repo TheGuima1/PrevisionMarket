@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, insertPendingDepositSchema, insertPendingWithdrawalSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots, pendingDeposits, pendingWithdrawals, transactions, comments } from "@shared/schema";
+import { ADMIN_WALLET_ADDRESS } from "@shared/blockchain-config";
 import OpenAI from "openai";
 import { z } from "zod";
 import { ethers } from "ethers";
@@ -1176,7 +1177,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validated = insertPendingWithdrawalSchema.parse(req.body);
       const withdrawAmount = parseFloat(validated.amount);
-      const normalizedWallet = ethers.getAddress(validated.walletAddress);
+      
+      // Fallback chain: validated.walletAddress → ADMIN_WALLET_ADDRESS env var → shared config constant
+      const walletToUse = validated.walletAddress 
+        || process.env.VITE_ADMIN_ADDRESS 
+        || ADMIN_WALLET_ADDRESS;
+      const normalizedWallet = ethers.getAddress(walletToUse);
       
       // Note: Balance check removed - pending withdrawals are created before balance verification
       // Admin will verify balance before approving the withdrawal

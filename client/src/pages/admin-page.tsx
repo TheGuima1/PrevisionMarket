@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import { useMetaMask } from "@/contexts/MetaMaskContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -119,9 +120,23 @@ type AdminView =
   | "blockchain";
 
 export default function AdminPage() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { state: metaMaskState, connect: connectMetaMask } = useMetaMask();
   const [currentView, setCurrentView] = useState<AdminView>("depositos");
+
+  // Redirect non-admin users
+  useEffect(() => {
+    if (user && !user.isAdmin) {
+      toast({
+        title: "Acesso negado",
+        description: "Você não tem permissão para acessar o painel admin",
+        variant: "destructive",
+      });
+      setLocation("/");
+    }
+  }, [user, setLocation, toast]);
   const [selectedDeposit, setSelectedDeposit] = useState<PendingDeposit | null>(null);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<PendingWithdrawal | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -456,8 +471,6 @@ export default function AdminPage() {
       });
     },
   });
-
-  const [, setLocation] = useLocation();
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
