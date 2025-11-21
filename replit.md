@@ -47,6 +47,7 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
 - **Production Deployment Optimization**: Asynchronous mirror worker initialization and database seeding to prevent deployment health check timeouts.
 - **Replit Autoscale Health Checks**: Optimized with `/healthz` (no DB) and `/health` (with DB ping) endpoints.
 - **Code Cleanup**: Repository cleaned of unused assets, legacy routes, and duplicated code.
+- **Deposit/Withdrawal Route Consistency**: Both deposit and withdrawal routes use consistent `ADMIN_WALLET_ADDRESS` environment variable fallback chain (validated.walletAddress → process.env.ADMIN_WALLET_ADDRESS → ADMIN_WALLET_ADDRESS constant). Fixed critical bug where redundant dynamic import in deposit route caused silent failures. Both routes now use static imports for optimal performance and reliability.
 
 ## External Dependencies
 - **Database**: PostgreSQL (Supabase)
