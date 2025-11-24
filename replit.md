@@ -55,6 +55,28 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
   - **Detailed Reconciliation Logging**: All edge cases (blockchain success + DB failure) log structured reconciliation data (depositId, userId, amount, txHash, failure reason) to enable operational monitoring and manual remediation
   - **Production-Viable**: Implementation is production-ready with operational processes for monitoring logs and manually reconciling edge cases where blockchain succeeded but DB operations failed
 
+## Required Secrets Configuration
+
+Configure these secrets in the Replit Secrets panel before deployment:
+
+### Mandatory Secrets (Server won't start without these)
+- `ADMIN_PRIVATE_KEY` - Private key of the admin wallet (0xCD83...) for blockchain operations
+- `POLYGON_RPC_URL` - Polygon Mainnet RPC URL (e.g., https://polygon-rpc.com)
+- `DATABASE_URL` - PostgreSQL connection string
+- `SESSION_SECRET` - Secret for Express session encryption
+
+### Optional Configuration Secrets (use defaults if not set)
+- `BRL3_CONTRACT_ADDRESS` - BRL3 token contract address (default: 0xa2a21D5800E4DA2ec41582C10532aE13BDd4be90)
+- `ADMIN_WALLET_ADDRESS` - Admin wallet address (default: 0xCD83c3f36396bcb3569240a3Cb34f037ba310926)
+- `TOKEN_DECIMALS` - Token decimal precision (default: 18)
+
+### Frontend Environment Variables (optional, prefixed with VITE_)
+- `VITE_BRL3_CONTRACT_ADDRESS` - Exposed to frontend (uses BRL3_CONTRACT_ADDRESS if not set)
+- `VITE_ADMIN_WALLET_ADDRESS` - Exposed to frontend (uses ADMIN_WALLET_ADDRESS if not set)
+- `VITE_TOKEN_DECIMALS` - Exposed to frontend (uses TOKEN_DECIMALS if not set)
+
+**Note**: The server logs the active blockchain configuration at startup for verification.
+
 ## External Dependencies
 - **Database**: PostgreSQL (Supabase)
 - **Blockchain**: Polygon Mainnet (via ethers.js v6)
