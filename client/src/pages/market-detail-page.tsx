@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, TrendingUp, ExternalLink, ArrowLeft } from "lucide-react";
+import { Calendar, TrendingUp, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import type { Market } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
@@ -139,19 +139,6 @@ export default function MarketDetailPage() {
               </div>
             </div>
 
-            {market.origin === "polymarket" && market.polymarketSlug && (
-              <div className="text-xs text-muted-foreground flex items-center gap-2">
-                <span>Fonte de Resolução</span>
-                <a
-                  href={`https://polymarket.com/market/${market.polymarketSlug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline flex items-center gap-1"
-                >
-                  Polymarket <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            )}
           </div>
         </Card>
 

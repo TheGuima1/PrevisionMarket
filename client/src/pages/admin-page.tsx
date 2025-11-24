@@ -117,7 +117,8 @@ type AdminView =
   | "usuarios" 
   | "mercados" 
   | "polymarket" 
-  | "blockchain";
+  | "blockchain"
+  | "taxas";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -184,6 +185,28 @@ export default function AdminPage() {
   const { data: userDetails } = useQuery<UserDetails>({
     queryKey: ["/api/admin/users", selectedUserId],
     enabled: !!selectedUserId,
+  });
+
+  // Fee Revenue interface and query
+  interface FeeRevenue {
+    totalRevenue: number;
+    totalFromTransactions: number;
+    totalFromTrades: number;
+    transactionCount: number;
+    recentFees: Array<{
+      id: string;
+      userId: string;
+      marketId: string;
+      type: string;
+      feeAmount: number;
+      tradeCost: number;
+      createdAt: Date;
+    }>;
+  }
+
+  const { data: feeRevenue } = useQuery<FeeRevenue>({
+    queryKey: ["/api/admin/fee-revenue"],
+    refetchInterval: 60000,
   });
 
   const handleApproveDeposit = async (deposit: PendingDeposit) => {
@@ -540,6 +563,7 @@ export default function AdminPage() {
     { id: "mercados" as AdminView, label: "Mercados", icon: TrendingUp },
     { id: "polymarket" as AdminView, label: "Polymarket Oráculo", icon: Link2 },
     { id: "blockchain" as AdminView, label: "Blockchain (MetaMask)", icon: Shield },
+    { id: "taxas" as AdminView, label: "Receita de Taxas", icon: DollarSign },
   ];
 
   return (
@@ -1600,6 +1624,120 @@ export default function AdminPage() {
                   </Card>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Receita de Taxas */}
+          {currentView === "taxas" && (
+            <div className="space-y-6">
+              <h1 className="text-white text-3xl font-bold">Receita de Taxas da Plataforma</h1>
+
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-[#2A2640] border-white/10 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <DollarSign className="w-6 h-6 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-white/60 text-sm">Receita Total</p>
+                      <p className="text-white font-mono font-bold text-2xl" data-testid="text-total-revenue">
+                        R$ {(feeRevenue?.totalRevenue ?? 0).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="bg-[#2A2640] border-white/10 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="text-white/60 text-sm">Taxas de Negociação</p>
+                      <p className="text-white font-mono font-bold text-2xl" data-testid="text-trade-fees">
+                        R$ {(feeRevenue?.totalFromTrades ?? 0).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="bg-[#2A2640] border-white/10 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <CreditCard className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-white/60 text-sm">Total de Transações</p>
+                      <p className="text-white font-mono font-bold text-2xl" data-testid="text-transaction-count">
+                        {feeRevenue?.transactionCount || 0}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Fee Rate Info */}
+              <Card className="bg-[#2A2640] border-white/10 p-4">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-primary" />
+                  <p className="text-white/70 text-sm">
+                    Taxa da plataforma: <span className="text-white font-bold">3%</span> sobre todas as negociações (oculta para usuários)
+                  </p>
+                </div>
+              </Card>
+
+              {/* Recent Fees Table */}
+              <Card className="bg-[#2A2640] border-white/10 overflow-hidden">
+                <div className="p-6 border-b border-white/10">
+                  <h3 className="text-white font-semibold text-lg">Taxas Recentes</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-[#1F1B2E]/50 text-white/60 text-xs uppercase">
+                      <tr>
+                        <th className="px-6 py-3 text-left">ID Ordem</th>
+                        <th className="px-6 py-3 text-left">Tipo</th>
+                        <th className="px-6 py-3 text-left">Valor Negociado</th>
+                        <th className="px-6 py-3 text-left">Taxa Cobrada</th>
+                        <th className="px-6 py-3 text-left">Data</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {feeRevenue?.recentFees?.map((fee) => (
+                        <tr key={fee.id} className="hover:bg-white/5 transition-colors" data-testid={`fee-row-${fee.id}`}>
+                          <td className="px-6 py-4 text-white/80 font-mono text-sm">
+                            {fee.id.slice(0, 8)}...
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge 
+                              className={fee.type === "buy" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}
+                            >
+                              {fee.type === "buy" ? "Compra" : "Venda"}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-white font-mono">
+                            R$ {fee.tradeCost.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 text-green-500 font-mono font-bold">
+                            +R$ {fee.feeAmount.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 text-white/60 text-sm">
+                            {new Date(fee.createdAt).toLocaleString('pt-BR')}
+                          </td>
+                        </tr>
+                      ))}
+                      {(!feeRevenue?.recentFees || feeRevenue?.recentFees?.length === 0) && (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-8 text-center text-white/40">
+                            Nenhuma taxa registrada ainda
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
             </div>
           )}
 

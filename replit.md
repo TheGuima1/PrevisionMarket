@@ -37,7 +37,7 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
 - **Portfolio**: Overview of total value, invested amount, P&L, active positions, wallet management (deposit/withdrawal requests), and transaction history.
 - **Profile Page**: User profile management including username, email, and account settings.
 - **AI Assistant (Cachorro)**: Floating chat powered by GPT-5 (via Replit AI Integrations) offering context-aware responses and market recommendations.
-- **Admin Panel**: Dark-themed interface for managing deposits, withdrawals, blockchain token operations (mint/burn via MetaMask), markets, and users, including secure logout.
+- **Admin Panel**: Dark-themed interface for managing deposits, withdrawals, blockchain token operations (mint/burn via MetaMask), markets, users, and **platform fee revenue tracking**. Includes secure logout. New "Receita de Taxas" section shows total revenue, trade fees breakdown, transaction count, and detailed fee history table.
 
 ### System Design Choices
 - **E2E Validation**: Extensive Playwright E2E tests for critical user journeys.
@@ -56,6 +56,10 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
   - **Event Detail Page queryKey**: Fixed TanStack Query configuration in `/event/:slug` page - changed from `['/api/events', slug]` to `[\`/api/events/${slug}\`]` to properly fetch event data
   - **Deposit Schema Validation**: Fixed `insertPendingDepositSchema` walletAddress validation - changed from `.regex().optional()` to `.optional().refine()` to accept empty/undefined values while validating only when address is provided
   - **Graceful Shutdown**: Updated server shutdown to use `stopEventSync()` instead of deprecated `stopMirror()`
+  - **Admin Fee Revenue Tracking**: Added `/api/admin/fee-revenue` endpoint that aggregates platform fees from orders (feePaid field) and transactions (platform_fee type). New "Receita de Taxas" admin view displays total revenue, trade fees, transaction count, and recent fee history table
+  - **Silent Fee Deduction**: Removed 3% fee display from user-facing trade panel while maintaining fee collection. Users see final costs without explicit fee breakdown. Fee tracking visible only to admins
+  - **Full PT-BR Localization**: All user-facing text translated to Portuguese Brazil including buttons, labels, messages, and error messages. No English text visible to end users
+  - **Polymarket References Removed**: Removed all Polymarket branding and "Fonte de Resolucao" (Resolution Source) labels from user interface. Platform operates independently without external market references
 - **Blockchain Integration Reliability**: Comprehensive validation and error handling implemented for all blockchain operations:
   - **Startup Validation**: Verifies ADMIN_PRIVATE_KEY format, RPC connectivity, and contract ownership before server starts
   - **Preflight Balance Checks**: Admin wallet balance verified before burn operations to prevent DoS attacks

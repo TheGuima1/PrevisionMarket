@@ -7,7 +7,6 @@ interface MultiOptionEventCardProps {
   markets: Market[];
   eventTitle: string;
   eventSlug: string;
-  polymarketUrl?: string;
   icon?: "trophy" | "globe" | "vote";
 }
 
@@ -32,7 +31,6 @@ export function MultiOptionEventCard({
   markets, 
   eventTitle, 
   eventSlug,
-  polymarketUrl,
   icon = "globe"
 }: MultiOptionEventCardProps) {
   const [, setLocation] = useLocation();
@@ -100,29 +98,6 @@ export function MultiOptionEventCard({
           </div>
           <h2 className="font-semibold text-lg">{eventTitle}</h2>
         </div>
-        {polymarketUrl && (
-          <a
-            href={polymarketUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <span>Polymarket</span>
-            <svg
-              className="w-3 h-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-              />
-            </svg>
-          </a>
-        )}
       </div>
 
       <div className="divide-y divide-border">

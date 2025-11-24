@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Vote, Calendar, TrendingUp, ExternalLink } from "lucide-react";
+import { Vote, Calendar, TrendingUp } from "lucide-react";
 import { PriceChart } from "@/components/price-chart";
 import { TradePanel } from "@/components/trade-panel";
 import { format } from "date-fns";
@@ -136,23 +136,6 @@ export default function EventDetailPage() {
                   </div>
                 </div>
 
-                {polymarketSourceUrl && (
-                  <div className="text-xs text-muted-foreground flex items-center gap-2">
-                    <span>Fonte de Resolução</span>
-                    <a
-                      href={polymarketSourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline flex items-center gap-1"
-                      data-testid="link-polymarket-source"
-                    >
-                      Polymarket <ExternalLink className="w-3 h-3" />
-                    </a>
-                    {displayMarket?.polymarketSlug && (
-                      <span className="text-xs opacity-60">(mercado selecionado)</span>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -224,7 +207,7 @@ export default function EventDetailPage() {
                         }}
                         data-testid={`button-buy-yes-${index}`}
                       >
-                        Buy Yes {(alt.yesPrice * 100).toFixed(0)}¢
+                        Sim {(alt.yesPrice * 100).toFixed(0)}¢
                       </Button>
                       <Button
                         variant="outline"
@@ -239,7 +222,7 @@ export default function EventDetailPage() {
                         }}
                         data-testid={`button-buy-no-${index}`}
                       >
-                        Buy No {((1 - alt.yesPrice) * 100).toFixed(0)}¢
+                        Não {((1 - alt.yesPrice) * 100).toFixed(0)}¢
                       </Button>
                     </div>
                   </div>);

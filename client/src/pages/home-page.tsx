@@ -133,41 +133,25 @@ export default function HomePage() {
             });
             
             // Event metadata mapping (normalized keys without trailing spaces)
-            const eventMetadata: { [key: string]: { title: string; slug: string; url?: string; icon: "vote" | "globe" | "trophy" } } = {
+            const eventMetadata: { [key: string]: { title: string; slug: string; icon: "vote" | "globe" | "trophy" } } = {
               "Eleição Brasil 2026": {
                 title: "Eleição Presidencial Brasil 2026",
                 slug: "brazil-election-2026",
-                url: "https://polymarket.com/event/brazil-presidential-election",
                 icon: "vote"
               },
               "2026 FIFA World Cup Winner": {
-                title: "2026 FIFA World Cup Winner",
+                title: "Copa do Mundo FIFA 2026",
                 slug: "2026-fifa-world-cup-winner-595",
-                url: "https://polymarket.com/event/2026-fifa-world-cup-winner-595",
                 icon: "globe"
-              },
-              "Brasileiro Serie A League Winner": {
-                title: "Brasileiro Série A League Winner",
-                slug: "brasileiro-serie-a-league-winner",
-                url: "https://polymarket.com/event/brasileiro-serie-a-league-winner",
-                icon: "trophy"
               },
               "When will Bitcoin hit $150k?": {
-                title: "When will Bitcoin hit $150k?",
+                title: "Quando Bitcoin vai atingir $150k?",
                 slug: "when-will-bitcoin-hit-150k",
-                url: "https://polymarket.com/event/when-will-bitcoin-hit-150k",
-                icon: "globe"
-              },
-              "Top Spotify Artist 2025": {
-                title: "Top Spotify Artist 2025",
-                slug: "top-spotify-artist-2025",
-                url: "https://polymarket.com/event/top-spotify-artist-2025-146",
                 icon: "globe"
               },
               "US recession by end of 2026?": {
-                title: "US Recession by end of 2026?",
+                title: "Recessão nos EUA até 2026?",
                 slug: "us-recession-by-end-of-2026",
-                url: "https://polymarket.com/event/us-recession-by-end-of-2026",
                 icon: "globe"
               }
             };
@@ -189,7 +173,6 @@ export default function HomePage() {
                       markets={eventMarkets}
                       eventTitle={metadata.title}
                       eventSlug={metadata.slug}
-                      polymarketUrl={metadata.url}
                       icon={metadata.icon}
                     />
                   );

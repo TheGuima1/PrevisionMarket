@@ -1882,6 +1882,63 @@ Your role:
     }
   });
 
+  // GET /api/admin/fee-revenue - Get platform fee revenue summary
+  app.get("/api/admin/fee-revenue", requireAdmin, async (req, res) => {
+    try {
+      // Get all platform fee transactions
+      const feeTransactions = await db.query.transactions.findMany({
+        where: eq(transactions.type, "platform_fee"),
+        orderBy: (transactions, { desc }) => [desc(transactions.createdAt)],
+      });
+
+      // Get all orders with fees (trade fees)
+      const ordersWithFees = await db.select({
+        id: orders.id,
+        userId: orders.userId,
+        marketId: orders.marketId,
+        type: orders.type,
+        feePaid: orders.feePaid,
+        totalCost: orders.totalCost,
+        createdAt: orders.createdAt,
+      })
+        .from(orders)
+        .where(sql`CAST(${orders.feePaid} AS DECIMAL) > 0`)
+        .orderBy(desc(orders.createdAt));
+
+      // Calculate totals
+      const totalFeeFromTransactions = feeTransactions.reduce(
+        (sum, t) => sum + parseFloat(t.amount), 
+        0
+      );
+      const totalFeeFromOrders = ordersWithFees.reduce(
+        (sum, o) => sum + parseFloat(o.feePaid), 
+        0
+      );
+
+      // Format order fees as a simpler structure
+      const recentFees = ordersWithFees.slice(0, 50).map(o => ({
+        id: o.id,
+        userId: o.userId,
+        marketId: o.marketId,
+        type: o.type,
+        feeAmount: parseFloat(o.feePaid),
+        tradeCost: parseFloat(o.totalCost),
+        createdAt: o.createdAt,
+      }));
+
+      res.json({
+        totalRevenue: totalFeeFromTransactions + totalFeeFromOrders,
+        totalFromTransactions: totalFeeFromTransactions,
+        totalFromTrades: totalFeeFromOrders,
+        transactionCount: feeTransactions.length + ordersWithFees.length,
+        recentFees,
+      });
+    } catch (error) {
+      console.error("Failed to fetch fee revenue:", error);
+      res.status(500).send("Falha ao buscar receita de taxas.");
+    }
+  });
+
   // POST /api/admin/markets/validate-slug - Validate Polymarket slug and return preview
   app.post("/api/admin/markets/validate-slug", requireAdmin, async (req, res) => {
     try {
