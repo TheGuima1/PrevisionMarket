@@ -172,7 +172,7 @@ export default function EventDetailPage() {
 
             {/* Alternatives (Outcome List) */}
             <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">Candidatos</h2>
+              <h2 className="text-lg font-semibold mb-4">Opções</h2>
               <div className="space-y-3">
                 {sortedAlternatives.map((alt, index) => {
                   const isSelected = alt.id === displayMarket.id;
