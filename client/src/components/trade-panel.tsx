@@ -200,7 +200,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
                     <p className="text-xs font-medium mb-1">Preço Spot Polymarket</p>
-                    <p className="text-xs">Usamos o preço de consenso de mercado puro da Polymarket. Na execução, eles cobram spread adicional (~10-15%), mas aqui você vê e paga apenas o preço spot + nossa taxa de 2%.</p>
+                    <p className="text-xs">Usamos o preço de consenso de mercado puro da Polymarket. Na execução, eles cobram spread adicional (~10-15%), mas aqui você vê e paga apenas o preço spot + nossa taxa de 3%.</p>
                   </TooltipContent>
                 </Tooltip>
               </span>
@@ -228,40 +228,18 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               <span className="font-semibold tabular-nums" data-testid="text-total-cost-yes">{formatBRL3(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Taxa Palpites.AI (2%)</span>
+              <span className="text-muted-foreground">Taxas (3%)</span>
               <span className="font-semibold tabular-nums text-muted-foreground" data-testid="text-platform-fee-yes">
-                {stakeBRL > 0 ? formatBRL3(stakeBRL * 0.02) : formatBRL3(0)}
+                {stakeBRL > 0 ? formatBRL3(stakeBRL * 0.03) : formatBRL3(0)}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                Shares que você receberá
-              </span>
-              {isLoadingPreview && stakeBRL > 0 ? (
-                <Skeleton className="h-5 w-20" />
-              ) : (
-                <span className="font-semibold tabular-nums text-primary" data-testid="text-estimated-shares-yes">
-                  {estimatedShares > 0 ? `~${estimatedShares.toFixed(2)}` : "—"}
-                </span>
-              )}
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Retorno total (se ganhar)</span>
+            <div className="flex justify-between text-sm pt-2 border-t border-border">
+              <span className="text-muted-foreground font-medium">Retorno Total</span>
               {isLoadingPreview && stakeBRL > 0 ? (
                 <Skeleton className="h-5 w-24" />
               ) : (
-                <span className="font-semibold tabular-nums text-primary" data-testid="text-potential-payout-yes">
+                <span className="font-semibold tabular-nums text-primary text-base" data-testid="text-potential-payout-yes">
                   {formatBRL3(estimatedPayout)}
-                </span>
-              )}
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Lucro líquido</span>
-              {isLoadingPreview && stakeBRL > 0 ? (
-                <Skeleton className="h-5 w-24" />
-              ) : (
-                <span className={`font-semibold tabular-nums ${estimatedProfit >= 0 ? 'text-primary' : 'text-destructive'}`} data-testid="text-potential-profit-yes">
-                  {formatBRL3(estimatedProfit)}
                 </span>
               )}
             </div>
@@ -314,7 +292,7 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
                     <p className="text-xs font-medium mb-1">Preço Spot Polymarket</p>
-                    <p className="text-xs">Usamos o preço de consenso de mercado puro da Polymarket. Na execução, eles cobram spread adicional (~10-15%), mas aqui você vê e paga apenas o preço spot + nossa taxa de 2%.</p>
+                    <p className="text-xs">Usamos o preço de consenso de mercado puro da Polymarket. Na execução, eles cobram spread adicional (~10-15%), mas aqui você vê e paga apenas o preço spot + nossa taxa de 3%.</p>
                   </TooltipContent>
                 </Tooltip>
               </span>
@@ -342,40 +320,18 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
               <span className="font-semibold tabular-nums" data-testid="text-total-cost-no">{formatBRL3(stakeBRL)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Taxa Palpites.AI (2%)</span>
+              <span className="text-muted-foreground">Taxas (3%)</span>
               <span className="font-semibold tabular-nums text-muted-foreground" data-testid="text-platform-fee-no">
-                {stakeBRL > 0 ? formatBRL3(stakeBRL * 0.02) : formatBRL3(0)}
+                {stakeBRL > 0 ? formatBRL3(stakeBRL * 0.03) : formatBRL3(0)}
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                Shares que você receberá
-              </span>
-              {isLoadingPreview && stakeBRL > 0 ? (
-                <Skeleton className="h-5 w-20" />
-              ) : (
-                <span className="font-semibold tabular-nums text-destructive" data-testid="text-estimated-shares-no">
-                  {estimatedShares > 0 ? `~${estimatedShares.toFixed(2)}` : "—"}
-                </span>
-              )}
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Retorno total (se ganhar)</span>
+            <div className="flex justify-between text-sm pt-2 border-t border-border">
+              <span className="text-muted-foreground font-medium">Retorno Total</span>
               {isLoadingPreview && stakeBRL > 0 ? (
                 <Skeleton className="h-5 w-24" />
               ) : (
-                <span className="font-semibold tabular-nums text-destructive" data-testid="text-potential-payout-no">
+                <span className="font-semibold tabular-nums text-destructive text-base" data-testid="text-potential-payout-no">
                   {formatBRL3(estimatedPayout)}
-                </span>
-              )}
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Lucro líquido</span>
-              {isLoadingPreview && stakeBRL > 0 ? (
-                <Skeleton className="h-5 w-24" />
-              ) : (
-                <span className={`font-semibold tabular-nums ${estimatedProfit >= 0 ? 'text-destructive' : 'text-destructive/70'}`} data-testid="text-potential-profit-no">
-                  {formatBRL3(estimatedProfit)}
                 </span>
               )}
             </div>

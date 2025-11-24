@@ -3,8 +3,8 @@
  * 
  * MODEL:
  * - Display EXACT Polymarket odds to users (no visible spread)
- * - Charge 2% platform fee silently on execution
- * - Formula: shares = (stake - 2% fee) / polymarket_probability
+ * - Charge 3% platform fee silently on execution
+ * - Formula: shares = (stake - 3% fee) / polymarket_probability
  * - Payout: if wins, user gets shares × 1 BRL3
  */
 
@@ -13,7 +13,7 @@ export interface AMMPricingInput {
   noReserve: number;
   stake: number;
   outcome: 'yes' | 'no';
-  platformFeeBps?: number; // Default: 200 (2%)
+  platformFeeBps?: number; // Default: 300 (3%)
 }
 
 export interface AMMPricingResult {
@@ -23,8 +23,8 @@ export interface AMMPricingResult {
   displayOddsYes: number;  // Decimal odds (e.g., 7.41)
   displayOddsNo: number;
   
-  // Execution values (after 2% fee)
-  platformFee: number;     // 2% of stake
+  // Execution values (after 3% fee)
+  platformFee: number;     // 3% of stake
   netStake: number;        // stake - platformFee
   netShares: number;       // netStake / displayProbability
   potentialPayout: number; // netShares × 1 BRL3
@@ -33,10 +33,10 @@ export interface AMMPricingResult {
 
 /**
  * Calculate unified AMM pricing
- * Shows user EXACT Polymarket odds, charges 2% silently
+ * Shows user EXACT Polymarket odds, charges 3% silently
  */
 export function calculateAMMPricing(input: AMMPricingInput): AMMPricingResult {
-  const { yesReserve, noReserve, stake, outcome, platformFeeBps = 200 } = input;
+  const { yesReserve, noReserve, stake, outcome, platformFeeBps = 300 } = input;
   
   // Validate reserves
   if (yesReserve <= 0 || noReserve <= 0) {
@@ -56,7 +56,7 @@ export function calculateAMMPricing(input: AMMPricingInput): AMMPricingResult {
   const displayOddsYes = 1 / displayProbYes;
   const displayOddsNo = 1 / displayProbNo;
   
-  // Apply 2% platform fee SILENTLY (user doesn't see this)
+  // Apply 3% platform fee SILENTLY (user doesn't see this)
   const platformFee = stake * (platformFeeBps / 10000);
   const netStake = stake - platformFee;
   

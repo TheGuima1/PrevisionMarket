@@ -614,13 +614,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Bought ${tradeResult.sharesBought.toFixed(2)} ${validated.type.toUpperCase()} shares in "${market.title}"`,
       });
 
-      // Register platform fee (2%) as separate transaction
+      // Register platform fee (3%) as separate transaction
       if (spreadFee > 0) {
         await storage.createTransaction(userId, {
           type: "platform_fee",
           amount: spreadFee.toFixed(6),
           currency: "BRL",
-          description: `Taxa Palpites.AI (${(200 / 100).toFixed(2)}%)`,
+          description: `Taxa Palpites.AI (${(300 / 100).toFixed(2)}%)`,
         });
       }
 
@@ -655,7 +655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const stake = validated.usdcAmount;
 
-      // Use unified AMM pricing service (shows Polymarket odds, charges 2% silently)
+      // Use unified AMM pricing service (shows Polymarket odds, charges 3% silently)
       const { calculateAMMPricing } = await import("./amm-pricing");
       
       const pricing = calculateAMMPricing({
@@ -663,7 +663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         noReserve: parseFloat(market.noReserve),
         stake,
         outcome: validated.type,
-        platformFeeBps: 200, // 2% platform fee
+        platformFeeBps: 300, // 3% platform fee
       });
 
       res.json({
@@ -676,7 +676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Trade execution details
         estimatedShares: parseFloat(pricing.netShares.toFixed(4)),
         totalCost: stake,
-        platformFee: parseFloat(pricing.platformFee.toFixed(4)), // Silent 2% fee
+        platformFee: parseFloat(pricing.platformFee.toFixed(4)), // Silent 3% fee
         potentialPayout: parseFloat(pricing.potentialPayout.toFixed(2)),
         potentialProfit: parseFloat(pricing.potentialProfit.toFixed(2)),
       });

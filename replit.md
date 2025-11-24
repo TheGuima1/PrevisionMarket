@@ -24,7 +24,7 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
 - **Token Architecture**: Users receive database-managed BRL3 balances (1:1 with real BRL) after PIX deposits. Actual tokens remain in admin wallet for accounting purposes. Admin backend service mints tokens to admin wallet when approving deposits and burns from admin wallet when approving withdrawals. No user wallets or MetaMask required for end users.
 - **Dynamic Market Management**: Admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. **Event Sync Worker** (`server/mirror/event-sync-worker.ts`) syncs complete events from Polymarket every 5 minutes (108 markets across 6 events: Brazil Election, FIFA World Cup, Brasileiro Série A, Bitcoin $150k, Spotify Artist, US Recession). Sync worker also creates probability snapshots for historical chart data.
 - **Polymarket Adapter**: Fetches market data from Polymarket's Gamma API with a 10-minute cache.
-- **Prediction Market Core**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 2% spread.
+- **Prediction Market Core**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 3% platform fee.
 - **Localization**: Full PT-BR localization for UI and backend messages.
 
 ### Feature Specifications
@@ -43,7 +43,7 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
 - **E2E Validation**: Extensive Playwright E2E tests for critical user journeys.
 - **Cache Invalidation**: TanStack Query configured for efficient cache invalidation.
 - **Mocked Features**: Pix and Crypto payments, along with manual market resolution, are mocked for the MVP.
-- **Pricing Strategy**: Uses Polymarket's "spot price" from the Gamma API, offering users ~10-15% better odds than Polymarket's execution price, with a 2% platform fee.
+- **Pricing Strategy**: Uses Polymarket's "spot price" from the Gamma API, offering users ~10-15% better odds than Polymarket's execution price, with a 3% platform fee.
 - **Production Deployment Optimization**: Asynchronous mirror worker initialization and database seeding to prevent deployment health check timeouts.
 - **Replit Autoscale Health Checks**: Optimized with `/healthz` (no DB) and `/health` (with DB ping) endpoints.
 - **Code Cleanup**: Repository cleaned of unused assets, legacy routes, and duplicated code.
