@@ -1005,29 +1005,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Update user balance in database (tokens stay in admin wallet)
         const newBalance = (parseFloat(depositUser.balanceBrl) + depositAmount).toFixed(2);
-        await storage.updateUserBalance(depositUser.id, newBalance);
+        await storage.updateUserBalance(depositUser.id, newBalance, depositUser.balanceUsdc);
         console.log(`💳 [Deposit Approve] Updated user ${depositUser.username} balance: ${newBalance} BRL3`);
 
         // Approve the deposit
-        const approved = await storage.approvePendingDeposit(
-          depositId,
-          user.id,
-          mintResult.txHash,
-          depositAmount.toString(),
-          ethers.parseUnits(deposit.amount, TOKEN_DECIMALS).toString()
-        );
+        const approved = await storage.approvePendingDeposit(depositId, user.id, {
+          txHash: mintResult.txHash,
+          mintedTokenAmount: depositAmount.toString(),
+          mintedTokenAmountRaw: ethers.parseUnits(deposit.amount, TOKEN_DECIMALS).toString(),
+        });
 
         // Create transaction record
-        await storage.createTransaction({
-          userId: depositUser.id,
-          type: "deposit",
+        await storage.createTransaction(depositUser.id, {
+          type: "deposit_pix",
           amount: deposit.amount,
           currency: "BRL",
-          status: "completed",
           metadata: {
             depositId,
             txHash: mintResult.txHash,
             approvedBy: user.id,
+            status: "completed",
           },
         });
 
@@ -1289,30 +1286,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Update user balance in database
         const newBalance = (currentBalance - withdrawAmount).toFixed(2);
-        await storage.updateUserBalance(withdrawUser.id, newBalance);
+        await storage.updateUserBalance(withdrawUser.id, newBalance, withdrawUser.balanceUsdc);
         console.log(`💳 [Withdrawal Approve] Updated user ${withdrawUser.username} balance: ${newBalance} BRL3`);
 
         // Approve the withdrawal
-        const approved = await storage.approvePendingWithdrawal(
-          withdrawalId,
-          user.id,
-          burnResult.txHash,
-          withdrawAmount.toString(),
-          ethers.parseUnits(withdrawal.amount, TOKEN_DECIMALS).toString()
-        );
+        const approved = await storage.approvePendingWithdrawal(withdrawalId, user.id, {
+          txHash: burnResult.txHash,
+          burnedTokenAmount: withdrawAmount.toString(),
+          burnedTokenAmountRaw: ethers.parseUnits(withdrawal.amount, TOKEN_DECIMALS).toString(),
+        });
 
         // Create transaction record
-        await storage.createTransaction({
-          userId: withdrawUser.id,
-          type: "withdrawal",
+        await storage.createTransaction(withdrawUser.id, {
+          type: "withdrawal_pix",
           amount: withdrawal.amount,
           currency: "BRL",
-          status: "completed",
           metadata: {
             withdrawalId,
             txHash: burnResult.txHash,
             approvedBy: user.id,
             pixKey: withdrawal.pixKey,
+            status: "completed",
           },
         });
 
