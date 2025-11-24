@@ -490,6 +490,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...event,
         totalVolume: totalVolume.toFixed(2),
         alternatives: alternativeMarkets,
+        polymarketUrl: event.polymarketSlug 
+          ? `https://polymarket.com/event/${event.polymarketSlug}`
+          : null,
       });
     } catch (error) {
       console.error("Failed to fetch event:", error);

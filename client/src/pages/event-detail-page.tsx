@@ -22,6 +22,7 @@ interface EventData {
   endDate: string;
   totalVolume: string;
   alternatives: Market[];
+  polymarketUrl: string | null;
 }
 
 export default function EventDetailPage() {
@@ -92,6 +93,11 @@ export default function EventDetailPage() {
   const displayMarket = selectedMarketId 
     ? sortedAlternatives.find(m => m.id === selectedMarketId) || sortedAlternatives[0]
     : sortedAlternatives[0];
+  
+  // Get Polymarket URL for selected market or event
+  const polymarketSourceUrl = displayMarket?.polymarketSlug
+    ? `https://polymarket.com/market/${displayMarket.polymarketSlug}`
+    : event.polymarketUrl;
 
   return (
     <div className="min-h-screen bg-background">
@@ -130,17 +136,23 @@ export default function EventDetailPage() {
                   </div>
                 </div>
 
-                <div className="text-xs text-muted-foreground flex items-center gap-2">
-                  <span>Fonte de Resolução</span>
-                  <a
-                    href="https://polymarket.com/event/brazil-presidential-election"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline flex items-center gap-1"
-                  >
-                    Polymarket <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
+                {polymarketSourceUrl && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-2">
+                    <span>Fonte de Resolução</span>
+                    <a
+                      href={polymarketSourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline flex items-center gap-1"
+                      data-testid="link-polymarket-source"
+                    >
+                      Polymarket <ExternalLink className="w-3 h-3" />
+                    </a>
+                    {displayMarket?.polymarketSlug && (
+                      <span className="text-xs opacity-60">(mercado selecionado)</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
