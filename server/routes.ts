@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { insertMarketSchema, insertOrderSchema, insertMarketOrderSchema, insertCommentSchema, insertPendingDepositSchema, insertPendingWithdrawalSchema, orders, markets, polymarketMarkets, polymarketSnapshots, positions, ammSnapshots, pendingDeposits, pendingWithdrawals, transactions, comments } from "@shared/schema";
-import { ADMIN_WALLET_ADDRESS } from "@shared/blockchain-config";
+import { ADMIN_WALLET_ADDRESS, TOKEN_DECIMALS } from "@shared/blockchain-config";
 import OpenAI from "openai";
 import { z } from "zod";
 import { ethers } from "ethers";
@@ -81,8 +81,6 @@ const errorMessages = {
   INVALID_FILE_TYPE: "Tipo de arquivo inválido. Envie um arquivo PDF.",
   FILE_TOO_LARGE: "Arquivo muito grande. Tamanho máximo: 5MB.",
 } as const;
-
-const TOKEN_DECIMALS = 18;
 
 // Initialize OpenAI for AI assistant
 // Using Replit's AI Integrations service (no API key needed)
