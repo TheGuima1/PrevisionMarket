@@ -38,13 +38,54 @@ export function MultiOptionEventCard({
   const [, setLocation] = useLocation();
   const IconComponent = iconMap[icon];
   
+  // For binary markets (single market), create virtual YES/NO options
+  // For multi-option markets, show top 2 actual markets
   const topTwoOptions = useMemo(() => {
+    if (markets.length === 1) {
+      // Single binary market: show YES and NO as two options
+      const market = markets[0];
+      const yesProb = parseFloat(market.yesReserve) / (parseFloat(market.yesReserve) + parseFloat(market.noReserve));
+      const noProb = 1 - yesProb;
+      const volume = parseFloat(market.totalVolume || "0");
+      const priceChange = market.oneDayPriceChange ? parseFloat(market.oneDayPriceChange) : 0;
+      
+      return [
+        {
+          ...market,
+          id: `${market.id}-yes`,
+          title: "SIM",
+          displaySlug: "sim", // ASCII-only slug for data-testid
+          probability: yesProb,
+          volume,
+          priceChange,
+          isVirtual: true,
+        },
+        {
+          ...market,
+          id: `${market.id}-no`,
+          title: "NAO", // ASCII-only to avoid slug normalization issues
+          displaySlug: "nao", // ASCII-only slug for data-testid
+          probability: noProb,
+          volume,
+          priceChange, // Same direction (price change applies to market, not individual YES/NO)
+          isVirtual: true,
+        },
+      ];
+    }
+    
+    // Multi-option event: show top 2 markets
     const sorted = [...markets].sort((a, b) => {
       const probA = parseFloat(a.yesReserve) / (parseFloat(a.yesReserve) + parseFloat(a.noReserve));
       const probB = parseFloat(b.yesReserve) / (parseFloat(b.yesReserve) + parseFloat(b.noReserve));
       return probB - probA;
     });
-    return sorted.slice(0, 2);
+    return sorted.slice(0, 2).map(m => ({
+      ...m,
+      probability: parseFloat(m.yesReserve) / (parseFloat(m.yesReserve) + parseFloat(m.noReserve)),
+      volume: parseFloat(m.totalVolume || "0"),
+      priceChange: m.oneDayPriceChange ? parseFloat(m.oneDayPriceChange) : 0,
+      isVirtual: false,
+    }));
   }, [markets]);
 
   return (
@@ -85,7 +126,7 @@ export function MultiOptionEventCard({
       </div>
 
       <div className="divide-y divide-border">
-        {topTwoOptions.map((market, index) => {
+        {topTwoOptions.map((option, index) => {
           // Extract option name by removing common suffixes
           const extractOptionName = (title: string): string => {
             const patterns = [
@@ -106,24 +147,23 @@ export function MultiOptionEventCard({
             return title;
           };
           
-          const optionName = extractOptionName(market.title);
-          const prob = parseFloat(market.yesReserve) / (parseFloat(market.yesReserve) + parseFloat(market.noReserve));
-          const volume = parseFloat(market.totalVolume || "0");
+          const optionName = extractOptionName(option.title);
+          const prob = (option as any).probability || (parseFloat(option.yesReserve) / (parseFloat(option.yesReserve) + parseFloat(option.noReserve)));
+          const volume = (option as any).volume || parseFloat(option.totalVolume || "0");
           
-          const priceChange = market.oneDayPriceChange 
-            ? parseFloat(market.oneDayPriceChange) 
-            : 0;
+          const priceChange = (option as any).priceChange || (option.oneDayPriceChange ? parseFloat(option.oneDayPriceChange) : 0);
           const priceChangeColor = priceChange >= 0 ? "text-green-500" : "text-red-500";
           const priceChangeSign = priceChange >= 0 ? "+" : "";
           
-          const optionSlug = optionName.toLowerCase().replace(/\s+/g, '-');
+          // Use pre-computed ASCII slug for virtual options, otherwise generate from name
+          const optionSlug = (option as any).displaySlug || optionName.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
           const color = getAvatarColor(index);
           
           return (
             <div 
-              key={market.id} 
+              key={option.id} 
               className="p-4 hover-elevate active-elevate-2 transition-colors cursor-pointer"
-              onClick={() => setLocation(`/event/${eventSlug}`)}
+              onClick={() => (option as any).isVirtual ? setLocation(`/market/${markets[0].id}`) : setLocation(`/event/${eventSlug}`)}
               data-testid={`row-option-${optionSlug}`}
             >
               <div className="flex items-center justify-between gap-4">
