@@ -75,8 +75,8 @@ export default function MarketDetailPage() {
   const yesPrice = getYesPriceFromReserves(market.yesReserve, market.noReserve);
   const noPrice = getNoPriceFromReserves(market.yesReserve, market.noReserve);
   
-  const yesPct = (yesPrice * 100).toFixed(2);
-  const noPct = (noPrice * 100).toFixed(2);
+  const yesPct = Math.round(yesPrice * 100);
+  const noPct = Math.round(noPrice * 100);
 
   return (
     <div className="min-h-screen bg-background">

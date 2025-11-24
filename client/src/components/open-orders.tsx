@@ -74,10 +74,10 @@ export function OpenOrders() {
       ) : (
         <div className="space-y-3">
           {openOrders.map((order) => {
-            const pricePercent = (parseFloat(order.price) * 100).toFixed(1);
+            const pricePercent = Math.round(parseFloat(order.price) * 100);
             const filled = parseFloat(order.filledShares);
             const total = parseFloat(order.shares);
-            const fillPercent = total > 0 ? ((filled / total) * 100).toFixed(0) : "0";
+            const fillPercent = total > 0 ? Math.round((filled / total) * 100) : 0;
 
             return (
               <div

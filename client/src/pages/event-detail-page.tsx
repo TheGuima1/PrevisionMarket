@@ -71,7 +71,7 @@ export default function EventDetailPage() {
       alt.yesReserve,
       alt.noReserve
     );
-    const percentage = (yesPrice * 100).toFixed(1);
+    const percentage = Math.round(yesPrice * 100);
     
     // Get price change
     const priceChange = alt.oneDayPriceChange 
@@ -81,7 +81,7 @@ export default function EventDetailPage() {
     return {
       ...alt,
       yesPrice,
-      percentage: parseFloat(percentage),
+      percentage,
       priceChange,
     };
   });
@@ -187,7 +187,7 @@ export default function EventDetailPage() {
                       </div>
                       {alt.priceChange !== 0 && (
                         <div className={`text-sm ${alt.priceChange > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                          {alt.priceChange > 0 ? '+' : ''}{(alt.priceChange * 100).toFixed(1)}%
+                          {alt.priceChange > 0 ? '+' : ''}{Math.round(alt.priceChange * 100)}%
                         </div>
                       )}
                     </div>
@@ -207,7 +207,7 @@ export default function EventDetailPage() {
                         }}
                         data-testid={`button-buy-yes-${index}`}
                       >
-                        Sim {(alt.yesPrice * 100).toFixed(0)}¢
+                        Sim {Math.round(alt.yesPrice * 100)}¢
                       </Button>
                       <Button
                         variant="outline"
@@ -222,7 +222,7 @@ export default function EventDetailPage() {
                         }}
                         data-testid={`button-buy-no-${index}`}
                       >
-                        Não {((1 - alt.yesPrice) * 100).toFixed(0)}¢
+                        Não {Math.round((1 - alt.yesPrice) * 100)}¢
                       </Button>
                     </div>
                   </div>);

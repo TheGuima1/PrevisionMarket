@@ -1333,13 +1333,13 @@ export default function AdminPage() {
                           <div>
                             <p className="text-sm text-white/60 mb-1">Odds YES</p>
                             <p className="text-2xl font-mono font-bold text-primary">
-                              {((polyPreview.probYes || 0) * 100).toFixed(1)}%
+                              {Math.round((polyPreview.probYes || 0) * 100)}%
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-white/60 mb-1">Odds NO</p>
                             <p className="text-2xl font-mono font-bold text-red-500">
-                              {((polyPreview.probNo || 0) * 100).toFixed(1)}%
+                              {Math.round((polyPreview.probNo || 0) * 100)}%
                             </p>
                           </div>
                         </div>

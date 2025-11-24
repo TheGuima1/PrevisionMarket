@@ -60,10 +60,10 @@ export function formatOdds(odds: number): string {
 }
 
 /**
- * Formata probabilidade como percentual
+ * Formata probabilidade como percentual (arredondado para inteiro)
  */
 export function formatProbability(prob: number): string {
-  return `${(prob * 100).toFixed(2)}%`;
+  return `${Math.round(prob * 100)}%`;
 }
 
 /**

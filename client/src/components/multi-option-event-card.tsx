@@ -171,14 +171,14 @@ export function MultiOptionEventCard({
                     className="font-bold text-lg"
                     data-testid={`percentage-${optionSlug}`}
                   >
-                    {(prob * 100).toFixed(1)}%
+                    {Math.round(prob * 100)}%
                   </span>
                   {priceChange !== 0 && (
                     <span 
                       className={`text-xs font-medium ${priceChangeColor}`}
                       data-testid={`change-${optionSlug}`}
                     >
-                      {priceChangeSign}{(priceChange * 100).toFixed(1)}%
+                      {priceChangeSign}{Math.round(priceChange * 100)}%
                     </span>
                   )}
                 </div>

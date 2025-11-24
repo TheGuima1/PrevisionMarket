@@ -33,8 +33,8 @@ export function ModernMarketCard({ market }: ModernMarketCardProps) {
   const yesProb = getYesPriceFromReserves(market.yesReserve, market.noReserve);
   const noProb = getNoPriceFromReserves(market.yesReserve, market.noReserve);
   
-  const yesPct = (yesProb * 100).toFixed(2);
-  const noPct = (noProb * 100).toFixed(2);
+  const yesPct = Math.round(yesProb * 100);
+  const noPct = Math.round(noProb * 100);
   
   const yesOdds = yesProb > 0 ? (1 / yesProb).toFixed(2) : "∞";
   const noOdds = noProb > 0 ? (1 / noProb).toFixed(2) : "∞";
