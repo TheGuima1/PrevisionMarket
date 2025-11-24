@@ -139,13 +139,13 @@ export default function HomePage() {
               },
               "2026 FIFA World Cup Winner": {
                 title: "2026 FIFA World Cup Winner",
-                slug: "2026-fifa-world-cup-winner",
+                slug: "2026-fifa-world-cup-winner-595",
                 url: "https://polymarket.com/event/2026-fifa-world-cup-winner-595",
                 icon: "globe"
               },
               "Brasileiro Serie A League Winner": {
                 title: "Brasileiro Série A League Winner",
-                slug: "brasileiro-serie-a-winner",
+                slug: "brasileiro-serie-a-league-winner",
                 url: "https://polymarket.com/event/brasileiro-serie-a-league-winner",
                 icon: "trophy"
               }
