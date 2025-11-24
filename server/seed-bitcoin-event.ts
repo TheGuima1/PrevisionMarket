@@ -4,6 +4,7 @@
 
 import { db } from "./db";
 import { markets, events as eventsTable, eventMarkets } from "@shared/schema";
+import { translateMarketTitle } from "./utils/translations";
 
 const GAMMA_API = 'https://gamma-api.polymarket.com';
 
@@ -101,8 +102,9 @@ async function seedBitcoinEvent() {
       const yesReserve = 10000 * (1 - probYes);
       const noReserve = 10000 * probYes;
       
+      const rawTitle = polyMarket.groupItemTitle || polyMarket.question;
       const [newMarket] = await db.insert(markets).values({
-        title: polyMarket.groupItemTitle || polyMarket.question,
+        title: translateMarketTitle(rawTitle),
         description: polyMarket.question,
         category: 'crypto' as const,
         tags: [polyEvent.title],
