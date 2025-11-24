@@ -163,17 +163,25 @@ export default function HomePage() {
                 {/* ALL Events - Top 2 format (mesmo visual para todos) */}
                 {allEvents.map(({ tag, markets: eventMarkets }) => {
                   const normalizedTag = tag.trim();
+                  
+                  // Para mercados binários (1 mercado), usar o título do próprio mercado
+                  // Para multi-market events, usar o metadata ou tag
+                  const isBinaryMarket = eventMarkets.length === 1;
+                  
                   const metadata = eventMetadata[normalizedTag] || {
-                    title: normalizedTag,
+                    title: isBinaryMarket ? eventMarkets[0].title : normalizedTag,
                     slug: normalizedTag.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, ''),
                     icon: "globe" as const
                   };
+                  
+                  // Sempre usar título do mercado para mercados binários
+                  const displayTitle = isBinaryMarket ? eventMarkets[0].title : metadata.title;
                   
                   return (
                     <MultiOptionEventCard
                       key={tag}
                       markets={eventMarkets}
-                      eventTitle={metadata.title}
+                      eventTitle={displayTitle}
                       eventSlug={metadata.slug}
                       icon={metadata.icon}
                     />
