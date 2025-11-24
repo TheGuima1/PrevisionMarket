@@ -89,10 +89,10 @@ export default function HomePage() {
             const genericTags = new Set([
               'Brasil', 'Brazil', 'Política', 'Politics', 'Esportes', 'Sports',
               'Economia', 'Economy', 'Eleições', 'Elections', 'Futebol', 'Football',
-              'Cripto', 'Crypto', 'Tecnologia', 'Technology'
+              'Cripto', 'Crypto', 'Tecnologia', 'Technology', 'Music', 'Música'
             ]);
             
-            // Group markets by tags to detect multi-option events
+            // Group markets by tags to detect events
             const tagGroups: { [key: string]: Market[] } = {};
             
             markets.forEach(market => {
@@ -109,24 +109,28 @@ export default function HomePage() {
               });
             });
             
-            // Separate multi-option events (3+ markets) from binary markets
-            // Prioritize longer, more specific tags
-            const multiOptionEvents: { tag: string; markets: Market[] }[] = [];
+            // ALL markets should be displayed in the same top-2 format
+            // Group events by tag, prioritize longer/more specific tags
+            const allEvents: { tag: string; markets: Market[] }[] = [];
             const processedMarketIds = new Set<string>();
             
             Object.entries(tagGroups)
               .sort(([tagA], [tagB]) => tagB.length - tagA.length) // Longer tags first
               .forEach(([tag, tagMarkets]) => {
-                // Group if 4+ markets (multi-option events and grouped binary markets)
+                // Group markets that share a tag (even single markets become 1-item groups)
                 const unprocessedMarkets = tagMarkets.filter(m => !processedMarketIds.has(m.id));
                 
-                if (unprocessedMarkets.length >= 4) {
-                  multiOptionEvents.push({ tag, markets: unprocessedMarkets });
+                if (unprocessedMarkets.length > 0) {
+                  allEvents.push({ tag, markets: unprocessedMarkets });
                   unprocessedMarkets.forEach(m => processedMarketIds.add(m.id));
                 }
               });
             
-            const binaryMarkets = markets.filter(m => !processedMarketIds.has(m.id));
+            // Any remaining markets without tags get individual cards
+            const ungroupedMarkets = markets.filter(m => !processedMarketIds.has(m.id));
+            ungroupedMarkets.forEach(market => {
+              allEvents.push({ tag: market.title, markets: [market] });
+            });
             
             // Event metadata mapping (normalized keys without trailing spaces)
             const eventMetadata: { [key: string]: { title: string; slug: string; url?: string; icon: "vote" | "globe" | "trophy" } } = {
@@ -159,13 +163,19 @@ export default function HomePage() {
                 slug: "top-spotify-artist-2025",
                 url: "https://polymarket.com/event/top-spotify-artist-2025-146",
                 icon: "globe"
+              },
+              "US recession by end of 2026?": {
+                title: "US Recession by end of 2026?",
+                slug: "us-recession-by-end-of-2026",
+                url: "https://polymarket.com/event/us-recession-by-end-of-2026",
+                icon: "globe"
               }
             };
             
             return (
               <div className="space-y-8">
-                {/* Multi-option Events - Top 2 format */}
-                {multiOptionEvents.map(({ tag, markets: eventMarkets }) => {
+                {/* ALL Events - Top 2 format (mesmo visual para todos) */}
+                {allEvents.map(({ tag, markets: eventMarkets }) => {
                   const normalizedTag = tag.trim();
                   const metadata = eventMetadata[normalizedTag] || {
                     title: normalizedTag,
@@ -184,15 +194,6 @@ export default function HomePage() {
                     />
                   );
                 })}
-                
-                {/* Binary Markets - Traditional cards */}
-                {binaryMarkets.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="grid-markets">
-                    {binaryMarkets.map((market) => (
-                      <ModernMarketCard key={market.id} market={market} />
-                    ))}
-                  </div>
-                )}
               </div>
             );
           })()}
