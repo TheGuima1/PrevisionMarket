@@ -970,17 +970,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/deposits/:id/approve - Admin approves a deposit
-  app.post("/api/deposits/:id/approve", requireAuth, async (req, res) => {
+  // POST /api/deposits/:id/approve - Admin approves a deposit and mints BRL3 via backend
+  app.post("/api/deposits/:id/approve", requireAuth, requireAdmin, async (req, res) => {
     try {
       console.log(`📥 [Deposit Approve] Request received for deposit ID: ${req.params.id}`);
       const user = req.user!;
-      console.log(`👤 [Deposit Approve] User: ${user.email}, isAdmin: ${user.isAdmin}`);
-      
-      if (!user.isAdmin) {
-        console.log(`❌ [Deposit Approve] Forbidden - user is not admin`);
-        return res.status(403).send(errorMessages.FORBIDDEN);
-      }
+      console.log(`👤 [Deposit Approve] Admin: ${user.email}`);
 
       const depositId = req.params.id;
       const deposit = await storage.getPendingDeposit(depositId);
@@ -1001,31 +996,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const depositAmount = parseFloat(deposit.amount);
+      console.log(`💰 [Deposit Approve] Minting ${depositAmount} BRL3 to admin wallet via backend...`);
 
-      // ⚠️ VALIDAÇÃO APENAS: MetaMask fará o mint no frontend
-      // Endpoint apenas retorna os dados necessários para o frontend processar
-      console.log(`✅ [Deposit Approve] Validation passed - returning data for frontend MetaMask mint`);
-      
-      res.json({ 
-        success: true, 
-        deposit: {
-          id: deposit.id,
-          userId: deposit.userId,
+      try {
+        // Mint tokens to admin wallet using backend private key
+        const mintResult = await blockchainService.mint(ADMIN_WALLET_ADDRESS, deposit.amount);
+        console.log(`✅ [Deposit Approve] Mint successful! TX: ${mintResult.txHash}`);
+
+        // Update user balance in database (tokens stay in admin wallet)
+        const newBalance = (parseFloat(depositUser.balanceBrl) + depositAmount).toFixed(2);
+        await storage.updateUserBalance(depositUser.id, newBalance);
+        console.log(`💳 [Deposit Approve] Updated user ${depositUser.username} balance: ${newBalance} BRL3`);
+
+        // Approve the deposit
+        const approved = await storage.approvePendingDeposit(
+          depositId,
+          user.id,
+          mintResult.txHash,
+          depositAmount.toString(),
+          ethers.parseUnits(deposit.amount, TOKEN_DECIMALS).toString()
+        );
+
+        // Create transaction record
+        await storage.createTransaction({
+          userId: depositUser.id,
+          type: "deposit",
           amount: deposit.amount,
-          currency: deposit.currency,
-          walletAddress: deposit.walletAddress,
-          status: deposit.status,
-          user: {
-            username: depositUser.username,
-            email: depositUser.email,
-            currentBalance: depositUser.balanceBrl
-          }
-        },
-        message: `Depósito validado. Confirme a transação no MetaMask para mintar ${depositAmount} BRL3.`
-      });
-    } catch (error) {
+          currency: "BRL",
+          status: "completed",
+          metadata: {
+            depositId,
+            txHash: mintResult.txHash,
+            approvedBy: user.id,
+          },
+        });
+
+        res.json({
+          success: true,
+          deposit: approved,
+          txHash: mintResult.txHash,
+          newBalance,
+          message: `Depósito aprovado! ${depositAmount} BRL3 mintados. Hash: ${mintResult.txHash.slice(0, 10)}...`,
+        });
+      } catch (mintError: any) {
+        console.error(`❌ [Deposit Approve] Mint failed:`, mintError);
+        throw new Error(`Falha ao mintar tokens: ${mintError.message}`);
+      }
+    } catch (error: any) {
       console.error("Failed to approve deposit:", error);
-      res.status(500).send("Falha ao aprovar depósito.");
+      res.status(500).json({ error: error.message || "Falha ao aprovar depósito." });
     }
   });
 
@@ -1225,17 +1244,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/withdrawals/:id/approve - Admin approves withdrawal
-  app.post("/api/withdrawals/:id/approve", requireAuth, async (req, res) => {
+  // POST /api/withdrawals/:id/approve - Admin approves withdrawal and burns BRL3 via backend
+  app.post("/api/withdrawals/:id/approve", requireAuth, requireAdmin, async (req, res) => {
     try {
       console.log(`💸 [Withdrawal Approve] Request received for withdrawal ID: ${req.params.id}`);
       const user = req.user!;
-      console.log(`👤 [Withdrawal Approve] User: ${user.email}, isAdmin: ${user.isAdmin}`);
-      
-      if (!user.isAdmin) {
-        console.log(`❌ [Withdrawal Approve] Forbidden - user is not admin`);
-        return res.status(403).send(errorMessages.FORBIDDEN);
-      }
+      console.log(`👤 [Withdrawal Approve] Admin: ${user.email}`);
 
       const withdrawalId = req.params.id;
       const withdrawal = await storage.getPendingWithdrawal(withdrawalId);
@@ -1266,31 +1280,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send(`Saldo insuficiente no momento da aprovação. Saldo atual: ${currentBalance.toFixed(2)} ${withdrawal.currency}.`);
       }
 
-      // ⚠️ VALIDAÇÃO APENAS: MetaMask fará o burn no frontend
-      // Endpoint apenas retorna os dados necessários para o frontend processar
-      console.log(`✅ [Withdrawal Approve] Validation passed - returning data for frontend MetaMask burn`);
-      
-      res.json({ 
-        success: true, 
-        withdrawal: {
-          id: withdrawal.id,
-          userId: withdrawal.userId,
+      console.log(`🔥 [Withdrawal Approve] Burning ${withdrawAmount} BRL3 from admin wallet via backend...`);
+
+      try {
+        // Burn tokens from admin wallet using backend private key
+        const burnResult = await blockchainService.burn(withdrawal.amount);
+        console.log(`✅ [Withdrawal Approve] Burn successful! TX: ${burnResult.txHash}`);
+
+        // Update user balance in database
+        const newBalance = (currentBalance - withdrawAmount).toFixed(2);
+        await storage.updateUserBalance(withdrawUser.id, newBalance);
+        console.log(`💳 [Withdrawal Approve] Updated user ${withdrawUser.username} balance: ${newBalance} BRL3`);
+
+        // Approve the withdrawal
+        const approved = await storage.approvePendingWithdrawal(
+          withdrawalId,
+          user.id,
+          burnResult.txHash,
+          withdrawAmount.toString(),
+          ethers.parseUnits(withdrawal.amount, TOKEN_DECIMALS).toString()
+        );
+
+        // Create transaction record
+        await storage.createTransaction({
+          userId: withdrawUser.id,
+          type: "withdrawal",
           amount: withdrawal.amount,
-          currency: withdrawal.currency,
-          pixKey: withdrawal.pixKey,
-          walletAddress: withdrawal.walletAddress,
-          status: withdrawal.status,
-          user: {
-            username: withdrawUser.username,
-            email: withdrawUser.email,
-            currentBalance: withdrawUser.balanceBrl
-          }
-        },
-        message: `Saque validado. Confirme a transação no MetaMask para queimar ${withdrawAmount} BRL3.`
-      });
-    } catch (error) {
+          currency: "BRL",
+          status: "completed",
+          metadata: {
+            withdrawalId,
+            txHash: burnResult.txHash,
+            approvedBy: user.id,
+            pixKey: withdrawal.pixKey,
+          },
+        });
+
+        res.json({
+          success: true,
+          withdrawal: approved,
+          txHash: burnResult.txHash,
+          newBalance,
+          message: `Saque aprovado! ${withdrawAmount} BRL3 queimados. Hash: ${burnResult.txHash.slice(0, 10)}...`,
+        });
+      } catch (burnError: any) {
+        console.error(`❌ [Withdrawal Approve] Burn failed:`, burnError);
+        throw new Error(`Falha ao queimar tokens: ${burnError.message}`);
+      }
+    } catch (error: any) {
       console.error("Failed to approve withdrawal:", error);
-      res.status(500).send("Falha ao aprovar saque.");
+      res.status(500).json({ error: error.message || "Falha ao aprovar saque." });
     }
   });
 
