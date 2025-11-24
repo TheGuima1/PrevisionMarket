@@ -31,7 +31,7 @@ export default function EventDetailPage() {
 
   // Fetch event with all alternatives
   const { data: event, isLoading } = useQuery<EventData>({
-    queryKey: ['/api/events', params?.slug],
+    queryKey: [`/api/events/${params?.slug}`],
     enabled: !!params?.slug,
   });
 

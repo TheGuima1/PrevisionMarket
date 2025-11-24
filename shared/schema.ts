@@ -545,8 +545,11 @@ export const insertPendingDepositSchema = createInsertSchema(pendingDeposits).om
   // walletAddress is optional - defaults to admin wallet for PIX deposits
   // Empty string or undefined both trigger fallback to admin wallet
   walletAddress: z.string()
-    .regex(/^0x[a-fA-F0-9]{40}$/, "Endereço de carteira inválido")
     .optional()
+    .refine(
+      (val) => !val || val === "" || /^0x[a-fA-F0-9]{40}$/.test(val),
+      "Endereço de carteira inválido"
+    )
     .transform(val => val === "" ? undefined : val),
   proofFilePath: z.string().min(1, "Comprovante PDF é obrigatório"), // Required for PIX deposits
 });
