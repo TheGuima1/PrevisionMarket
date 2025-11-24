@@ -11,6 +11,8 @@ import { UsernameSetupModal } from "@/components/username-setup-modal";
 import { KYCSetupModal } from "@/components/kyc-setup-modal";
 import { useState, useEffect } from "react";
 import HomePage from "@/pages/home-page";
+import AllMarketsPage from "@/pages/all-markets-page";
+import CategoryPage from "@/pages/category-page";
 import MarketDetailPage from "@/pages/market-detail-page";
 import PolymarketDetailPage from "@/pages/polymarket-detail-page";
 import EventDetailPage from "@/pages/event-detail-page";
@@ -81,6 +83,10 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
+      
+      {/* Category Routes */}
+      <Route path="/markets" component={AllMarketsPage} />
+      <Route path="/categoria/:categoryId" component={CategoryPage} />
       
       {/* Redirect /events/* to /event/* */}
       <Route path="/events/:slug" component={EventsRedirect} />

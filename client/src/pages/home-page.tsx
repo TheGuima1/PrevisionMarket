@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { PublicNavbar } from "@/components/public-navbar";
 import { Navbar } from "@/components/navbar";
-import { ModernMarketCard } from "@/components/modern-market-card";
+import { CategoryNav } from "@/components/category-nav";
 import { MultiOptionEventCard } from "@/components/multi-option-event-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -64,8 +64,10 @@ export default function HomePage() {
         </div>
 
         {/* Markets Grid */}
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold mb-8 text-white">Mercados Disponíveis</h2>
+        <div className="max-w-7xl mx-auto space-y-6">
+          <h2 className="text-3xl font-bold text-white">Mercados Disponíveis</h2>
+          
+          <CategoryNav />
           
           {isLoading && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

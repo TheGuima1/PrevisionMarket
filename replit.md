@@ -49,6 +49,13 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
 - **Code Cleanup**: Repository cleaned of unused assets, legacy routes, and duplicated code.
 - **Deposit/Withdrawal Route Consistency**: Both deposit and withdrawal routes use consistent `ADMIN_WALLET_ADDRESS` environment variable fallback chain (validated.walletAddress → process.env.ADMIN_WALLET_ADDRESS → ADMIN_WALLET_ADDRESS constant). Fixed critical bug where redundant dynamic import in deposit route caused silent failures. Both routes now use static imports for optimal performance and reliability.
 - **Recent Updates (Nov 24, 2025)**:
+  - **Category Navigation System**: Implemented category-based market navigation with 5 dedicated pages:
+    - `/markets` - All markets (Todos os Mercados)
+    - `/categoria/politica` - Brazilian politics (Eleições 2026)
+    - `/categoria/esportes` - Sports (Copa do Mundo FIFA 2026)
+    - `/categoria/eua` - US markets (Recessão nos EUA)
+    - `/categoria/cripto` - Crypto markets (Bitcoin $150k)
+    CategoryNav component displays horizontal pill-style navigation on all pages with active state highlighting. Each category page filters markets by event tags and displays them using the unified MultiOptionEventCard format.
   - **Event Sync Architecture**: Replaced individual market sync with Event Sync Worker for better scalability. System now syncs 6 complete events (108 markets total) from Polymarket every 5 minutes including Brazil Election, FIFA World Cup, Brasileiro Série A, Bitcoin $150k, Spotify Artist, and US Recession
   - **Unified Top-2 Visual Format**: ALL markets (binary and multi-option) now display with identical top-2 card format on home page. Binary markets (single market events like US Recession) create virtual "SIM"/"NAO" options to maintain consistent UI. Multi-option events show top 2 actual markets. Each card displays event icon, title, Polymarket link, exactly 2 options with colored avatars, volumes, percentages, price changes, and "Ver todos →" link
   - **ASCII-Safe Slugs**: Implemented displaySlug normalization for virtual options (sim/nao) to ensure data-testid attributes are ASCII-only for accessibility and automation compatibility
