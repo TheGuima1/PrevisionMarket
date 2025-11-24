@@ -1012,21 +1012,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Step 2: Update database in safest order (minimize inconsistent state window)
+      // Step 2: Execute all DB operations with explicit rollback on any failure
       let approved;
       let newBalance: string;
+      let transactionCreated = false;
+      let balanceUpdated = false;
       
       try {
-        // 2a. Create transaction record FIRST (least critical, easiest to reconcile if later steps fail)
-        await storage.createTransaction(depositUser.id, {
-          type: "deposit_pix",
-          amount: deposit.amount,
-          currency: "BRL",
-          description: `Depósito PIX aprovado - ID: ${depositId.slice(0, 8)} - TX: ${mintResult.txHash.slice(0, 10)}...`,
-        });
-        console.log(`📋 [Deposit Approve] Created transaction record`);
-
-        // 2b. Approve the deposit request (marks as approved with txHash)
+        // 2a. Approve the deposit request FIRST (this is the critical state change)
         approved = await storage.approvePendingDeposit(depositId, user.id, {
           txHash: mintResult.txHash,
           mintedTokenAmount: depositAmount.toString(),
@@ -1034,10 +1027,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         console.log(`✅ [Deposit Approve] Marked deposit as approved in DB`);
 
-        // 2c. Update user balance LAST (most critical operation)
+        // 2b. Update user balance (must succeed after approval)
         newBalance = (parseFloat(depositUser.balanceBrl) + depositAmount).toFixed(2);
         await storage.updateUserBalance(depositUser.id, newBalance, depositUser.balanceUsdc);
+        balanceUpdated = true;
         console.log(`💳 [Deposit Approve] Updated user ${depositUser.username} balance: ${newBalance} BRL3`);
+
+        // 2c. Create transaction record for audit trail (CRITICAL: failure here MUST trigger full rollback)
+        try {
+          await storage.createTransaction(depositUser.id, {
+            type: "deposit_pix",
+            amount: deposit.amount,
+            currency: "BRL",
+            description: `Depósito PIX aprovado - ID: ${depositId.slice(0, 8)} - TX: ${mintResult.txHash.slice(0, 10)}...`,
+          });
+          transactionCreated = true;
+          console.log(`📋 [Deposit Approve] Created transaction record`);
+        } catch (txError) {
+          console.error(`❌ [Deposit Approve] Transaction logging failed - triggering full rollback`);
+          throw txError; // Re-throw to trigger outer catch rollback
+        }
 
         res.json({
           success: true,
@@ -1047,28 +1056,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Depósito aprovado! ${depositAmount} BRL3 mintados. Hash: ${mintResult.txHash.slice(0, 10)}...`,
         });
       } catch (dbError: any) {
-        console.error(`❌ [Deposit Approve] Database operations failed after successful mint:`, dbError);
-        console.error(`⚠️ CRITICAL: Tokens minted (TX: ${mintResult.txHash}) but DB failed`);
-        console.error(`📋 RECONCILIATION DATA: depositId=${depositId}, userId=${depositUser.id}, amount=${deposit.amount}, txHash=${mintResult.txHash}`);
+        console.error(`❌ [Deposit Approve] Database operation failed after mint:`, dbError);
+        console.error(`⚠️ CRITICAL STATE - Tokens minted (TX: ${mintResult.txHash})`);
+        console.error(`📋 RECONCILIATION: depositId=${depositId}, userId=${depositUser.id}, amount=${deposit.amount}, approved=${!!approved}, balanceUpdated=${balanceUpdated}, transactionCreated=${transactionCreated}`);
         
-        // Try to ensure deposit is not stuck in approved state without balance update
+        // Rollback strategy: revert all completed steps
         if (approved) {
-          console.error(`🚨 Deposit was approved but balance update may have failed - attempting rollback`);
+          console.error(`🔄 Attempting rollback - reverting approval and balance changes`);
           try {
-            await storage.rejectPendingDeposit(depositId, user.id, `RECONCILE: Mint OK (${mintResult.txHash}) but balance update failed: ${dbError.message}`);
-            console.log(`✅ Rolled back deposit approval to rejected with reconciliation note`);
+            // Revert balance if it was updated
+            if (balanceUpdated) {
+              await storage.updateUserBalance(depositUser.id, depositUser.balanceBrl, depositUser.balanceUsdc);
+              console.log(`✅ Reverted balance to original: ${depositUser.balanceBrl}`);
+            }
+            
+            // Mark deposit as rejected with full reconciliation info
+            await storage.rejectPendingDeposit(
+              depositId,
+              user.id,
+              `RECONCILE: Blockchain mint succeeded (${mintResult.txHash}) but DB commit failed: ${dbError.message}. Balance rollback: ${balanceUpdated ? 'completed' : 'N/A'}`
+            );
+            console.log(`✅ Rolled back deposit to rejected with full reconciliation data`);
+            
+            return res.status(500).json({ 
+              error: "Tokens mintados mas operação de banco de dados falhou. Estado revertido. Suporte técnico foi notificado com detalhes para reconciliação.",
+              txHash: mintResult.txHash,
+              depositId,
+              rolledBack: true,
+              action: "contact_support"
+            });
           } catch (rollbackError) {
-            console.error(`❌ CRITICAL: Failed to rollback deposit approval:`, rollbackError);
-            console.error(`🆘 MANUAL FIX REQUIRED: Deposit ${depositId} may be approved without balance credit`);
+            console.error(`❌ CRITICAL: Rollback failed:`, rollbackError);
+            console.error(`🆘 MANUAL FIX REQUIRED: Deposit ${depositId} needs manual reconciliation`);
+            
+            return res.status(500).json({ 
+              error: "CRÍTICO: Tokens mintados mas falha ao processar E reverter. Contate suporte imediatamente.",
+              txHash: mintResult.txHash,
+              depositId,
+              critical: true,
+              rolledBack: false,
+              action: "urgent_support"
+            });
           }
         }
 
+        // If approval didn't happen, just return error
         return res.status(500).json({ 
-          error: "Tokens mintados mas falha ao processar depósito no banco de dados. Suporte técnico foi notificado.",
+          error: "Tokens mintados mas falha ao processar aprovação. Depósito permanece pendente.",
           txHash: mintResult.txHash,
-          depositId,
-          critical: true,
-          action: "contact_support"
+          depositStatus: "pending"
         });
       }
     } catch (error: any) {
@@ -1325,21 +1361,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Step 2: Update database in safest order (minimize inconsistent state window)
+      // Step 2: Execute all DB operations with explicit rollback on any failure
       let approved;
       let newBalance: string;
+      let transactionCreated = false;
+      let balanceUpdated = false;
       
       try {
-        // 2a. Create transaction record FIRST (least critical, easiest to reconcile if later steps fail)
-        await storage.createTransaction(withdrawUser.id, {
-          type: "withdrawal_pix",
-          amount: withdrawal.amount,
-          currency: "BRL",
-          description: `Saque PIX aprovado - ID: ${withdrawalId.slice(0, 8)} - Chave: ${withdrawal.pixKey} - TX: ${burnResult.txHash.slice(0, 10)}...`,
-        });
-        console.log(`📋 [Withdrawal Approve] Created transaction record`);
-
-        // 2b. Approve the withdrawal request (marks as approved with txHash)
+        // 2a. Approve the withdrawal request FIRST (this is the critical state change)
         approved = await storage.approvePendingWithdrawal(withdrawalId, user.id, {
           txHash: burnResult.txHash,
           burnedTokenAmount: withdrawAmount.toString(),
@@ -1347,10 +1376,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         console.log(`✅ [Withdrawal Approve] Marked withdrawal as approved in DB`);
 
-        // 2c. Update user balance LAST (most critical operation)
+        // 2b. Update user balance (must succeed after approval)
         newBalance = (currentBalance - withdrawAmount).toFixed(2);
         await storage.updateUserBalance(withdrawUser.id, newBalance, withdrawUser.balanceUsdc);
+        balanceUpdated = true;
         console.log(`💳 [Withdrawal Approve] Updated user ${withdrawUser.username} balance: ${newBalance} BRL3`);
+
+        // 2c. Create transaction record for audit trail (CRITICAL: failure here MUST trigger full rollback)
+        try {
+          await storage.createTransaction(withdrawUser.id, {
+            type: "withdrawal_pix",
+            amount: withdrawal.amount,
+            currency: "BRL",
+            description: `Saque PIX aprovado - ID: ${withdrawalId.slice(0, 8)} - Chave: ${withdrawal.pixKey} - TX: ${burnResult.txHash.slice(0, 10)}...`,
+          });
+          transactionCreated = true;
+          console.log(`📋 [Withdrawal Approve] Created transaction record`);
+        } catch (txError) {
+          console.error(`❌ [Withdrawal Approve] Transaction logging failed - triggering full rollback`);
+          throw txError; // Re-throw to trigger outer catch rollback
+        }
 
         res.json({
           success: true,
@@ -1360,28 +1405,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Saque aprovado! ${withdrawAmount} BRL3 queimados. Hash: ${burnResult.txHash.slice(0, 10)}...`,
         });
       } catch (dbError: any) {
-        console.error(`❌ [Withdrawal Approve] Database operations failed after successful burn:`, dbError);
-        console.error(`⚠️ CRITICAL: Tokens burned (TX: ${burnResult.txHash}) but DB failed`);
-        console.error(`📋 RECONCILIATION DATA: withdrawalId=${withdrawalId}, userId=${withdrawUser.id}, amount=${withdrawal.amount}, txHash=${burnResult.txHash}`);
+        console.error(`❌ [Withdrawal Approve] Database operation failed after burn:`, dbError);
+        console.error(`⚠️ CRITICAL STATE - Tokens burned (TX: ${burnResult.txHash})`);
+        console.error(`📋 RECONCILIATION: withdrawalId=${withdrawalId}, userId=${withdrawUser.id}, amount=${withdrawal.amount}, approved=${!!approved}, balanceUpdated=${balanceUpdated}, transactionCreated=${transactionCreated}`);
         
-        // Try to ensure withdrawal is not stuck in approved state without balance update
+        // Rollback strategy: revert all completed steps
         if (approved) {
-          console.error(`🚨 Withdrawal was approved but balance update may have failed - attempting rollback`);
+          console.error(`🔄 Attempting rollback - reverting approval and balance changes`);
           try {
-            await storage.rejectPendingWithdrawal(withdrawalId, user.id, `RECONCILE: Burn OK (${burnResult.txHash}) but balance update failed: ${dbError.message}`);
-            console.log(`✅ Rolled back withdrawal approval to rejected with reconciliation note`);
+            // Revert balance if it was updated
+            if (balanceUpdated) {
+              await storage.updateUserBalance(withdrawUser.id, withdrawUser.balanceBrl, withdrawUser.balanceUsdc);
+              console.log(`✅ Reverted balance to original: ${withdrawUser.balanceBrl}`);
+            }
+            
+            // Mark withdrawal as rejected with full reconciliation info
+            await storage.rejectPendingWithdrawal(
+              withdrawalId,
+              user.id,
+              `RECONCILE: Blockchain burn succeeded (${burnResult.txHash}) but DB commit failed: ${dbError.message}. Balance rollback: ${balanceUpdated ? 'completed' : 'N/A'}`
+            );
+            console.log(`✅ Rolled back withdrawal to rejected with full reconciliation data`);
+            
+            return res.status(500).json({ 
+              error: "Tokens queimados mas operação de banco de dados falhou. Estado revertido. Suporte técnico foi notificado com detalhes para reconciliação.",
+              txHash: burnResult.txHash,
+              withdrawalId,
+              rolledBack: true,
+              action: "contact_support"
+            });
           } catch (rollbackError) {
-            console.error(`❌ CRITICAL: Failed to rollback withdrawal approval:`, rollbackError);
-            console.error(`🆘 MANUAL FIX REQUIRED: Withdrawal ${withdrawalId} may be approved without balance debit`);
+            console.error(`❌ CRITICAL: Rollback failed:`, rollbackError);
+            console.error(`🆘 MANUAL FIX REQUIRED: Withdrawal ${withdrawalId} needs manual reconciliation`);
+            
+            return res.status(500).json({ 
+              error: "CRÍTICO: Tokens queimados mas falha ao processar E reverter. Contate suporte imediatamente.",
+              txHash: burnResult.txHash,
+              withdrawalId,
+              critical: true,
+              rolledBack: false,
+              action: "urgent_support"
+            });
           }
         }
 
+        // If approval didn't happen, just return error
         return res.status(500).json({ 
-          error: "Tokens queimados mas falha ao processar saque no banco de dados. Suporte técnico foi notificado.",
+          error: "Tokens queimados mas falha ao processar aprovação. Saque permanece pendente.",
           txHash: burnResult.txHash,
-          withdrawalId,
-          critical: true,
-          action: "contact_support"
+          withdrawalStatus: "pending"
         });
       }
     } catch (error: any) {
