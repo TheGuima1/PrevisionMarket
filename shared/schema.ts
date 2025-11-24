@@ -282,6 +282,7 @@ export const events = pgTable("events", {
   flagIcon: text("flag_icon"), // Icon name or asset path
   endDate: timestamp("end_date").notNull(),
   totalVolume: decimal("total_volume", { precision: 18, scale: 2 }).notNull().default("0.00"), // Aggregated from child markets
+  polymarketSlug: text("polymarket_slug").unique(), // Polymarket event slug for syncing
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -12,7 +12,7 @@ import { users } from "@shared/schema";
 import { sql, desc, and, gte, eq, inArray } from "drizzle-orm";
 import * as AMM from "./amm-engine";
 import { getSnapshot } from "./mirror/state";
-import { startMirror } from "./mirror/worker";
+import { startEventSync } from "./mirror/event-sync-worker";
 import { fetchPolyBySlug } from "./mirror/adapter";
 import { blockchainService } from "./blockchain";
 import multer from "multer";
@@ -185,10 +185,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const slugs = getConfiguredSlugs();
     
     if (slugs.length > 0) {
-      console.log(`[Server] Starting mirror worker for ${slugs.length} Palpites.AI markets`);
+      console.log(`[Server] Starting event sync worker for Polymarket events`);
       // Don't await - let it initialize in background to avoid deployment health check timeout
-      startMirror().catch(err => {
-        console.error('[Server] Mirror worker initialization failed:', err);
+      startEventSync().catch(err => {
+        console.error('[Server] Event sync worker initialization failed:', err);
       });
     } else {
       console.log('[Server] No Palpites.AI markets configured');
