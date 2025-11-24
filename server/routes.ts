@@ -1883,15 +1883,11 @@ Your role:
   });
 
   // GET /api/admin/fee-revenue - Get platform fee revenue summary
+  // NOTE: Fees are tracked ONLY in orders.feePaid to avoid double-counting
+  // (Previously fees were also in transactions table causing duplication)
   app.get("/api/admin/fee-revenue", requireAdmin, async (req, res) => {
     try {
-      // Get all platform fee transactions
-      const feeTransactions = await db.query.transactions.findMany({
-        where: eq(transactions.type, "platform_fee"),
-        orderBy: (transactions, { desc }) => [desc(transactions.createdAt)],
-      });
-
-      // Get all orders with fees (trade fees)
+      // Get all orders with fees (trade fees) - this is the single source of truth
       const ordersWithFees = await db.select({
         id: orders.id,
         userId: orders.userId,
@@ -1905,11 +1901,7 @@ Your role:
         .where(sql`CAST(${orders.feePaid} AS DECIMAL) > 0`)
         .orderBy(desc(orders.createdAt));
 
-      // Calculate totals
-      const totalFeeFromTransactions = feeTransactions.reduce(
-        (sum, t) => sum + parseFloat(t.amount), 
-        0
-      );
+      // Calculate total from orders only (single source of truth)
       const totalFeeFromOrders = ordersWithFees.reduce(
         (sum, o) => sum + parseFloat(o.feePaid), 
         0
@@ -1927,10 +1919,10 @@ Your role:
       }));
 
       res.json({
-        totalRevenue: totalFeeFromTransactions + totalFeeFromOrders,
-        totalFromTransactions: totalFeeFromTransactions,
+        totalRevenue: totalFeeFromOrders,
+        totalFromTransactions: 0, // Deprecated - kept for backwards compatibility
         totalFromTrades: totalFeeFromOrders,
-        transactionCount: feeTransactions.length + ordersWithFees.length,
+        transactionCount: ordersWithFees.length,
         recentFees,
       });
     } catch (error) {
