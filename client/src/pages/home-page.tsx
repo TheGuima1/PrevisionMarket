@@ -117,11 +117,10 @@ export default function HomePage() {
             Object.entries(tagGroups)
               .sort(([tagA], [tagB]) => tagB.length - tagA.length) // Longer tags first
               .forEach(([tag, tagMarkets]) => {
-                // Only group if 8+ markets (true multi-option events like elections, championships)
-                // This excludes smaller groups like Bitcoin (4 timeframes) which are independent binary markets
+                // Group if 4+ markets (multi-option events and grouped binary markets)
                 const unprocessedMarkets = tagMarkets.filter(m => !processedMarketIds.has(m.id));
                 
-                if (unprocessedMarkets.length >= 8) {
+                if (unprocessedMarkets.length >= 4) {
                   multiOptionEvents.push({ tag, markets: unprocessedMarkets });
                   unprocessedMarkets.forEach(m => processedMarketIds.add(m.id));
                 }
@@ -148,6 +147,18 @@ export default function HomePage() {
                 slug: "brasileiro-serie-a-league-winner",
                 url: "https://polymarket.com/event/brasileiro-serie-a-league-winner",
                 icon: "trophy"
+              },
+              "When will Bitcoin hit $150k?": {
+                title: "When will Bitcoin hit $150k?",
+                slug: "when-will-bitcoin-hit-150k",
+                url: "https://polymarket.com/event/when-will-bitcoin-hit-150k",
+                icon: "globe"
+              },
+              "Top Spotify Artist 2025": {
+                title: "Top Spotify Artist 2025",
+                slug: "top-spotify-artist-2025",
+                url: "https://polymarket.com/event/top-spotify-artist-2025-146",
+                icon: "globe"
               }
             };
             
