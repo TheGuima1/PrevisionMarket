@@ -143,8 +143,11 @@ async function syncEvent(eventSlug: string, eventId: string): Promise<void> {
         const probYes = extractProbYes(polyMarket);
         
         // Calculate new reserves maintaining k
-        const yesReserve = 10000 * (1 - probYes);
-        const noReserve = 10000 * probYes;
+        // Price YES = yesReserve / (yesReserve + noReserve)
+        // Example: 35% YES probability -> yesReserve = 3500, noReserve = 6500
+        // Verification: 3500 / 10000 = 35% YES ✓
+        const yesReserve = 10000 * probYes;
+        const noReserve = 10000 * (1 - probYes);
         
         // Update market
         await db.update(markets)

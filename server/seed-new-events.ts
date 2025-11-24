@@ -11,7 +11,6 @@ const GAMMA_API = 'https://gamma-api.polymarket.com';
 
 // Event slugs to fetch from Polymarket
 const NEW_EVENTS = [
-  'brasileiro-serie-a-league-winner',
   '2026-fifa-world-cup-winner-595',
   'us-recession-by-end-of-2026',
   'when-will-bitcoin-hit-150k',
