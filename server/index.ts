@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { client } from "./db";
 import { stopMirror } from "./mirror/worker";
+import { blockchainService } from "./blockchain";
 
 const app = express();
 
@@ -50,6 +51,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize blockchain service with validation
+  try {
+    await blockchainService.initialize();
+  } catch (error: any) {
+    console.error("[Server] Failed to initialize blockchain service:", error.message);
+    console.error("[Server] Deposit/withdrawal approvals will fail until this is resolved");
+    // Don't exit - allow server to start for other operations
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

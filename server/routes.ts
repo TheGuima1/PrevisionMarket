@@ -998,35 +998,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const depositAmount = parseFloat(deposit.amount);
       console.log(`💰 [Deposit Approve] Minting ${depositAmount} BRL3 to admin wallet via backend...`);
 
+      // Step 1: Execute blockchain operation first (fail fast if blockchain fails)
+      let mintResult;
       try {
-        // Mint tokens to admin wallet using backend private key
-        const mintResult = await blockchainService.mint(ADMIN_WALLET_ADDRESS, deposit.amount);
+        mintResult = await blockchainService.mint(ADMIN_WALLET_ADDRESS, deposit.amount);
         console.log(`✅ [Deposit Approve] Mint successful! TX: ${mintResult.txHash}`);
-
-        // Update user balance in database (tokens stay in admin wallet)
-        const newBalance = (parseFloat(depositUser.balanceBrl) + depositAmount).toFixed(2);
-        await storage.updateUserBalance(depositUser.id, newBalance, depositUser.balanceUsdc);
-        console.log(`💳 [Deposit Approve] Updated user ${depositUser.username} balance: ${newBalance} BRL3`);
-
-        // Approve the deposit
-        const approved = await storage.approvePendingDeposit(depositId, user.id, {
-          txHash: mintResult.txHash,
-          mintedTokenAmount: depositAmount.toString(),
-          mintedTokenAmountRaw: ethers.parseUnits(deposit.amount, TOKEN_DECIMALS).toString(),
+      } catch (mintError: any) {
+        console.error(`❌ [Deposit Approve] Mint failed:`, mintError);
+        // Deposit remains in "pending" status - no DB changes made
+        return res.status(500).json({ 
+          error: `Falha ao mintar tokens: ${mintError.message}`,
+          depositStatus: "pending" 
         });
+      }
 
-        // Create transaction record
+      // Step 2: Update database in safest order (minimize inconsistent state window)
+      let approved;
+      let newBalance: string;
+      
+      try {
+        // 2a. Create transaction record FIRST (least critical, easiest to reconcile if later steps fail)
         await storage.createTransaction(depositUser.id, {
           type: "deposit_pix",
           amount: deposit.amount,
           currency: "BRL",
-          metadata: {
-            depositId,
-            txHash: mintResult.txHash,
-            approvedBy: user.id,
-            status: "completed",
-          },
+          description: `Depósito PIX aprovado - ID: ${depositId.slice(0, 8)} - TX: ${mintResult.txHash.slice(0, 10)}...`,
         });
+        console.log(`📋 [Deposit Approve] Created transaction record`);
+
+        // 2b. Approve the deposit request (marks as approved with txHash)
+        approved = await storage.approvePendingDeposit(depositId, user.id, {
+          txHash: mintResult.txHash,
+          mintedTokenAmount: depositAmount.toString(),
+          mintedTokenAmountRaw: ethers.parseUnits(deposit.amount, TOKEN_DECIMALS).toString(),
+        });
+        console.log(`✅ [Deposit Approve] Marked deposit as approved in DB`);
+
+        // 2c. Update user balance LAST (most critical operation)
+        newBalance = (parseFloat(depositUser.balanceBrl) + depositAmount).toFixed(2);
+        await storage.updateUserBalance(depositUser.id, newBalance, depositUser.balanceUsdc);
+        console.log(`💳 [Deposit Approve] Updated user ${depositUser.username} balance: ${newBalance} BRL3`);
 
         res.json({
           success: true,
@@ -1035,9 +1046,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           newBalance,
           message: `Depósito aprovado! ${depositAmount} BRL3 mintados. Hash: ${mintResult.txHash.slice(0, 10)}...`,
         });
-      } catch (mintError: any) {
-        console.error(`❌ [Deposit Approve] Mint failed:`, mintError);
-        throw new Error(`Falha ao mintar tokens: ${mintError.message}`);
+      } catch (dbError: any) {
+        console.error(`❌ [Deposit Approve] Database operations failed after successful mint:`, dbError);
+        console.error(`⚠️ CRITICAL: Tokens minted (TX: ${mintResult.txHash}) but DB failed`);
+        console.error(`📋 RECONCILIATION DATA: depositId=${depositId}, userId=${depositUser.id}, amount=${deposit.amount}, txHash=${mintResult.txHash}`);
+        
+        // Try to ensure deposit is not stuck in approved state without balance update
+        if (approved) {
+          console.error(`🚨 Deposit was approved but balance update may have failed - attempting rollback`);
+          try {
+            await storage.rejectPendingDeposit(depositId, user.id, `RECONCILE: Mint OK (${mintResult.txHash}) but balance update failed: ${dbError.message}`);
+            console.log(`✅ Rolled back deposit approval to rejected with reconciliation note`);
+          } catch (rollbackError) {
+            console.error(`❌ CRITICAL: Failed to rollback deposit approval:`, rollbackError);
+            console.error(`🆘 MANUAL FIX REQUIRED: Deposit ${depositId} may be approved without balance credit`);
+          }
+        }
+
+        return res.status(500).json({ 
+          error: "Tokens mintados mas falha ao processar depósito no banco de dados. Suporte técnico foi notificado.",
+          txHash: mintResult.txHash,
+          depositId,
+          critical: true,
+          action: "contact_support"
+        });
       }
     } catch (error: any) {
       console.error("Failed to approve deposit:", error);
@@ -1279,36 +1311,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🔥 [Withdrawal Approve] Burning ${withdrawAmount} BRL3 from admin wallet via backend...`);
 
+      // Step 1: Execute blockchain operation first (fail fast if blockchain fails)
+      let burnResult;
       try {
-        // Burn tokens from admin wallet using backend private key
-        const burnResult = await blockchainService.burn(withdrawal.amount);
+        burnResult = await blockchainService.burn(withdrawal.amount);
         console.log(`✅ [Withdrawal Approve] Burn successful! TX: ${burnResult.txHash}`);
-
-        // Update user balance in database
-        const newBalance = (currentBalance - withdrawAmount).toFixed(2);
-        await storage.updateUserBalance(withdrawUser.id, newBalance, withdrawUser.balanceUsdc);
-        console.log(`💳 [Withdrawal Approve] Updated user ${withdrawUser.username} balance: ${newBalance} BRL3`);
-
-        // Approve the withdrawal
-        const approved = await storage.approvePendingWithdrawal(withdrawalId, user.id, {
-          txHash: burnResult.txHash,
-          burnedTokenAmount: withdrawAmount.toString(),
-          burnedTokenAmountRaw: ethers.parseUnits(withdrawal.amount, TOKEN_DECIMALS).toString(),
+      } catch (burnError: any) {
+        console.error(`❌ [Withdrawal Approve] Burn failed:`, burnError);
+        // Withdrawal remains in "pending" status - no DB changes made
+        return res.status(500).json({ 
+          error: `Falha ao queimar tokens: ${burnError.message}`,
+          withdrawalStatus: "pending" 
         });
+      }
 
-        // Create transaction record
+      // Step 2: Update database in safest order (minimize inconsistent state window)
+      let approved;
+      let newBalance: string;
+      
+      try {
+        // 2a. Create transaction record FIRST (least critical, easiest to reconcile if later steps fail)
         await storage.createTransaction(withdrawUser.id, {
           type: "withdrawal_pix",
           amount: withdrawal.amount,
           currency: "BRL",
-          metadata: {
-            withdrawalId,
-            txHash: burnResult.txHash,
-            approvedBy: user.id,
-            pixKey: withdrawal.pixKey,
-            status: "completed",
-          },
+          description: `Saque PIX aprovado - ID: ${withdrawalId.slice(0, 8)} - Chave: ${withdrawal.pixKey} - TX: ${burnResult.txHash.slice(0, 10)}...`,
         });
+        console.log(`📋 [Withdrawal Approve] Created transaction record`);
+
+        // 2b. Approve the withdrawal request (marks as approved with txHash)
+        approved = await storage.approvePendingWithdrawal(withdrawalId, user.id, {
+          txHash: burnResult.txHash,
+          burnedTokenAmount: withdrawAmount.toString(),
+          burnedTokenAmountRaw: ethers.parseUnits(withdrawal.amount, TOKEN_DECIMALS).toString(),
+        });
+        console.log(`✅ [Withdrawal Approve] Marked withdrawal as approved in DB`);
+
+        // 2c. Update user balance LAST (most critical operation)
+        newBalance = (currentBalance - withdrawAmount).toFixed(2);
+        await storage.updateUserBalance(withdrawUser.id, newBalance, withdrawUser.balanceUsdc);
+        console.log(`💳 [Withdrawal Approve] Updated user ${withdrawUser.username} balance: ${newBalance} BRL3`);
 
         res.json({
           success: true,
@@ -1317,9 +1359,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           newBalance,
           message: `Saque aprovado! ${withdrawAmount} BRL3 queimados. Hash: ${burnResult.txHash.slice(0, 10)}...`,
         });
-      } catch (burnError: any) {
-        console.error(`❌ [Withdrawal Approve] Burn failed:`, burnError);
-        throw new Error(`Falha ao queimar tokens: ${burnError.message}`);
+      } catch (dbError: any) {
+        console.error(`❌ [Withdrawal Approve] Database operations failed after successful burn:`, dbError);
+        console.error(`⚠️ CRITICAL: Tokens burned (TX: ${burnResult.txHash}) but DB failed`);
+        console.error(`📋 RECONCILIATION DATA: withdrawalId=${withdrawalId}, userId=${withdrawUser.id}, amount=${withdrawal.amount}, txHash=${burnResult.txHash}`);
+        
+        // Try to ensure withdrawal is not stuck in approved state without balance update
+        if (approved) {
+          console.error(`🚨 Withdrawal was approved but balance update may have failed - attempting rollback`);
+          try {
+            await storage.rejectPendingWithdrawal(withdrawalId, user.id, `RECONCILE: Burn OK (${burnResult.txHash}) but balance update failed: ${dbError.message}`);
+            console.log(`✅ Rolled back withdrawal approval to rejected with reconciliation note`);
+          } catch (rollbackError) {
+            console.error(`❌ CRITICAL: Failed to rollback withdrawal approval:`, rollbackError);
+            console.error(`🆘 MANUAL FIX REQUIRED: Withdrawal ${withdrawalId} may be approved without balance debit`);
+          }
+        }
+
+        return res.status(500).json({ 
+          error: "Tokens queimados mas falha ao processar saque no banco de dados. Suporte técnico foi notificado.",
+          txHash: burnResult.txHash,
+          withdrawalId,
+          critical: true,
+          action: "contact_support"
+        });
       }
     } catch (error: any) {
       console.error("Failed to approve withdrawal:", error);

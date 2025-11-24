@@ -62,19 +62,57 @@ export class BlockchainService {
   private provider: ethers.JsonRpcProvider;
   private contract: any;
   private wallet: ethers.Wallet | null = null;
+  private isInitialized = false;
 
   constructor() {
     this.provider = new ethers.JsonRpcProvider(POLYGON_RPC_URL);
     this.contract = new ethers.Contract(BRL3_TOKEN_ADDRESS, BRL3_ABI, this.provider);
   }
 
-  private getWallet(): ethers.Wallet {
-    if (!this.wallet) {
+  async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
+    try {
+      // Validate ADMIN_PRIVATE_KEY
       const privateKey = process.env.ADMIN_PRIVATE_KEY;
       if (!privateKey) {
-        throw new Error("ADMIN_PRIVATE_KEY not configured");
+        throw new Error("ADMIN_PRIVATE_KEY environment variable not configured");
       }
+
+      // Validate private key format (should be 64 hex chars with optional 0x prefix)
+      const cleanKey = privateKey.startsWith("0x") ? privateKey.slice(2) : privateKey;
+      if (!/^[0-9a-fA-F]{64}$/.test(cleanKey)) {
+        throw new Error("ADMIN_PRIVATE_KEY has invalid format (expected 64 hex characters)");
+      }
+
+      // Test provider connectivity
+      await this.provider.getBlockNumber();
+      console.log(`[Blockchain] ✓ Connected to Polygon RPC: ${POLYGON_RPC_URL}`);
+
+      // Initialize wallet
       this.wallet = new ethers.Wallet(privateKey, this.provider);
+      console.log(`[Blockchain] ✓ Admin wallet initialized: ${this.wallet.address}`);
+
+      // Verify contract ownership
+      const owner = await this.contract.owner();
+      if (owner.toLowerCase() !== this.wallet.address.toLowerCase()) {
+        console.warn(`[Blockchain] ⚠️ Warning: Admin wallet (${this.wallet.address}) is not the contract owner (${owner})`);
+      } else {
+        console.log(`[Blockchain] ✓ Admin wallet confirmed as contract owner`);
+      }
+
+      this.isInitialized = true;
+    } catch (error: any) {
+      console.error("[Blockchain] Initialization failed:", error);
+      throw new Error(`Blockchain service initialization failed: ${error.message}`);
+    }
+  }
+
+  private getWallet(): ethers.Wallet {
+    if (!this.isInitialized || !this.wallet) {
+      throw new Error("BlockchainService not initialized. Call initialize() first.");
     }
     return this.wallet;
   }
@@ -119,7 +157,17 @@ export class BlockchainService {
       const contractWithSigner = this.contract.connect(wallet);
       const amountWei = ethers.parseUnits(amount, TOKEN_DECIMALS);
 
-      console.log(`[Blockchain] Burning ${amount} BRL3...`);
+      // Preflight check: Verify admin wallet has sufficient BRL3 balance
+      const currentBalance = await this.contract.balanceOf(wallet.address);
+      if (currentBalance < amountWei) {
+        const balanceFormatted = ethers.formatUnits(currentBalance, TOKEN_DECIMALS);
+        throw new Error(
+          `Insufficient BRL3 balance in admin wallet. ` +
+          `Required: ${amount}, Available: ${balanceFormatted}`
+        );
+      }
+
+      console.log(`[Blockchain] Burning ${amount} BRL3 from admin wallet...`);
       
       const tx = await contractWithSigner.burn(amountWei);
       console.log(`[Blockchain] Burn transaction sent: ${tx.hash}`);
