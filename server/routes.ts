@@ -11,10 +11,10 @@ import { db } from "./db";
 import { users } from "@shared/schema";
 import { sql, desc, and, gte, eq, inArray } from "drizzle-orm";
 import * as AMM from "./amm-engine";
-// Legacy polymarket-cron removed - now using mirror worker
 import { getSnapshot } from "./mirror/state";
 import { startMirror } from "./mirror/worker";
 import { fetchPolyBySlug } from "./mirror/adapter";
+import { blockchainService } from "./blockchain";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -1968,6 +1968,103 @@ Your role:
     } catch (error: any) {
       console.error("❌ [RESET] Fatal error during client reset:", error);
       res.status(500).json({ error: "Falha ao resetar clientes: " + error.message });
+    }
+  });
+
+  // ============================================================================
+  // BLOCKCHAIN TOKEN OPERATIONS (Admin Only - Uses Backend Private Key)
+  // ============================================================================
+
+  // GET /api/token/balance - Get admin wallet BRL3 balance
+  app.get("/api/token/balance", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const balance = await blockchainService.getBalance(ADMIN_WALLET_ADDRESS);
+      res.json({ 
+        success: true, 
+        balance,
+        address: ADMIN_WALLET_ADDRESS 
+      });
+    } catch (error: any) {
+      console.error("Failed to get token balance:", error);
+      res.status(500).json({ error: error.message || "Falha ao obter saldo de tokens" });
+    }
+  });
+
+  // POST /api/token/mint - Mint BRL3 tokens (Admin only, uses backend private key)
+  app.post("/api/token/mint", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const mintSchema = z.object({
+        toAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Endereço inválido"),
+        amount: z.string().or(z.number()).transform(val => {
+          const num = typeof val === "string" ? parseFloat(val) : val;
+          if (isNaN(num) || num <= 0) {
+            throw new Error("Quantidade deve ser maior que zero");
+          }
+          return num.toFixed(2);
+        }),
+      });
+
+      const validated = mintSchema.parse(req.body);
+      
+      const result = await blockchainService.mint(validated.toAddress, validated.amount);
+      
+      res.json({
+        success: true,
+        txHash: result.txHash,
+        amountMinted: result.amountMinted,
+        toAddress: validated.toAddress,
+      });
+    } catch (error: any) {
+      console.error("Failed to mint tokens:", error);
+      res.status(500).json({ error: error.message || "Falha ao criar tokens" });
+    }
+  });
+
+  // POST /api/token/burn - Burn BRL3 tokens from admin wallet
+  app.post("/api/token/burn", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const burnSchema = z.object({
+        amount: z.string().or(z.number()).transform(val => {
+          const num = typeof val === "string" ? parseFloat(val) : val;
+          if (isNaN(num) || num <= 0) {
+            throw new Error("Quantidade deve ser maior que zero");
+          }
+          return num.toFixed(2);
+        }),
+      });
+
+      const validated = burnSchema.parse(req.body);
+      
+      const result = await blockchainService.burn(validated.amount);
+      
+      res.json({
+        success: true,
+        txHash: result.txHash,
+        amountBurned: result.amountBurned,
+      });
+    } catch (error: any) {
+      console.error("Failed to burn tokens:", error);
+      res.status(500).json({ error: error.message || "Falha ao queimar tokens" });
+    }
+  });
+
+  // GET /api/token/status - Get contract status (paused, owner)
+  app.get("/api/token/status", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const [isPaused, owner] = await Promise.all([
+        blockchainService.isPaused(),
+        blockchainService.getOwner(),
+      ]);
+      
+      res.json({
+        success: true,
+        isPaused,
+        owner,
+        contractAddress: ADMIN_WALLET_ADDRESS,
+      });
+    } catch (error: any) {
+      console.error("Failed to get contract status:", error);
+      res.status(500).json({ error: error.message || "Falha ao obter status do contrato" });
     }
   });
 

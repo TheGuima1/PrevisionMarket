@@ -1,4 +1,3 @@
-export const BRL3_ABI = 
 [
   {
     "type": "constructor",
@@ -753,4 +752,4 @@ export const BRL3_ABI =
     "outputs": [],
     "stateMutability": "nonpayable"
   }
-] as const;
+]
