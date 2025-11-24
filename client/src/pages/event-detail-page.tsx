@@ -45,9 +45,21 @@ export default function EventDetailPage() {
 
   if (!event) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">Evento não encontrado</p>
-        <Button onClick={() => setLocation("/")}>Voltar à página inicial</Button>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold">Evento não encontrado</h1>
+          <p className="text-muted-foreground">
+            O evento que você procura não existe ou foi removido.
+          </p>
+          {params?.slug && (
+            <p className="text-sm text-muted-foreground font-mono bg-muted px-3 py-1 rounded">
+              Slug: {params.slug}
+            </p>
+          )}
+        </div>
+        <Button onClick={() => setLocation("/")} data-testid="button-back-home">
+          Voltar à página inicial
+        </Button>
       </div>
     );
   }

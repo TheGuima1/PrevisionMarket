@@ -1,5 +1,5 @@
 // Code based on javascript_auth_all_persistance blueprint
-import { Switch, Route } from "wouter";
+import { Switch, Route, useRoute, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -60,6 +60,19 @@ function UsernameGuard({ children }: { children: React.ReactNode }) {
   );
 }
 
+function EventsRedirect() {
+  const [, params] = useRoute("/events/:slug");
+  const [, setLocation] = useLocation();
+  
+  useEffect(() => {
+    if (params?.slug) {
+      setLocation(`/event/${params.slug}`);
+    }
+  }, [params, setLocation]);
+  
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -68,6 +81,10 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
+      
+      {/* Redirect /events/* to /event/* */}
+      <Route path="/events/:slug" component={EventsRedirect} />
+      
       <Route path="/event/:slug" component={EventDetailPage} />
       <Route path="/market/:id" component={MarketDetailPage} />
       <Route path="/polymarket/:slug" component={PolymarketDetailPage} />
