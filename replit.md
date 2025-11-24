@@ -48,6 +48,12 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
 - **Replit Autoscale Health Checks**: Optimized with `/healthz` (no DB) and `/health` (with DB ping) endpoints.
 - **Code Cleanup**: Repository cleaned of unused assets, legacy routes, and duplicated code.
 - **Deposit/Withdrawal Route Consistency**: Both deposit and withdrawal routes use consistent `ADMIN_WALLET_ADDRESS` environment variable fallback chain (validated.walletAddress → process.env.ADMIN_WALLET_ADDRESS → ADMIN_WALLET_ADDRESS constant). Fixed critical bug where redundant dynamic import in deposit route caused silent failures. Both routes now use static imports for optimal performance and reliability.
+- **Blockchain Integration Reliability**: Comprehensive validation and error handling implemented for all blockchain operations:
+  - **Startup Validation**: Verifies ADMIN_PRIVATE_KEY format, RPC connectivity, and contract ownership before server starts
+  - **Preflight Balance Checks**: Admin wallet balance verified before burn operations to prevent DoS attacks
+  - **Pragmatic Rollback Strategy**: Deposit/withdrawal approval workflows track state granularly (approved, balanceUpdated, transactionCreated) and implement explicit rollback on DB failures - balance changes are reverted and requests marked as rejected with full txHash and error context for manual reconciliation
+  - **Detailed Reconciliation Logging**: All edge cases (blockchain success + DB failure) log structured reconciliation data (depositId, userId, amount, txHash, failure reason) to enable operational monitoring and manual remediation
+  - **Production-Viable**: Implementation is production-ready with operational processes for monitoring logs and manually reconciling edge cases where blockchain succeeded but DB operations failed
 
 ## External Dependencies
 - **Database**: PostgreSQL (Supabase)
