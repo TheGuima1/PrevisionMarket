@@ -5,7 +5,7 @@
  */
 
 import { db } from '../db';
-import { events as eventsTable, markets, eventMarkets } from '@shared/schema';
+import { events as eventsTable, markets, eventMarkets, polymarketSnapshots } from '@shared/schema';
 import { isNotNull, sql } from 'drizzle-orm';
 
 const GAMMA_API = 'https://gamma-api.polymarket.com';
@@ -44,6 +44,45 @@ function extractProbYes(market: PolymarketEventMarket): number {
     return Math.max(0, Math.min(1, yesPrice));
   } catch {
     return 0.5;
+  }
+}
+
+/**
+ * Save historical snapshot for chart data
+ */
+async function saveSnapshot(slug: string, probYes: number): Promise<void> {
+  try {
+    if (!slug || slug.trim() === '') {
+      console.error('[Event Sync] Invalid snapshot: empty slug');
+      return;
+    }
+    
+    if (typeof probYes !== 'number' || probYes < 0 || probYes > 1) {
+      console.error(`[Event Sync] Invalid snapshot for ${slug}: probYes out of range (${probYes})`);
+      return;
+    }
+    
+    const probNo = 1 - probYes;
+    const outcomes = JSON.stringify([
+      {
+        name: 'Yes',
+        raw: probYes,
+        percent: Number((probYes * 100).toFixed(2)),
+      },
+      {
+        name: 'No',
+        raw: probNo,
+        percent: Number((probNo * 100).toFixed(2)),
+      },
+    ]);
+    
+    await db.insert(polymarketSnapshots).values({
+      slug,
+      outcomes,
+      timestamp: new Date(),
+    });
+  } catch (error) {
+    console.error(`[Event Sync] Failed to save snapshot for ${slug}:`, error);
   }
 }
 
@@ -118,6 +157,9 @@ async function syncEvent(eventSlug: string, eventId: string): Promise<void> {
             oneWeekPriceChange: (polyMarket.oneWeekPriceChange || 0).toString(),
           })
           .where(sql`${markets.id} = ${market.id}`);
+        
+        // Save snapshot for chart history
+        await saveSnapshot(market.polymarketSlug!, probYes);
         
         updated++;
       } catch (error) {
