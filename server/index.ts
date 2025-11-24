@@ -51,6 +51,28 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Validate required secrets before starting
+  const requiredSecrets = [
+    'ADMIN_PRIVATE_KEY',
+    'POLYGON_RPC_URL',
+    'DATABASE_URL',
+    'SESSION_SECRET'
+  ];
+
+  const missingSecrets = requiredSecrets.filter(secret => !process.env[secret]);
+  
+  if (missingSecrets.length > 0) {
+    console.error("[Server] ❌ Missing required secrets:", missingSecrets.join(', '));
+    console.error("[Server] Please configure these in the Replit Secrets panel");
+    process.exit(1);
+  }
+
+  // Log blockchain configuration being used
+  console.log("[Server] 📋 Blockchain Configuration:");
+  console.log(`  - BRL3 Contract: ${process.env.BRL3_CONTRACT_ADDRESS || '0xa2a21D5800E4DA2ec41582C10532aE13BDd4be90'}`);
+  console.log(`  - Admin Wallet: ${process.env.ADMIN_WALLET_ADDRESS || '0xCD83c3f36396bcb3569240a3Cb34f037ba310926'}`);
+  console.log(`  - Token Decimals: ${process.env.TOKEN_DECIMALS || '18'}`);
+
   // Initialize blockchain service with validation
   try {
     await blockchainService.initialize();
