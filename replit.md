@@ -22,7 +22,7 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
 - **Blockchain**: Polygon Mainnet integration with BRL3 ERC20 token contract (`0xa2a21D5800E4DA2ec41582C10532aE13BDd4be90`) using ethers.js v6. The token features OpenZeppelin's Ownable (owner-only mint/burn/pause), Pausable emergency controls, and ERC20Burnable extensions. **Backend-only operations**: All mint/burn operations execute via backend using `ADMIN_PRIVATE_KEY` environment variable through dedicated `BlockchainService` class. Admin approves deposits/withdrawals via REST endpoints (`/api/deposits/:id/approve`, `/api/withdrawals/:id/approve`) which automatically trigger blockchain operations. Token routes (`/api/token/*`) provide admin balance checks and manual operations. Decimal precision (18) is handled via `ethers.parseUnits`/`formatUnits`.
 - **Authentication**: Passport.js with sessions.
 - **Token Architecture**: Users receive database-managed BRL3 balances (1:1 with real BRL) after PIX deposits. Actual tokens remain in admin wallet for accounting purposes. Admin backend service mints tokens to admin wallet when approving deposits and burns from admin wallet when approving withdrawals. No user wallets or MetaMask required for end users.
-- **Dynamic Market Management**: Admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. A mirror worker syncs odds from Polymarket.
+- **Dynamic Market Management**: Admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. **Event Sync Worker** (`server/mirror/event-sync-worker.ts`) syncs complete events from Polymarket every 5 minutes (92 markets across 5 events: Brazil Election, FIFA World Cup, Brasileiro Série A, Bitcoin $150k, US Recession).
 - **Polymarket Adapter**: Fetches market data from Polymarket's Gamma API with a 10-minute cache.
 - **Prediction Market Core**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 2% spread.
 - **Localization**: Full PT-BR localization for UI and backend messages.
@@ -30,7 +30,7 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
 ### Feature Specifications
 - **Authentication**: Standard email/password login/registration with unique usernames and protected routes. Admin quick access via password-only login.
 - **KYC (Know Your Customer)**: Tier 1 identity verification integrated into the onboarding flow, collecting full name, CPF, birth date, phone, and Brazilian address. Validation enforces correct formats.
-- **Public Landing Page**: Displays available markets with real-time Polymarket odds, including special grouped displays for multi-candidate markets like "Eleição Presidencial Brasil 2026" featuring 8 candidates with authentic Polymarket price changes synchronized every 5 minutes.
+- **Public Landing Page**: Displays available markets with real-time Polymarket odds. Multi-option events (FIFA World Cup 60 countries, Brasileiro Série A 27 teams, Brazil Election 8 candidates) use compact "top-2" card format showing only the two leading options with avatars, volumes, percentages, and price changes. "Ver todos" links navigate to full event pages. Binary markets use traditional SIM/NÃO card format.
 - **Brazil Election Event Page** (`/brazil-election-2026`): Dedicated page matching Polymarket's event layout, featuring all 8 presidential candidates, a professional probability chart (top 4 candidates), and detailed candidate rows with Buy Yes/No buttons.
 - **Market Detail Page**: Comprehensive market information, multiple odds formats, discussion system, and integrated trading panel.
 - **Trading Panel**: Visual YES/NO toggle, quantity input, real-time share estimate preview, cost, potential gain, and profit calculation with balance validation.
@@ -48,9 +48,12 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
 - **Replit Autoscale Health Checks**: Optimized with `/healthz` (no DB) and `/health` (with DB ping) endpoints.
 - **Code Cleanup**: Repository cleaned of unused assets, legacy routes, and duplicated code.
 - **Deposit/Withdrawal Route Consistency**: Both deposit and withdrawal routes use consistent `ADMIN_WALLET_ADDRESS` environment variable fallback chain (validated.walletAddress → process.env.ADMIN_WALLET_ADDRESS → ADMIN_WALLET_ADDRESS constant). Fixed critical bug where redundant dynamic import in deposit route caused silent failures. Both routes now use static imports for optimal performance and reliability.
-- **Recent Bug Fixes (Nov 24, 2025)**:
+- **Recent Updates (Nov 24, 2025)**:
+  - **Event Sync Architecture**: Replaced individual market sync with Event Sync Worker for better scalability. System now syncs 5 complete events (100 markets total) from Polymarket every 5 minutes
+  - **Multi-Option Event Cards**: Implemented compact "top-2" visual format for events with many alternatives (≥8 markets: FIFA World Cup 60 countries, Brasileiro Série A 27 teams, Brazil Election 8 candidates). Each card shows event icon, title, Polymarket link, exactly 2 leading options with colored avatars, volumes, percentages, price changes, and "Ver todos →" link. Generic category tags (Política, Brasil, Esportes) blacklisted. Longer tags prioritized. Independent binary markets (Bitcoin $150k 4 timeframes) display as traditional SIM/NÃO cards.
   - **Event Detail Page queryKey**: Fixed TanStack Query configuration in `/event/:slug` page - changed from `['/api/events', slug]` to `[\`/api/events/${slug}\`]` to properly fetch event data
   - **Deposit Schema Validation**: Fixed `insertPendingDepositSchema` walletAddress validation - changed from `.regex().optional()` to `.optional().refine()` to accept empty/undefined values while validating only when address is provided
+  - **Graceful Shutdown**: Updated server shutdown to use `stopEventSync()` instead of deprecated `stopMirror()`
 - **Blockchain Integration Reliability**: Comprehensive validation and error handling implemented for all blockchain operations:
   - **Startup Validation**: Verifies ADMIN_PRIVATE_KEY format, RPC connectivity, and contract ownership before server starts
   - **Preflight Balance Checks**: Admin wallet balance verified before burn operations to prevent DoS attacks
