@@ -48,6 +48,9 @@ The platform uses a **Purple Tech Masculino** design with a color palette of neu
 - **Replit Autoscale Health Checks**: Optimized with `/healthz` (no DB) and `/health` (with DB ping) endpoints.
 - **Code Cleanup**: Repository cleaned of unused assets, legacy routes, and duplicated code.
 - **Deposit/Withdrawal Route Consistency**: Both deposit and withdrawal routes use consistent `ADMIN_WALLET_ADDRESS` environment variable fallback chain (validated.walletAddress → process.env.ADMIN_WALLET_ADDRESS → ADMIN_WALLET_ADDRESS constant). Fixed critical bug where redundant dynamic import in deposit route caused silent failures. Both routes now use static imports for optimal performance and reliability.
+- **Recent Bug Fixes (Nov 24, 2025)**:
+  - **Event Detail Page queryKey**: Fixed TanStack Query configuration in `/event/:slug` page - changed from `['/api/events', slug]` to `[\`/api/events/${slug}\`]` to properly fetch event data
+  - **Deposit Schema Validation**: Fixed `insertPendingDepositSchema` walletAddress validation - changed from `.regex().optional()` to `.optional().refine()` to accept empty/undefined values while validating only when address is provided
 - **Blockchain Integration Reliability**: Comprehensive validation and error handling implemented for all blockchain operations:
   - **Startup Validation**: Verifies ADMIN_PRIVATE_KEY format, RPC connectivity, and contract ownership before server starts
   - **Preflight Balance Checks**: Admin wallet balance verified before burn operations to prevent DoS attacks
