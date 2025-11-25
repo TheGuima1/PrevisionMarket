@@ -32,7 +32,14 @@ export default function EventDetailPage() {
 
   // Fetch event with all alternatives
   const { data: event, isLoading, isError } = useQuery<EventData>({
-    queryKey: [`/api/events/${params?.slug}`],
+    queryKey: ['/api/events', params?.slug],
+    queryFn: async () => {
+      const response = await fetch(`/api/events/${params?.slug}`);
+      if (!response.ok) {
+        throw new Error('Event not found');
+      }
+      return response.json();
+    },
     enabled: !!params?.slug,
     retry: false,
   });
