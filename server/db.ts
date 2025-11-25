@@ -1,24 +1,11 @@
-// Database connection for Supabase using postgres.js driver
+// Database connection using postgres.js driver
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from "@shared/schema";
-import fs from 'fs';
 
-// Get DATABASE_URL: check /tmp/replitdb first (production), then env var
+// Get DATABASE_URL from environment variable only
+// Note: We no longer use /tmp/replitdb to avoid stale production database URLs
 function getDatabaseUrl(): string {
-  // In production, Replit may store the DATABASE_URL in /tmp/replitdb
-  try {
-    if (fs.existsSync('/tmp/replitdb')) {
-      const dbUrl = fs.readFileSync('/tmp/replitdb', 'utf-8').trim();
-      if (dbUrl) {
-        console.log('[Database] Using DATABASE_URL from /tmp/replitdb (production)');
-        return dbUrl;
-      }
-    }
-  } catch (e) {
-    // File doesn't exist or can't be read, fall back to env var
-  }
-  
   if (process.env.DATABASE_URL) {
     console.log('[Database] Using DATABASE_URL from environment variable');
     return process.env.DATABASE_URL;
@@ -29,9 +16,10 @@ function getDatabaseUrl(): string {
   );
 }
 
-const databaseUrl = getDatabaseUrl();
+// Export the URL for use by other modules (like session store)
+export const databaseUrl = getDatabaseUrl();
 
-// Supabase/Neon requires { prepare: false } for Transaction pooling mode
+// Neon requires { prepare: false } for Transaction pooling mode
 // Added retry and connection resilience for Neon cold starts
 export const client = postgres(databaseUrl, { 
   prepare: false,

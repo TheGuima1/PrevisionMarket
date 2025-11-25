@@ -24,7 +24,7 @@ import {
   type PendingWithdrawal,
   type InsertPendingWithdrawal,
 } from "@shared/schema";
-import { db } from "./db";
+import { db, databaseUrl } from "./db";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -33,8 +33,9 @@ import pg from "pg";
 const PostgresSessionStore = connectPg(session);
 
 // Create a separate pg pool for session store (connect-pg-simple doesn't support postgres.js)
+// Uses the same DATABASE_URL as the main connection for consistency
 const sessionPool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: databaseUrl,
   max: 2,
 });
 
