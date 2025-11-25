@@ -125,21 +125,18 @@ async function autoSeedIfEmpty() {
     const numUsers = Number(userCountResult[0]?.count ?? 0);
     const numMarkets = Number(marketCountResult[0]?.count ?? 0);
     
-    // Only seed if database is completely empty (both users AND markets)
-    if (numUsers === 0 && numMarkets === 0) {
-      console.log(`🌱 Database is empty (${numUsers} users, ${numMarkets} markets). Running auto-seed...`);
+    // Run seed if markets are empty (even if users exist)
+    if (numMarkets === 0) {
+      console.log(`🌱 Database has ${numUsers} users but 0 markets. Running auto-seed...`);
       const { seed } = await import("./seed");
       await seed();
       console.log("✅ Auto-seed completed successfully!");
     } else {
       console.log(`✓ Database already has ${numUsers} users and ${numMarkets} markets`);
-      if (numUsers === 0 || numMarkets === 0) {
-        console.warn(`⚠️  Partial data detected: ${numUsers} users, ${numMarkets} markets. Auto-seed skipped to prevent duplicates.`);
-      }
     }
   } catch (error) {
     console.error("❌ Auto-seed failed:", error);
-    // Don't crash the server if seed fails
+    // Don't crash the server if seed fails - bootstrap will still create events
   }
 }
 
@@ -201,6 +198,7 @@ async function ensureBaselinePalpitesData(): Promise<void> {
   
   bootstrapPromise = (async () => {
     try {
+      console.log(`[Bootstrap] 🔄 Checking baseline events...`);
       const { events: eventsTable, eventMarkets: eventMarketsTable, markets: marketsTable } = await import("@shared/schema");
       
       let eventsCreated = 0;
@@ -214,6 +212,7 @@ async function ensureBaselinePalpitesData(): Promise<void> {
         
         if (!event) {
           // Create the missing event
+          console.log(`[Bootstrap] Creating event: ${eventDef.slug}`);
           const [newEvent] = await db.insert(eventsTable).values({
             slug: eventDef.slug,
             title: eventDef.title,

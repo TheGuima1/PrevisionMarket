@@ -13,92 +13,48 @@ Palpites.AI is a prediction market platform, inspired by Polymarket, designed fo
 ## System Architecture
 
 ### UI/UX Decisions
-The platform uses a **Purple Tech Masculino** design with a color palette of neutral gray-purple backgrounds, deep saturated purple accents, and distinct action colors. It aims for a masculine, tech-serious, and financially expert appeal. Typography includes Inter, Manrope, and Roboto Mono. Both light and dark modes are supported. All components adhere to `design_guidelines.md`, utilizing Shadcn UI components for consistency and responsiveness. The Admin Panel features a matching dark theme.
+The platform uses a **Purple Tech Masculino** design with a color palette of neutral gray-purple backgrounds, deep saturated purple accents, and distinct action colors, aiming for a masculine, tech-serious, and financially expert appeal. Typography includes Inter, Manrope, and Roboto Mono. Both light and dark modes are supported, and all components adhere to `design_guidelines.md` using Shadcn UI.
 
 ### Technical Implementations
-- **Frontend**: React, TypeScript, Tailwind CSS, Shadcn UI
-- **Backend**: Node.js, Express with dedicated blockchain service module (`server/blockchain.ts`) for mint/burn operations
-- **Database**: PostgreSQL (Supabase) via Drizzle ORM with a hybrid driver architecture (postgres.js for Drizzle, pg.Pool for session store).
-- **Blockchain**: Polygon Mainnet integration with BRL3 ERC20 token contract (`0xa2a21D5800E4DA2ec41582C10532aE13BDd4be90`) using ethers.js v6. The token features OpenZeppelin's Ownable (owner-only mint/burn/pause), Pausable emergency controls, and ERC20Burnable extensions. **Backend-only operations**: All mint/burn operations execute via backend using `ADMIN_PRIVATE_KEY` environment variable through dedicated `BlockchainService` class. Admin approves deposits/withdrawals via REST endpoints (`/api/deposits/:id/approve`, `/api/withdrawals/:id/approve`) which automatically trigger blockchain operations. Token routes (`/api/token/*`) provide admin balance checks and manual operations. Decimal precision (18) is handled via `ethers.parseUnits`/`formatUnits`.
+- **Frontend**: React, TypeScript, Tailwind CSS, Shadcn UI.
+- **Backend**: Node.js, Express with a dedicated blockchain service module.
+- **Database**: PostgreSQL (Supabase) via Drizzle ORM.
+- **Blockchain**: Polygon Mainnet integration with BRL3 ERC20 token contract (`0xa2a21D5800E4DA2ec41582C10532aE13BDd4be90`) using ethers.js v6 for backend-only mint/burn operations via `ADMIN_PRIVATE_KEY`.
 - **Authentication**: Passport.js with sessions.
-- **Token Architecture**: Users receive database-managed BRL3 balances (1:1 with real BRL) after PIX deposits. Actual tokens remain in admin wallet for accounting purposes. Admin backend service mints tokens to admin wallet when approving deposits and burns from admin wallet when approving withdrawals. No user wallets or MetaMask required for end users.
-- **Dynamic Market Management**: Admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. **Event Sync Worker** (`server/mirror/event-sync-worker.ts`) syncs complete events from Polymarket every 5 minutes (108 markets across 6 events: Brazil Election, FIFA World Cup, Brasileiro Série A, Bitcoin $150k, Spotify Artist, US Recession). Sync worker also creates probability snapshots for historical chart data.
+- **Token Architecture**: Users manage database-managed BRL3 balances (1:1 with real BRL) after PIX deposits, with actual tokens remaining in an admin wallet.
+- **Dynamic Market Management**: Admin panel allows dynamic creation, validation, and removal of Polymarket-mirrored markets. An **Event Sync Worker** (`server/mirror/event-sync-worker.ts`) syncs complete events and creates probability snapshots for charts.
 - **Polymarket Adapter**: Fetches market data from Polymarket's Gamma API with a 10-minute cache.
 - **Prediction Market Core**: Implements dynamic AMM pricing using the Constant Product Market Maker formula with a 3% platform fee.
 - **Localization**: Full PT-BR localization for UI and backend messages.
 
 ### Feature Specifications
-- **Authentication**: Standard email/password login/registration with unique usernames and protected routes. Admin quick access via password-only login.
-- **KYC (Know Your Customer)**: Tier 1 identity verification integrated into the onboarding flow, collecting full name, CPF, birth date, phone, and Brazilian address. Validation enforces correct formats.
-- **Public Landing Page**: Displays available markets with real-time Polymarket odds. ALL events use unified "top-2" card format showing exactly 2 options with colored avatars, volumes, percentages, and price changes. Multi-option events (FIFA World Cup 60 countries, Brasileiro Série A 27 teams, Brazil Election 8 candidates) display top 2 actual markets. Binary events (US Recession) display virtual "SIM"/"NAO" options for consistent UI. "Ver todos" links navigate to full event pages.
-- **Brazil Election Event Page** (`/event/brazil-election-2026`): Dedicated page matching Polymarket's event layout, featuring all 9 presidential candidates in the full list. **Price chart shows only top-4 favorites** (highest probability) while complete list of all alternatives remains visible below. Detailed candidate rows with Buy Yes/No buttons.
+- **Authentication**: Email/password login/registration with unique usernames and protected routes.
+- **KYC (Know Your Customer)**: Tier 1 identity verification integrated into the onboarding flow for Brazilian users.
+- **Public Landing Page**: Displays available markets with real-time Polymarket odds using a unified "top-2" card format.
+- **Event Pages**: Dedicated pages for events like Brazil Election 2026, featuring detailed market information, price charts (top-4 favorites), and trading options.
 - **Market Detail Page**: Comprehensive market information, multiple odds formats, discussion system, and integrated trading panel.
-- **Trading Panel**: Visual YES/NO toggle, quantity input, real-time share estimate preview, cost, potential gain, and profit calculation with balance validation.
-- **Portfolio**: Overview of total value, invested amount, P&L, active positions, wallet management (deposit/withdrawal requests), and transaction history.
+- **Trading Panel**: Visual YES/NO toggle, quantity input, real-time share estimate, cost, potential gain, and profit calculation with balance validation.
+- **Portfolio**: Overview of total value, invested amount, P&L, active positions, wallet management, and transaction history.
 - **Profile Page**: User profile management including username, email, and account settings.
-- **AI Assistant (Cachorro)**: Floating chat powered by GPT-5 (via Replit AI Integrations) offering context-aware responses and market recommendations.
-- **Admin Panel**: Dark-themed interface for managing deposits, withdrawals, blockchain token operations (mint/burn via MetaMask), markets, users, and **platform fee revenue tracking**. Includes secure logout. New "Receita de Taxas" section shows total revenue, trade fees breakdown, transaction count, and detailed fee history table.
+- **AI Assistant (Cachorro)**: Floating chat powered by GPT-5 (via Replit AI Integrations) offering context-aware responses.
+- **Admin Panel**: Dark-themed interface for managing deposits, withdrawals, blockchain token operations, markets, users, and platform fee revenue tracking. Includes a "Receita de Taxas" section.
+- **Category Navigation System**: Category-based market navigation with 5 dedicated pages: `/markets`, `/categoria/politica`, `/categoria/esportes`, `/categoria/eua`, `/categoria/cripto`.
+- **Unified Top-2 Visual Format**: All markets display with identical top-2 card format on the home page, including virtual options for binary markets.
+- **Silent Fee Deduction**: The 3% platform fee is silently deducted from trades, visible only to admins.
 
 ### System Design Choices
-- **E2E Validation**: Extensive Playwright E2E tests for critical user journeys.
-- **Cache Invalidation**: TanStack Query configured for efficient cache invalidation.
-- **Mocked Features**: Pix and Crypto payments, along with manual market resolution, are mocked for the MVP.
-- **Pricing Strategy**: Uses Polymarket's "spot price" from the Gamma API, offering users ~10-15% better odds than Polymarket's execution price, with a 3% platform fee.
-- **Production Deployment Optimization**: Asynchronous mirror worker initialization and database seeding to prevent deployment health check timeouts.
-- **Replit Autoscale Health Checks**: Optimized with `/healthz` (no DB) and `/health` (with DB ping) endpoints.
-- **Code Cleanup**: Repository cleaned of unused assets, legacy routes, and duplicated code.
-- **Deposit/Withdrawal Route Consistency**: Both deposit and withdrawal routes use consistent `ADMIN_WALLET_ADDRESS` environment variable fallback chain (validated.walletAddress → process.env.ADMIN_WALLET_ADDRESS → ADMIN_WALLET_ADDRESS constant). Fixed critical bug where redundant dynamic import in deposit route caused silent failures. Both routes now use static imports for optimal performance and reliability.
-- **Recent Updates (Nov 24, 2025)**:
-  - **Category Navigation System**: Implemented category-based market navigation with 5 dedicated pages:
-    - `/markets` - All markets (Todos os Mercados)
-    - `/categoria/politica` - Brazilian politics (Eleições 2026)
-    - `/categoria/esportes` - Sports (Copa do Mundo FIFA 2026)
-    - `/categoria/eua` - US markets (Recessão nos EUA)
-    - `/categoria/cripto` - Crypto markets (Bitcoin $150k)
-    CategoryNav component displays horizontal pill-style navigation on all pages with active state highlighting. Each category page filters markets by event tags and displays them using the unified MultiOptionEventCard format.
-  - **Event Sync Architecture**: Replaced individual market sync with Event Sync Worker for better scalability. System now syncs 6 complete events (108 markets total) from Polymarket every 5 minutes including Brazil Election, FIFA World Cup, Brasileiro Série A, Bitcoin $150k, Spotify Artist, and US Recession
-  - **Unified Top-2 Visual Format**: ALL markets (binary and multi-option) now display with identical top-2 card format on home page. Binary markets (single market events like US Recession) create virtual "SIM"/"NAO" options to maintain consistent UI. Multi-option events show top 2 actual markets. Each card displays event icon, title, Polymarket link, exactly 2 options with colored avatars, volumes, percentages, price changes, and "Ver todos →" link
-  - **ASCII-Safe Slugs**: Implemented displaySlug normalization for virtual options (sim/nao) to ensure data-testid attributes are ASCII-only for accessibility and automation compatibility
-  - **Chart Snapshots**: Event Sync Worker now creates polymarket_snapshots during sync cycles. Generated 1,017 historical snapshots (84-85 per market) for Bitcoin and Spotify markets to enable probability chart rendering. Charts display 7-day historical trends
-  - **Event Detail Page queryKey**: Fixed TanStack Query configuration in `/event/:slug` page - changed from `['/api/events', slug]` to `[\`/api/events/${slug}\`]` to properly fetch event data
-  - **Deposit Schema Validation**: Fixed `insertPendingDepositSchema` walletAddress validation - changed from `.regex().optional()` to `.optional().refine()` to accept empty/undefined values while validating only when address is provided
-  - **Graceful Shutdown**: Updated server shutdown to use `stopEventSync()` instead of deprecated `stopMirror()`
-  - **Admin Fee Revenue Tracking**: Added `/api/admin/fee-revenue` endpoint that aggregates platform fees from orders (feePaid field) and transactions (platform_fee type). New "Receita de Taxas" admin view displays total revenue, trade fees, transaction count, and recent fee history table
-  - **Silent Fee Deduction**: Removed 3% fee display from user-facing trade panel while maintaining fee collection. Users see final costs without explicit fee breakdown. Fee tracking visible only to admins
-  - **Full PT-BR Localization**: All user-facing text translated to Portuguese Brazil including buttons, labels, messages, and error messages. No English text visible to end users
-  - **Polymarket References Removed**: Removed all Polymarket branding and "Fonte de Resolucao" (Resolution Source) labels from user interface. Platform operates independently without external market references
-- **Blockchain Integration Reliability**: Comprehensive validation and error handling implemented for all blockchain operations:
-  - **Startup Validation**: Verifies ADMIN_PRIVATE_KEY format, RPC connectivity, and contract ownership before server starts
-  - **Preflight Balance Checks**: Admin wallet balance verified before burn operations to prevent DoS attacks
-  - **Pragmatic Rollback Strategy**: Deposit/withdrawal approval workflows track state granularly (approved, balanceUpdated, transactionCreated) and implement explicit rollback on DB failures - balance changes are reverted and requests marked as rejected with full txHash and error context for manual reconciliation
-  - **Detailed Reconciliation Logging**: All edge cases (blockchain success + DB failure) log structured reconciliation data (depositId, userId, amount, txHash, failure reason) to enable operational monitoring and manual remediation
-  - **Production-Viable**: Implementation is production-ready with operational processes for monitoring logs and manually reconciling edge cases where blockchain succeeded but DB operations failed
-
-## Required Secrets Configuration
-
-Configure these secrets in the Replit Secrets panel before deployment:
-
-### Mandatory Secrets (Server won't start without these)
-- `ADMIN_PRIVATE_KEY` - Private key of the admin wallet (0xCD83...) for blockchain operations
-- `POLYGON_RPC_URL` - Polygon Mainnet RPC URL (e.g., https://polygon-rpc.com)
-- `DATABASE_URL` - PostgreSQL connection string
-- `SESSION_SECRET` - Secret for Express session encryption
-
-### Optional Configuration Secrets (use defaults if not set)
-- `BRL3_CONTRACT_ADDRESS` - BRL3 token contract address (default: 0xa2a21D5800E4DA2ec41582C10532aE13BDd4be90)
-- `ADMIN_WALLET_ADDRESS` - Admin wallet address (default: 0xCD83c3f36396bcb3569240a3Cb34f037ba310926)
-- `TOKEN_DECIMALS` - Token decimal precision (default: 18)
-
-### Frontend Environment Variables (optional, prefixed with VITE_)
-- `VITE_BRL3_CONTRACT_ADDRESS` - Exposed to frontend (uses BRL3_CONTRACT_ADDRESS if not set)
-- `VITE_ADMIN_WALLET_ADDRESS` - Exposed to frontend (uses ADMIN_WALLET_ADDRESS if not set)
-- `VITE_TOKEN_DECIMALS` - Exposed to frontend (uses TOKEN_DECIMALS if not set)
-
-**Note**: The server logs the active blockchain configuration at startup for verification.
+- **E2E Validation**: Extensive Playwright E2E tests.
+- **Cache Invalidation**: TanStack Query for efficient cache invalidation.
+- **Mocked Features**: Pix and Crypto payments, along with manual market resolution, are mocked for MVP.
+- **Pricing Strategy**: Uses Polymarket's "spot price" with a 3% platform fee.
+- **Production Deployment Optimization**: Asynchronous mirror worker initialization and database seeding to prevent timeouts.
+- **Replit Autoscale Health Checks**: Optimized with `/healthz` and `/health` endpoints.
+- **Blockchain Integration Reliability**: Comprehensive validation, error handling, and pragmatic rollback strategies for all blockchain operations, including detailed reconciliation logging.
+- **Historical Price Data Backfill**: Integration of historical price snapshots from Polymarket CLOB API.
 
 ## External Dependencies
 - **Database**: PostgreSQL (Supabase)
 - **Blockchain**: Polygon Mainnet (via ethers.js v6)
 - **AI**: OpenAI (via Replit AI Integrations for GPT-5)
 - **Frontend Frameworks/Libraries**: React, Tailwind CSS, Shadcn UI, TanStack Query
-- **Backend Libraries**: Node.js, Express, Drizzle ORM (postgres.js driver), Passport.js (pg.Pool for sessions), scrypt, ethers
+- **Backend Libraries**: Node.js, Express, Drizzle ORM, Passport.js, scrypt, ethers
