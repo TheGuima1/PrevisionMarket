@@ -325,6 +325,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Diagnostic endpoint for debugging production issues
+  app.get("/api/debug/status", async (_req, res) => {
+    const diagnostics: Record<string, any> = {
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "unknown",
+      isDeployment: process.env.REPLIT_DEPLOYMENT === "1",
+      databaseUrl: process.env.DATABASE_URL ? 
+        `${process.env.DATABASE_URL.substring(0, 30)}...` : "NOT SET",
+      databaseHost: process.env.DATABASE_URL ? 
+        new URL(process.env.DATABASE_URL).hostname : "NOT SET",
+    };
+
+    try {
+      await db.execute(sql`SELECT 1`);
+      diagnostics.dbConnection = "OK";
+      
+      const marketCount = await db.select({ count: sql<number>`count(*)` }).from(markets);
+      diagnostics.marketCount = Number(marketCount[0]?.count ?? 0);
+    } catch (error: any) {
+      diagnostics.dbConnection = "FAILED";
+      diagnostics.dbError = error.message;
+    }
+
+    res.json(diagnostics);
+  });
+
   // Auto-seed on first boot (production) - Run in background to not block server startup
   // Chain ensureBaselinePalpitesData AFTER autoSeedIfEmpty to avoid race conditions
   autoSeedIfEmpty()
