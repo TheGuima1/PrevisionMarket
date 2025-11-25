@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Vote, Globe, Trophy, Bitcoin, LayoutGrid } from "lucide-react";
+import { Vote, Globe, Trophy, Bitcoin, LayoutGrid, Landmark } from "lucide-react";
 
 interface CategoryItem {
   id: string;
@@ -10,6 +10,7 @@ interface CategoryItem {
 
 const categories: CategoryItem[] = [
   { id: "all", label: "Todos", icon: LayoutGrid, href: "/markets" },
+  { id: "politica", label: "Política", icon: Landmark, href: "/categoria/politica" },
   { id: "esportes", label: "Esportes", icon: Trophy, href: "/categoria/esportes" },
   { id: "cripto", label: "Cripto", icon: Bitcoin, href: "/categoria/cripto" },
 ];

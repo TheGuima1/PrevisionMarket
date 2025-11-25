@@ -1,7 +1,7 @@
 // Seed script to populate database with demo data
 import { db } from "./db";
 import { users, markets, orders, positions, events, eventMarkets } from "@shared/schema";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 import * as AMM from "./amm-engine";
@@ -180,10 +180,12 @@ export async function seed() {
     const market = createdMarkets.find(m => m.polymarketSlug === slug);
     if (!market) continue;
     
-    // Check if link exists
+    // Check if link exists using and() for multiple conditions
     const existingLink = await db.select().from(eventMarkets)
-      .where(eq(eventMarkets.marketId, market.id))
-      .where(eq(eventMarkets.eventId, brazilEvent.id));
+      .where(and(
+        eq(eventMarkets.marketId, market.id),
+        eq(eventMarkets.eventId, brazilEvent.id)
+      ));
     
     if (existingLink.length === 0) {
       await db.insert(eventMarkets).values({
