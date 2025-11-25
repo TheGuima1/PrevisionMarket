@@ -142,6 +142,18 @@ async function autoSeedIfEmpty() {
 
 // Shared promise to prevent concurrent bootstrapping
 let bootstrapPromise: Promise<void> | null = null;
+let bootstrapCompleted = false;
+
+// Wait for bootstrap to complete (with timeout)
+async function waitForBootstrap(timeoutMs: number = 10000): Promise<void> {
+  if (bootstrapCompleted) return;
+  if (bootstrapPromise) {
+    const timeout = new Promise<void>((_, reject) => 
+      setTimeout(() => reject(new Error('Bootstrap timeout')), timeoutMs)
+    );
+    await Promise.race([bootstrapPromise, timeout]).catch(() => {});
+  }
+}
 
 // Baseline Palpites.AI events that must always exist
 const BASELINE_EVENTS = [
@@ -269,8 +281,10 @@ async function ensureBaselinePalpitesData(): Promise<void> {
         console.log(`✓ Database has ${eventCount[0]?.count ?? 0} events with ${linkCount[0]?.count ?? 0} market links`);
       }
       
+      bootstrapCompleted = true;
     } catch (error) {
       console.error("❌ Event bootstrap failed:", error);
+      bootstrapCompleted = true; // Mark as completed even on failure to unblock requests
     } finally {
       bootstrapPromise = null;
     }
@@ -594,13 +608,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { slug } = req.params;
       const { events: eventsTable, eventMarkets: eventMarketsTable } = await import("@shared/schema");
       
+      // Wait for bootstrap to complete before checking events
+      await waitForBootstrap();
+      
       // Get event
-      const event = await db.query.events.findFirst({
+      let event = await db.query.events.findFirst({
         where: eq(eventsTable.slug, slug),
       });
       
+      // If event not found, try running bootstrap again (production cold start)
       if (!event) {
-        return res.status(404).json({ error: "Evento não encontrado" });
+        console.log(`[Events] Event not found: ${slug}, triggering bootstrap...`);
+        await ensureBaselinePalpitesData();
+        
+        // Try again after bootstrap
+        event = await db.query.events.findFirst({
+          where: eq(eventsTable.slug, slug),
+        });
+      }
+      
+      if (!event) {
+        return res.status(404).json({ error: "Evento não encontrado", slug });
       }
       
       // Get event's markets with full market data
