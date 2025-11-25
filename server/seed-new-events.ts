@@ -14,6 +14,7 @@ const NEW_EVENTS = [
   '2026-fifa-world-cup-winner-595',
   'us-recession-by-end-of-2026',
   'when-will-bitcoin-hit-150k',
+  'brazil-presidential-election',
 ];
 
 // Old markets to delete
@@ -68,7 +69,7 @@ function mapCategory(slug: string): 'politics' | 'sports' | 'crypto' | 'entertai
   if (slug.includes('bitcoin') || slug.includes('crypto')) {
     return 'crypto';
   }
-  if (slug.includes('recession') || slug.includes('fed')) {
+  if (slug.includes('recession') || slug.includes('fed') || slug.includes('presidential-election')) {
     return 'politics';
   }
   if (slug.includes('spotify') || slug.includes('music') || slug.includes('artist')) {
