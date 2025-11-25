@@ -107,11 +107,6 @@ const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes (optimized for performance)
 
 export async function fetchPolyBySlug(slug: string): Promise<AdapterMarketData> {
   try {
-    // Special handling for Brazil Election 2026 markets (using real Polymarket slugs)
-    if (slug.includes('brazilian-presidential-election')) {
-      return await fetchBrazilElectionMarket(slug);
-    }
-    
     // Refresh cache if expired
     if (Date.now() > cacheExpiry || marketsCache.length === 0) {
       const url = `${GAMMA_API}/markets?active=true&closed=false&limit=500`;
@@ -149,82 +144,6 @@ export async function fetchPolyBySlug(slug: string): Promise<AdapterMarketData> 
     };
   } catch (error) {
     console.error(`[Adapter] Failed to fetch ${slug}:`, error);
-    throw error;
-  }
-}
-
-/**
- * Fetch Brazil Election 2026 market data from event endpoint
- * These markets are grouped in a multi-outcome event and need special handling
- */
-let brazilElectionCache: Map<string, AdapterMarketData> = new Map();
-let brazilElectionCacheExpiry = 0;
-
-async function fetchBrazilElectionMarket(slug: string): Promise<AdapterMarketData> {
-  try {
-    // Refresh Brazil election cache if expired
-    if (Date.now() > brazilElectionCacheExpiry || brazilElectionCache.size === 0) {
-      const url = `${GAMMA_API}/events?slug=brazil-presidential-election`;
-      console.log(`[Adapter] Fetching Brazil Election 2026 event data...`);
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
-      }
-      
-      const events = await response.json();
-      if (!events || events.length === 0 || !events[0].markets) {
-        throw new Error('Brazil election event not found');
-      }
-      
-      const event = events[0];
-      
-      // Map candidate names to REAL Polymarket slugs (9 candidates)
-      const candidateMap: Record<string, string> = {
-        'Luiz Inácio Lula da Silva': 'will-luiz-incio-lula-da-silva-win-the-2026-brazilian-presidential-election',
-        'Tarcisio de Freitas': 'will-tarcisio-de-frietas-win-the-2026-brazilian-presidential-election',
-        'Fernando Haddad': 'will-fernando-haddad-win-the-2026-brazilian-presidential-election',
-        'Renan Santos': 'will-renan-santos-win-the-2026-brazilian-presidential-election',
-        'Ratinho Júnior': 'will-carlos-roberto-massa-jnior-win-the-2026-brazilian-presidential-election',
-        'Jair Bolsonaro': 'will-jair-bolsonaro-win-the-2026-brazilian-presidential-election',
-        'Flávio Bolsonaro': 'will-flvio-bolsonaro-win-the-2026-brazilian-presidential-election',
-        'Michelle Bolsonaro': 'will-michelle-bolsonaro-win-the-2026-brazilian-presidential-election',
-        'Eduardo Bolsonaro': 'will-eduardo-bolsonaro-win-the-2026-brazilian-presidential-election',
-      };
-      
-      // Extract market data for each candidate
-      for (const market of event.markets) {
-        const candidateName = market.groupItemTitle;
-        const mappedSlug = candidateMap[candidateName];
-        
-        if (mappedSlug) {
-          const probYes = extractProbYes(market);
-          
-          brazilElectionCache.set(mappedSlug, {
-            slug: mappedSlug,
-            title: market.question || `${candidateName} vencerá as eleições presidenciais brasileiras de 2026?`,
-            probYes,
-            volumeUsd: market.volume || market.volumeNum,
-            oneDayPriceChange: market.oneDayPriceChange,
-            oneWeekPriceChange: market.oneWeekPriceChange,
-          });
-        }
-      }
-      
-      brazilElectionCacheExpiry = Date.now() + CACHE_TTL_MS;
-      console.log(`[Adapter] Cached ${brazilElectionCache.size} Brazil election markets`);
-    }
-    
-    // Return cached data for requested candidate
-    const marketData = brazilElectionCache.get(slug);
-    if (!marketData) {
-      throw new Error(`Candidate not found in Brazil election: ${slug}`);
-    }
-    
-    return marketData;
-  } catch (error) {
-    console.error(`[Adapter] Failed to fetch Brazil election market ${slug}:`, error);
     throw error;
   }
 }

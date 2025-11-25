@@ -19,20 +19,6 @@ interface CategoryConfig {
 }
 
 const categoryConfigs: { [key: string]: CategoryConfig } = {
-  politica: {
-    id: "politica",
-    title: "Política",
-    description: "Mercados sobre eleições e política no Brasil",
-    icon: Vote,
-    eventTags: ["Eleição Brasil 2026"],
-    eventMetadata: {
-      "Eleição Brasil 2026": {
-        title: "Eleição Presidencial Brasil 2026",
-        slug: "brazil-presidential-election",
-        icon: "vote"
-      }
-    }
-  },
   esportes: {
     id: "esportes",
     title: "Esportes",
