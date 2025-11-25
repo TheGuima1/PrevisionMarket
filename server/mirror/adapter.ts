@@ -107,11 +107,6 @@ const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes (optimized for performance)
 
 export async function fetchPolyBySlug(slug: string): Promise<AdapterMarketData> {
   try {
-    // Special handling for Brazil Election 2026 markets
-    if (slug.startsWith('brazil-election-2026-')) {
-      return await fetchBrazilElectionMarket(slug);
-    }
-    
     // Refresh cache if expired
     if (Date.now() > cacheExpiry || marketsCache.length === 0) {
       const url = `${GAMMA_API}/markets?active=true&closed=false&limit=500`;
@@ -149,84 +144,6 @@ export async function fetchPolyBySlug(slug: string): Promise<AdapterMarketData> 
     };
   } catch (error) {
     console.error(`[Adapter] Failed to fetch ${slug}:`, error);
-    throw error;
-  }
-}
-
-/**
- * Fetch Brazil Election 2026 market data from event endpoint
- * These markets are grouped in a multi-outcome event and need special handling
- */
-let brazilElectionCache: Map<string, AdapterMarketData> = new Map();
-let brazilElectionCacheExpiry = 0;
-
-async function fetchBrazilElectionMarket(slug: string): Promise<AdapterMarketData> {
-  try {
-    // Refresh Brazil election cache if expired
-    if (Date.now() > brazilElectionCacheExpiry || brazilElectionCache.size === 0) {
-      const url = `${GAMMA_API}/events?slug=brazil-presidential-election`;
-      console.log(`[Adapter] Fetching Brazil Election 2026 event data...`);
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Gamma API error: ${response.status} ${response.statusText}`);
-      }
-      
-      const events = await response.json();
-      if (!events || events.length === 0 || !events[0].markets) {
-        throw new Error('Brazil election event not found');
-      }
-      
-      const event = events[0];
-      
-      // Map candidate names to our slugs (top 8 candidates from Polymarket)
-      const candidateMap: Record<string, string> = {
-        'Luiz Inácio Lula da Silva': 'brazil-election-2026-lula',
-        'Tarcisio de Freitas': 'brazil-election-2026-tarcisio',
-        'Fernando Haddad': 'brazil-election-2026-haddad',
-        'Renan Santos': 'brazil-election-2026-renan',
-        'Ratinho Júnior': 'brazil-election-2026-ratinho',
-        'Jair Bolsonaro': 'brazil-election-2026-jair',
-        'Michelle Bolsonaro': 'brazil-election-2026-michelle',
-        'Eduardo Bolsonaro': 'brazil-election-2026-eduardo',
-      };
-      
-      // Extract market data for each candidate
-      for (const market of event.markets) {
-        const candidateName = market.groupItemTitle;
-        const mappedSlug = candidateMap[candidateName];
-        
-        if (mappedSlug) {
-          // Use extractProbYes to correctly identify YES outcome by name
-          // (don't assume array position - Polymarket can return ['No','Yes'] or ['Yes','No'])
-          const probYes = extractProbYes(market);
-          
-          brazilElectionCache.set(mappedSlug, {
-            slug: mappedSlug,
-            title: market.question || `${candidateName} vencerá as eleições presidenciais brasileiras de 2026?`,
-            probYes,
-            volumeUsd: market.volume || market.volumeNum,
-            oneDayPriceChange: market.oneDayPriceChange,
-            oneWeekPriceChange: market.oneWeekPriceChange,
-          });
-        }
-        // Unmapped candidates silently skipped (reduces log noise)
-      }
-      
-      brazilElectionCacheExpiry = Date.now() + CACHE_TTL_MS;
-      console.log(`[Adapter] Cached ${brazilElectionCache.size} Brazil election markets`);
-    }
-    
-    // Return cached data for requested candidate
-    const marketData = brazilElectionCache.get(slug);
-    if (!marketData) {
-      throw new Error(`Candidate not found in Brazil election: ${slug}`);
-    }
-    
-    return marketData;
-  } catch (error) {
-    console.error(`[Adapter] Failed to fetch Brazil election market ${slug}:`, error);
     throw error;
   }
 }

@@ -7,7 +7,7 @@ import { MultiOptionEventCard } from "@/components/multi-option-event-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import type { Market } from "@shared/schema";
-import { Vote, Globe, Trophy, Bitcoin, AlertCircle } from "lucide-react";
+import { Globe, Trophy, Bitcoin, AlertCircle } from "lucide-react";
 
 interface CategoryConfig {
   id: string;
@@ -19,20 +19,6 @@ interface CategoryConfig {
 }
 
 const categoryConfigs: { [key: string]: CategoryConfig } = {
-  politica: {
-    id: "politica",
-    title: "Política",
-    description: "Mercados sobre eleições e política no Brasil",
-    icon: Vote,
-    eventTags: ["Eleição Brasil 2026"],
-    eventMetadata: {
-      "Eleição Brasil 2026": {
-        title: "Eleição Presidencial Brasil 2026",
-        slug: "brazil-election-2026",
-        icon: "vote"
-      }
-    }
-  },
   esportes: {
     id: "esportes",
     title: "Esportes",
