@@ -51,44 +51,11 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Validate required secrets before starting
-  const requiredSecrets = [
-    'ADMIN_PRIVATE_KEY',
-    'POLYGON_RPC_URL',
-    'DATABASE_URL',
-    'SESSION_SECRET'
-  ];
-
-  const missingSecrets = requiredSecrets.filter(secret => !process.env[secret]);
+  // CRITICAL: Open port FIRST before any slow operations
+  // This prevents deployment timeout errors
+  const port = parseInt(process.env.PORT || '5000', 10);
   
-  if (missingSecrets.length > 0) {
-    console.error("[Server] ❌ Missing required secrets:", missingSecrets.join(', '));
-    console.error("[Server] Please configure these in the Replit Secrets panel");
-    process.exit(1);
-  }
-
-  // Test database connection with retries (handles Neon cold starts)
-  const dbConnected = await testConnection(5, 3000);
-  if (!dbConnected) {
-    console.error("[Server] ❌ Cannot connect to database after multiple retries");
-    console.error("[Server] The application will start but may have limited functionality");
-  }
-
-  // Log blockchain configuration being used
-  console.log("[Server] 📋 Blockchain Configuration:");
-  console.log(`  - BRL3 Contract: ${process.env.BRL3_CONTRACT_ADDRESS || '0xa2a21D5800E4DA2ec41582C10532aE13BDd4be90'}`);
-  console.log(`  - Admin Wallet: ${process.env.ADMIN_WALLET_ADDRESS || '0xCD83c3f36396bcb3569240a3Cb34f037ba310926'}`);
-  console.log(`  - Token Decimals: ${process.env.TOKEN_DECIMALS || '18'}`);
-
-  // Initialize blockchain service with validation
-  try {
-    await blockchainService.initialize();
-  } catch (error: any) {
-    console.error("[Server] Failed to initialize blockchain service:", error.message);
-    console.error("[Server] Deposit/withdrawal approvals will fail until this is resolved");
-    // Don't exit - allow server to start for other operations
-  }
-
+  // Register routes first (they handle their own errors if DB not ready)
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -108,26 +75,58 @@ app.use((req, res, next) => {
     }
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Setup static serving or Vite
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
+  // START LISTENING IMMEDIATELY - this is critical for deployment health checks
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+  });
+
+  // NOW do slow initialization tasks asynchronously (after port is open)
+  setImmediate(async () => {
+    console.log("[Server] Starting background initialization...");
+
+    // Validate required secrets
+    const requiredSecrets = [
+      'POLYGON_RPC_URL',
+      'SESSION_SECRET'
+    ];
+
+    const missingSecrets = requiredSecrets.filter(secret => !process.env[secret]);
+    
+    if (missingSecrets.length > 0) {
+      console.error("[Server] ⚠️ Missing optional secrets:", missingSecrets.join(', '));
+    }
+
+    // Test database connection with retries (handles Neon cold starts)
+    const dbConnected = await testConnection(5, 2000);
+    if (!dbConnected) {
+      console.error("[Server] ⚠️ Database connection delayed - will retry on requests");
+    }
+
+    // Log blockchain configuration being used
+    console.log("[Server] 📋 Blockchain Configuration:");
+    console.log(`  - BRL3 Contract: ${process.env.BRL3_CONTRACT_ADDRESS || '0xa2a21D5800E4DA2ec41582C10532aE13BDd4be90'}`);
+    console.log(`  - Admin Wallet: ${process.env.ADMIN_WALLET_ADDRESS || '0xCD83c3f36396bcb3569240a3Cb34f037ba310926'}`);
+    console.log(`  - Token Decimals: ${process.env.TOKEN_DECIMALS || '18'}`);
+
+    // Initialize blockchain service with validation
+    try {
+      await blockchainService.initialize();
+    } catch (error: any) {
+      console.error("[Server] Failed to initialize blockchain service:", error.message);
+    }
+
+    console.log("[Server] ✓ Background initialization complete");
   });
 
   async function gracefulShutdown(signal: string) {
