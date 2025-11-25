@@ -105,6 +105,73 @@ let marketsCache: PolymarketRawMarket[] = [];
 let cacheExpiry = 0;
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes (optimized for performance)
 
+// Cache for events (multi-outcome markets)
+let eventsCache: any[] = [];
+let eventsCacheExpiry = 0;
+
+/**
+ * Fetch markets from an event (multi-outcome format) from Polymarket's Events API
+ * Used for events like Brazil Presidential Election with multiple candidate markets
+ */
+export async function fetchEventMarkets(eventSlug: string): Promise<AdapterMarketData[]> {
+  try {
+    // Refresh events cache if expired
+    if (Date.now() > eventsCacheExpiry || eventsCache.length === 0) {
+      const url = `${GAMMA_API}/events?active=true&closed=false&limit=100`;
+      console.log(`[Adapter] Refreshing events cache from Gamma API...`);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Gamma Events API error: ${response.status} ${response.statusText}`);
+      }
+      
+      eventsCache = await response.json();
+      eventsCacheExpiry = Date.now() + CACHE_TTL_MS;
+      console.log(`[Adapter] Cached ${eventsCache.length} active events`);
+    }
+    
+    // Find the event by slug (case-insensitive)
+    const event = eventsCache.find((e: any) => 
+      e.slug?.toLowerCase() === eventSlug.toLowerCase()
+    );
+    
+    if (!event) {
+      console.warn(`[Adapter] Event not found for slug: ${eventSlug}`);
+      return [];
+    }
+    
+    // Event contains "markets" array with individual candidate markets
+    const markets = event.markets || [];
+    console.log(`[Adapter] Found ${markets.length} markets in event ${eventSlug}`);
+    
+    // Transform each market into AdapterMarketData format
+    return markets.map((market: PolymarketRawMarket) => {
+      const probYes = extractProbYes(market);
+      
+      return {
+        slug: market.slug || '',
+        title: market.question || '',
+        probYes,
+        volumeUsd: market.volume || market.volumeNum,
+        oneDayPriceChange: market.oneDayPriceChange,
+        oneWeekPriceChange: market.oneWeekPriceChange,
+      };
+    });
+  } catch (error) {
+    console.error(`[Adapter] Failed to fetch event ${eventSlug}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetch all Brazil Presidential Election candidate markets
+ * Maps the Polymarket event data to our configured market slugs
+ */
+export async function fetchBrazilElectionMarkets(): Promise<AdapterMarketData[]> {
+  return fetchEventMarkets('brazil-presidential-election');
+}
+
 export async function fetchPolyBySlug(slug: string): Promise<AdapterMarketData> {
   try {
     // Refresh cache if expired

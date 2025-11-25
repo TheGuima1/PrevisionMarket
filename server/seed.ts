@@ -1,6 +1,6 @@
 // Seed script to populate database with demo data
 import { db } from "./db";
-import { users, markets, orders, positions } from "@shared/schema";
+import { users, markets, orders, positions, events, eventMarkets } from "@shared/schema";
 import { sql, eq } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
@@ -68,20 +68,48 @@ export async function seed() {
     console.log("Demo user already exists");
   }
 
-  // PALPITES.AI MARKETS: Exatamente 4 mercados espelhando Polymarket
-  // Número de mercados = número de slugs (sempre 1:1)
+  // PALPITES.AI MARKETS: Mercados espelhando Polymarket
   // Metadados definidos em polymarket-metadata.ts (single source of truth)
   const { PALPITES_MARKETS } = await import("./polymarket-metadata");
   
   console.log(`\n🎯 Palpites.AI: Seeding ${PALPITES_MARKETS.length} markets from Polymarket\n`);
 
   const createdMarkets = [];
-  const { fetchPolyBySlug } = await import("./mirror/adapter");
+  const { fetchPolyBySlug, fetchBrazilElectionMarkets } = await import("./mirror/adapter");
+  
+  // Fetch all Brazil election markets once (optimization)
+  console.log(`\n🇧🇷 Fetching Brazil Presidential Election markets from Polymarket Events API...`);
+  const brazilElectionMarkets = await fetchBrazilElectionMarkets();
+  console.log(`   Found ${brazilElectionMarkets.length} candidate markets in the event\n`);
   
   for (const marketMeta of PALPITES_MARKETS) {
     try {
-      // Fetch real Polymarket odds for this market
-      const polyData = await fetchPolyBySlug(marketMeta.polymarketSlug);
+      // Check if market already exists
+      const existing = await db.select().from(markets).where(eq(markets.polymarketSlug, marketMeta.polymarketSlug));
+      if (existing.length > 0) {
+        console.log(`⏭️  ${marketMeta.title} (already exists)`);
+        createdMarkets.push(existing[0]);
+        continue;
+      }
+      
+      // Try to get odds from Brazil election event first (for presidential candidates)
+      let polyData = brazilElectionMarkets.find(m => 
+        m.slug.toLowerCase() === marketMeta.polymarketSlug.toLowerCase()
+      );
+      
+      // If not found in event, try direct market fetch
+      if (!polyData) {
+        try {
+          polyData = await fetchPolyBySlug(marketMeta.polymarketSlug);
+        } catch {
+          console.log(`⚠️  Could not fetch odds for ${marketMeta.title}, using 50%`);
+          polyData = {
+            slug: marketMeta.polymarketSlug,
+            title: marketMeta.title,
+            probYes: 0.5,
+          };
+        }
+      }
       
       // Bootstrap AMM reserves from Polymarket probability
       const safeProb = Math.max(0.01, Math.min(0.99, polyData.probYes));
@@ -116,13 +144,59 @@ export async function seed() {
     } catch (err) {
       console.error(`❌ Failed to seed ${marketMeta.title}:`, err instanceof Error ? err.message : err);
       console.error(`   Slug: ${marketMeta.polymarketSlug}\n`);
-      throw err; // Stop seeding if any market fails
+      // Don't throw - continue with other markets
     }
   }
 
-  console.log(`\n✅ All ${PALPITES_MARKETS.length} Palpites.AI markets seeded with live Polymarket odds`);
+  // Create Brazil Presidential Election event and link markets
+  console.log(`\n🇧🇷 Creating Brazil Presidential Election event...`);
+  
+  const existingBrazilEvent = await db.select().from(events).where(eq(events.slug, "brazil-presidential-election"));
+  
+  let brazilEvent;
+  if (existingBrazilEvent.length === 0) {
+    [brazilEvent] = await db.insert(events).values({
+      slug: "brazil-presidential-election",
+      title: "Eleição Presidencial Brasil 2026",
+      description: "Quem vencerá as eleições presidenciais brasileiras de 2026?",
+      category: "politics",
+      flagIcon: "🇧🇷",
+      polymarketSlug: "brazil-presidential-election",
+      endDate: new Date("2026-10-04T23:59:59Z"),
+      totalVolume: "3311247.00",
+    }).returning();
+    console.log(`   ✅ Created event: ${brazilEvent.title}`);
+  } else {
+    brazilEvent = existingBrazilEvent[0];
+    console.log(`   ⏭️  Event already exists: ${brazilEvent.title}`);
+  }
+  
+  // Link all Brazil election markets to the event
+  const brazilMarketSlugs = PALPITES_MARKETS
+    .filter(m => m.polymarketSlug.includes("brazilian-presidential-election"))
+    .map(m => m.polymarketSlug);
+  
+  for (const slug of brazilMarketSlugs) {
+    const market = createdMarkets.find(m => m.polymarketSlug === slug);
+    if (!market) continue;
+    
+    // Check if link exists
+    const existingLink = await db.select().from(eventMarkets)
+      .where(eq(eventMarkets.marketId, market.id))
+      .where(eq(eventMarkets.eventId, brazilEvent.id));
+    
+    if (existingLink.length === 0) {
+      await db.insert(eventMarkets).values({
+        eventId: brazilEvent.id,
+        marketId: market.id,
+      });
+      console.log(`   Linked: ${market.title}`);
+    }
+  }
+
+  console.log(`\n✅ All ${createdMarkets.length} Palpites.AI markets seeded with live Polymarket odds`);
   console.log("   Mirror worker will keep odds synced every 60 seconds");
-  console.log("   Users see pure Polymarket odds (2% spread applied on execution only)");
+  console.log("   Users see pure Polymarket odds (3% spread applied on execution only)");
 
   console.log("\nSeed completed successfully!");
   console.log("\nLogin credentials:");
