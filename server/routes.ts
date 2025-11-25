@@ -165,7 +165,7 @@ const BASELINE_EVENTS = [
     flagIcon: "🇧🇷",
     polymarketSlug: "brazil-presidential-election",
     endDate: new Date("2026-10-04T23:59:59Z"),
-    marketSlugPattern: "brazilian-presidential-election"
+    marketSlugPattern: "^brazil-election-2026"
   },
   {
     slug: "2026-fifa-world-cup-winner-595",
