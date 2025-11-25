@@ -61,7 +61,14 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
   
   const isLoading = queries.some(q => q.isLoading);
   
-  // Combine data from all queries - align by timestamp
+  // Helper to normalize timestamp to 1-minute buckets for alignment
+  const normalizeTimestamp = (ts: Date | string): string => {
+    const date = new Date(ts);
+    const bucketMs = Math.floor(date.getTime() / 60000) * 60000; // Round to minute
+    return new Date(bucketMs).toISOString();
+  };
+  
+  // Combine data from all queries - align by normalized timestamp buckets
   const timestampMap = new Map<string, { timestamp: Date; outcomes: Map<string, { percent: number; raw: number }> }>();
   
   queries.forEach((query, index) => {
@@ -70,13 +77,13 @@ export function PriceChart({ polymarketSlug, market, alternatives }: PriceChartP
     
     const { title: marketTitle } = slugsToFetch[index];
     
-    // Add this market's data to timestamp map
+    // Add this market's data to timestamp map using normalized keys
     data.forEach((point) => {
-      const timestampKey = new Date(point.timestamp).toISOString();
+      const timestampKey = normalizeTimestamp(point.timestamp);
       
       if (!timestampMap.has(timestampKey)) {
         timestampMap.set(timestampKey, {
-          timestamp: point.timestamp,
+          timestamp: new Date(timestampKey), // Use normalized timestamp
           outcomes: new Map(),
         });
       }
