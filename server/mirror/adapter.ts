@@ -107,8 +107,8 @@ const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes (optimized for performance)
 
 export async function fetchPolyBySlug(slug: string): Promise<AdapterMarketData> {
   try {
-    // Special handling for Brazil Election 2026 markets
-    if (slug.startsWith('brazil-election-2026-')) {
+    // Special handling for Brazil Election 2026 markets (using real Polymarket slugs)
+    if (slug.includes('brazilian-presidential-election')) {
       return await fetchBrazilElectionMarket(slug);
     }
     
@@ -180,17 +180,17 @@ async function fetchBrazilElectionMarket(slug: string): Promise<AdapterMarketDat
       
       const event = events[0];
       
-      // Map candidate names to our slugs (9 candidates from Polymarket)
+      // Map candidate names to REAL Polymarket slugs (9 candidates)
       const candidateMap: Record<string, string> = {
-        'Luiz Inácio Lula da Silva': 'brazil-election-2026-lula',
-        'Tarcisio de Freitas': 'brazil-election-2026-tarcisio',
-        'Fernando Haddad': 'brazil-election-2026-haddad',
-        'Renan Santos': 'brazil-election-2026-renan',
-        'Ratinho Júnior': 'brazil-election-2026-ratinho',
-        'Jair Bolsonaro': 'brazil-election-2026-jair',
-        'Flávio Bolsonaro': 'brazil-election-2026-flavio',
-        'Michelle Bolsonaro': 'brazil-election-2026-michelle',
-        'Eduardo Bolsonaro': 'brazil-election-2026-eduardo',
+        'Luiz Inácio Lula da Silva': 'will-luiz-incio-lula-da-silva-win-the-2026-brazilian-presidential-election',
+        'Tarcisio de Freitas': 'will-tarcisio-de-frietas-win-the-2026-brazilian-presidential-election',
+        'Fernando Haddad': 'will-fernando-haddad-win-the-2026-brazilian-presidential-election',
+        'Renan Santos': 'will-renan-santos-win-the-2026-brazilian-presidential-election',
+        'Ratinho Júnior': 'will-carlos-roberto-massa-jnior-win-the-2026-brazilian-presidential-election',
+        'Jair Bolsonaro': 'will-jair-bolsonaro-win-the-2026-brazilian-presidential-election',
+        'Flávio Bolsonaro': 'will-flvio-bolsonaro-win-the-2026-brazilian-presidential-election',
+        'Michelle Bolsonaro': 'will-michelle-bolsonaro-win-the-2026-brazilian-presidential-election',
+        'Eduardo Bolsonaro': 'will-eduardo-bolsonaro-win-the-2026-brazilian-presidential-election',
       };
       
       // Extract market data for each candidate

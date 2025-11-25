@@ -128,12 +128,13 @@ export async function seed() {
   console.log(`\n🗳️  Creating Brazil Election 2026 event...`);
   const { events, eventMarkets } = await import("@shared/schema");
   
+  // Filtrar mercados da eleição brasileira usando o padrão REAL do Polymarket
   const brazilElectionMarkets = createdMarkets.filter(m => 
-    m.polymarketSlug?.startsWith('brazil-election-2026-')
+    m.polymarketSlug?.includes('brazilian-presidential-election')
   );
 
   if (brazilElectionMarkets.length > 0) {
-    // Check if event already exists (usar mesmo slug do Polymarket)
+    // Check if event already exists
     const existingEvent = await db.query.events.findFirst({
       where: eq(events.slug, "brazil-presidential-election"),
     });
@@ -143,7 +144,7 @@ export async function seed() {
       console.log(`✅ Event already exists: ${existingEvent.title}`);
       event = existingEvent;
     } else {
-      // Create the event (slug igual ao polymarketSlug)
+      // Create the event
       [event] = await db.insert(events).values({
         slug: "brazil-presidential-election",
         title: "Eleição Presidencial Brasil 2026",
@@ -159,16 +160,17 @@ export async function seed() {
     }
 
     // Link all Brazil Election markets to the event (if not already linked)
+    // Ordem usando slugs REAIS do Polymarket
     const candidateOrder: Record<string, number> = {
-      'brazil-election-2026-lula': 0,
-      'brazil-election-2026-tarcisio': 1,
-      'brazil-election-2026-haddad': 2,
-      'brazil-election-2026-renan': 3,
-      'brazil-election-2026-ratinho': 4,
-      'brazil-election-2026-jair': 5,
-      'brazil-election-2026-flavio': 6,
-      'brazil-election-2026-michelle': 7,
-      'brazil-election-2026-eduardo': 8,
+      'will-luiz-incio-lula-da-silva-win-the-2026-brazilian-presidential-election': 0,
+      'will-tarcisio-de-frietas-win-the-2026-brazilian-presidential-election': 1,
+      'will-fernando-haddad-win-the-2026-brazilian-presidential-election': 2,
+      'will-renan-santos-win-the-2026-brazilian-presidential-election': 3,
+      'will-carlos-roberto-massa-jnior-win-the-2026-brazilian-presidential-election': 4,
+      'will-jair-bolsonaro-win-the-2026-brazilian-presidential-election': 5,
+      'will-flvio-bolsonaro-win-the-2026-brazilian-presidential-election': 6,
+      'will-michelle-bolsonaro-win-the-2026-brazilian-presidential-election': 7,
+      'will-eduardo-bolsonaro-win-the-2026-brazilian-presidential-election': 8,
     };
 
     let linkedCount = 0;
