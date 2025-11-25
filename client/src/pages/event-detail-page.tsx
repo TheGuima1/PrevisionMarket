@@ -242,7 +242,16 @@ export default function EventDetailPage() {
           {/* Right Column - Trade Panel */}
           <div className="lg:col-span-1">
             <div className="sticky top-6" data-trade-panel>
-              <TradePanel market={displayMarket} />
+              {displayMarket ? (
+                <TradePanel market={displayMarket} />
+              ) : (
+                <Card className="p-6 space-y-4">
+                  <h3 className="font-accent text-xl font-semibold">Apostar</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Selecione uma opção acima para fazer sua aposta.
+                  </p>
+                </Card>
+              )}
             </div>
           </div>
         </div>

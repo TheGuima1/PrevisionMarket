@@ -45,6 +45,24 @@ export function TradePanel({ market, userBalance }: TradePanelProps) {
 
   const effectiveUserBalance = userBalance || fetchedUser;
 
+  // Guard: if market data is incomplete, show loading state
+  if (!market || market.yesReserve === undefined || market.noReserve === undefined) {
+    return (
+      <Card className="p-6 space-y-6">
+        <div className="space-y-2">
+          <h3 className="font-accent text-xl font-semibold">Apostar</h3>
+          <p className="text-sm text-muted-foreground">Carregando dados do mercado...</p>
+        </div>
+        <div className="space-y-4">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </Card>
+    );
+  }
+
   const probability = orderType === "yes" 
     ? getYesPriceFromReserves(market.yesReserve, market.noReserve)
     : getNoPriceFromReserves(market.yesReserve, market.noReserve);
