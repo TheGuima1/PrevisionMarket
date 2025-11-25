@@ -138,7 +138,7 @@ export default function HomePage() {
             const eventMetadata: { [key: string]: { title: string; slug: string; icon: "vote" | "globe" | "trophy"; order: number } } = {
               "Eleição Brasil 2026": {
                 title: "Eleição Presidencial Brasil 2026",
-                slug: "brazil-election-2026",
+                slug: "brazil-presidential-election",
                 icon: "vote",
                 order: 1
               },

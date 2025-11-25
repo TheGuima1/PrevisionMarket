@@ -28,7 +28,7 @@ const categoryConfigs: { [key: string]: CategoryConfig } = {
     eventMetadata: {
       "Eleição Brasil 2026": {
         title: "Eleição Presidencial Brasil 2026",
-        slug: "brazil-election-2026",
+        slug: "brazil-presidential-election",
         icon: "vote"
       }
     }

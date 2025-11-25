@@ -158,13 +158,15 @@ async function waitForBootstrap(timeoutMs: number = 10000): Promise<void> {
 // Baseline Palpites.AI events that must always exist
 const BASELINE_EVENTS = [
   {
-    slug: "brazil-election-2026",
+    // Para manter consistência com outros eventos, use o mesmo slug do Polymarket
+    slug: "brazil-presidential-election",
     title: "Eleição Presidencial Brasil 2026",
     description: "Quem vencerá as eleições presidenciais brasileiras de 2026?",
     category: "politics" as const,
     flagIcon: "🇧🇷",
     polymarketSlug: "brazil-presidential-election",
     endDate: new Date("2026-10-04T23:59:59Z"),
+    // Atualizado para casar com os slugs simplificados dos mercados de candidatos
     marketSlugPattern: "^brazil-election-2026"
   },
   {

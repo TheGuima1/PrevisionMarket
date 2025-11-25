@@ -133,9 +133,9 @@ export async function seed() {
   );
 
   if (brazilElectionMarkets.length > 0) {
-    // Check if event already exists
+    // Check if event already exists (usar mesmo slug do Polymarket)
     const existingEvent = await db.query.events.findFirst({
-      where: eq(events.slug, "brazil-election-2026"),
+      where: eq(events.slug, "brazil-presidential-election"),
     });
 
     let event;
@@ -143,9 +143,9 @@ export async function seed() {
       console.log(`✅ Event already exists: ${existingEvent.title}`);
       event = existingEvent;
     } else {
-      // Create the event
+      // Create the event (slug igual ao polymarketSlug)
       [event] = await db.insert(events).values({
-        slug: "brazil-election-2026",
+        slug: "brazil-presidential-election",
         title: "Eleição Presidencial Brasil 2026",
         description: "Quem vencerá as eleições presidenciais brasileiras de 2026? Mercados espelhados do Polymarket para os principais candidatos.",
         category: "politics",

@@ -28,7 +28,7 @@ export default function AllMarketsPage() {
   const eventMetadata: { [key: string]: { title: string; slug: string; icon: "vote" | "globe" | "trophy" } } = {
     "Eleição Brasil 2026": {
       title: "Eleição Presidencial Brasil 2026",
-      slug: "brazil-election-2026",
+      slug: "brazil-presidential-election",
       icon: "vote"
     },
     "2026 FIFA World Cup Winner": {
