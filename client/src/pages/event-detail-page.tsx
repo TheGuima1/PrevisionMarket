@@ -31,9 +31,10 @@ export default function EventDetailPage() {
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null);
 
   // Fetch event with all alternatives
-  const { data: event, isLoading } = useQuery<EventData>({
+  const { data: event, isLoading, isError } = useQuery<EventData>({
     queryKey: [`/api/events/${params?.slug}`],
     enabled: !!params?.slug,
+    retry: false,
   });
 
   if (isLoading) {
@@ -44,7 +45,7 @@ export default function EventDetailPage() {
     );
   }
 
-  if (!event) {
+  if (isError || !event) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-6">
         <div className="text-center space-y-2">
