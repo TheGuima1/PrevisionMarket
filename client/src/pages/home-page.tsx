@@ -134,29 +134,40 @@ export default function HomePage() {
               allEvents.push({ tag: market.title, markets: [market] });
             });
             
-            // Event metadata mapping (normalized keys without trailing spaces)
-            const eventMetadata: { [key: string]: { title: string; slug: string; icon: "vote" | "globe" | "trophy" } } = {
+            // Event metadata mapping with explicit display order
+            const eventMetadata: { [key: string]: { title: string; slug: string; icon: "vote" | "globe" | "trophy"; order: number } } = {
               "Eleição Brasil 2026": {
                 title: "Eleição Presidencial Brasil 2026",
                 slug: "brazil-election-2026",
-                icon: "vote"
+                icon: "vote",
+                order: 1
               },
               "2026 FIFA World Cup Winner": {
                 title: "Copa do Mundo FIFA 2026",
                 slug: "2026-fifa-world-cup-winner-595",
-                icon: "globe"
+                icon: "globe",
+                order: 2
               },
               "When will Bitcoin hit $150k?": {
                 title: "Quando Bitcoin vai atingir $150k?",
                 slug: "when-will-bitcoin-hit-150k",
-                icon: "globe"
+                icon: "globe",
+                order: 3
               },
               "US recession by end of 2026?": {
                 title: "Recessão nos EUA até 2026?",
                 slug: "us-recession-by-end-of-2026",
-                icon: "globe"
+                icon: "globe",
+                order: 4
               }
             };
+            
+            // Sort allEvents by explicit order (known events first, then others)
+            allEvents.sort((a, b) => {
+              const orderA = eventMetadata[a.tag.trim()]?.order ?? 999;
+              const orderB = eventMetadata[b.tag.trim()]?.order ?? 999;
+              return orderA - orderB;
+            });
             
             return (
               <div className="space-y-8">
@@ -171,7 +182,8 @@ export default function HomePage() {
                   const metadata = eventMetadata[normalizedTag] || {
                     title: isBinaryMarket ? eventMarkets[0].title : normalizedTag,
                     slug: normalizedTag.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, ''),
-                    icon: "globe" as const
+                    icon: "globe" as const,
+                    order: 999
                   };
                   
                   // Sempre usar título do mercado para mercados binários
