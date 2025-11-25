@@ -212,17 +212,54 @@ async function pollOnce(): Promise<void> {
 }
 
 /**
+ * Clean old snapshots (keep last 7 days only)
+ */
+async function cleanOldSnapshots(): Promise<void> {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const result = await db.delete(polymarketSnapshots)
+      .where(sql`${polymarketSnapshots.timestamp} < ${sevenDaysAgo}`);
+    
+    console.log(`[Event Sync] 🧹 Cleaned old snapshots (older than 7 days)`);
+  } catch (error) {
+    console.error('[Event Sync] Failed to clean old snapshots:', error);
+  }
+}
+
+/**
  * Start event sync worker
  */
 export async function startEventSync(): Promise<void> {
   console.log(`[Event Sync] 🚀 Starting event sync worker (interval: ${POLL_INTERVAL}ms)`);
   
-  // Schedule periodic polls
-  intervalId = setInterval(pollOnce, POLL_INTERVAL);
+  // Clean old snapshots once per hour (12 poll cycles at 5min interval)
+  let pollCount = 0;
+  
+  const pollWithCleanup = async () => {
+    try {
+      await pollOnce();
+      pollCount++;
+      if (pollCount >= 12) {
+        await cleanOldSnapshots();
+        pollCount = 0;
+      }
+    } catch (err) {
+      console.error('[Event Sync] Poll with cleanup failed:', err);
+    }
+  };
+  
+  // Schedule periodic polls using the cleanup-enabled function
+  intervalId = setInterval(() => {
+    pollWithCleanup().catch(err => {
+      console.error('[Event Sync] Scheduled poll failed:', err);
+    });
+  }, POLL_INTERVAL);
   
   // Initial poll (run in background to avoid blocking server startup)
   setImmediate(() => {
-    pollOnce().catch(err => {
+    pollWithCleanup().catch(err => {
       console.error('[Event Sync] Initial poll failed:', err);
     });
   });
