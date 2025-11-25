@@ -24,33 +24,6 @@ export interface MarketMetadata {
  */
 export const PALPITES_MARKETS: MarketMetadata[] = [
   {
-    polymarketSlug: "us-recession-in-2025",
-    title: "Recessão nos EUA em 2025?",
-    description: "Mercado será resolvido como SIM se os EUA entrarem em recessão técnica (2 trimestres consecutivos de crescimento negativo do PIB) em 2025. NÃO caso contrário.",
-    category: "politics",
-    tags: ["USA", "Recession", "Economy"],
-    resolutionSource: "US Bureau of Economic Analysis",
-    endDate: new Date("2025-12-31T23:59:59Z"),
-  },
-  {
-    polymarketSlug: "fed-rate-hike-in-2025",
-    title: "Fed aumentará juros em 2025?",
-    description: "Mercado será resolvido como SIM se o Federal Reserve aumentar a taxa de juros em qualquer momento durante 2025. NÃO caso contrário.",
-    category: "politics",
-    tags: ["Fed", "USA", "Juros"],
-    resolutionSource: "Federal Reserve Official Announcements",
-    endDate: new Date("2025-12-31T23:59:59Z"),
-  },
-  {
-    polymarketSlug: "fed-emergency-rate-cut-in-2025",
-    title: "Fed fará corte emergencial em 2025?",
-    description: "Mercado será resolvido como SIM se o Federal Reserve realizar um corte de emergência na taxa de juros fora das reuniões programadas em 2025. NÃO caso contrário.",
-    category: "crypto",
-    tags: ["Fed", "Emergency", "Rate Cut"],
-    resolutionSource: "Federal Reserve",
-    endDate: new Date("2025-12-31T23:59:59Z"),
-  },
-  {
     polymarketSlug: "brazil-election-2026-lula",
     title: "Lula vencerá as eleições presidenciais brasileiras de 2026?",
     description: "Mercado espelhado do Polymarket sobre as eleições presidenciais brasileiras de 2026. Será resolvido como SIM se Luiz Inácio Lula da Silva vencer as eleições. NÃO caso contrário.",

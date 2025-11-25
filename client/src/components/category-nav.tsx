@@ -12,7 +12,6 @@ const categories: CategoryItem[] = [
   { id: "all", label: "Todos", icon: LayoutGrid, href: "/markets" },
   { id: "politica", label: "Política", icon: Vote, href: "/categoria/politica" },
   { id: "esportes", label: "Esportes", icon: Trophy, href: "/categoria/esportes" },
-  { id: "eua", label: "EUA", icon: Globe, href: "/categoria/eua" },
   { id: "cripto", label: "Cripto", icon: Bitcoin, href: "/categoria/cripto" },
 ];
 

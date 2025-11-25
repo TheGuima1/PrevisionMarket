@@ -47,20 +47,6 @@ const categoryConfigs: { [key: string]: CategoryConfig } = {
       }
     }
   },
-  eua: {
-    id: "eua",
-    title: "EUA",
-    description: "Mercados sobre economia e política americana",
-    icon: Globe,
-    eventTags: ["US recession by end of 2026?"],
-    eventMetadata: {
-      "US recession by end of 2026?": {
-        title: "Recessão nos EUA até 2026?",
-        slug: "us-recession-by-end-of-2026",
-        icon: "globe"
-      }
-    }
-  },
   cripto: {
     id: "cripto",
     title: "Cripto",
