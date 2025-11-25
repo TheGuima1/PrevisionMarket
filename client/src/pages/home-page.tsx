@@ -136,6 +136,11 @@ export default function HomePage() {
             
             // Event metadata mapping (normalized keys without trailing spaces)
             const eventMetadata: { [key: string]: { title: string; slug: string; icon: "vote" | "globe" | "trophy" } } = {
+              "Eleição Brasil 2026": {
+                title: "Eleição Presidencial Brasil 2026",
+                slug: "brazil-election-2026",
+                icon: "vote"
+              },
               "2026 FIFA World Cup Winner": {
                 title: "Copa do Mundo FIFA 2026",
                 slug: "2026-fifa-world-cup-winner-595",
