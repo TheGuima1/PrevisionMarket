@@ -9,7 +9,7 @@ import { z } from "zod";
 import { ethers } from "ethers";
 import { db } from "./db";
 import { users } from "@shared/schema";
-import { sql, desc, and, gte, eq, inArray } from "drizzle-orm";
+import { sql, desc, and, gte, eq, inArray, isNotNull } from "drizzle-orm";
 import * as AMM from "./amm-engine";
 import { getSnapshot } from "./mirror/state";
 import { startEventSync } from "./mirror/event-sync-worker";
@@ -143,6 +143,143 @@ async function autoSeedIfEmpty() {
   }
 }
 
+// Shared promise to prevent concurrent bootstrapping
+let bootstrapPromise: Promise<void> | null = null;
+
+// Baseline Palpites.AI events that must always exist
+const BASELINE_EVENTS = [
+  {
+    slug: "brazil-election-2026",
+    title: "Eleição Presidencial Brasil 2026",
+    description: "Quem vencerá as eleições presidenciais brasileiras de 2026?",
+    category: "politics" as const,
+    flagIcon: "🇧🇷",
+    polymarketSlug: "brazil-presidential-election",
+    endDate: new Date("2026-10-04T23:59:59Z"),
+    marketSlugPattern: "brazilian-presidential-election"
+  },
+  {
+    slug: "2026-fifa-world-cup-winner-595",
+    title: "2026 FIFA World Cup Winner",
+    description: "Who will win the 2026 FIFA World Cup?",
+    category: "sports" as const,
+    flagIcon: "⚽",
+    polymarketSlug: "2026-fifa-world-cup-winner-595",
+    endDate: new Date("2026-07-19T23:59:59Z"),
+    marketSlugPattern: "2026-fifa-world-cup"
+  },
+  {
+    slug: "when-will-bitcoin-hit-150k",
+    title: "When will Bitcoin hit $150k?",
+    description: "When will Bitcoin reach $150,000 USD?",
+    category: "crypto" as const,
+    flagIcon: "₿",
+    polymarketSlug: "when-will-bitcoin-hit-150k",
+    endDate: new Date("2025-12-31T23:59:59Z"),
+    marketSlugPattern: "bitcoin.*150k"
+  },
+  {
+    slug: "us-recession-by-end-of-2026",
+    title: "US recession by end of 2026?",
+    description: "Will there be a US recession by end of 2026?",
+    category: "politics" as const,
+    flagIcon: "🇺🇸",
+    polymarketSlug: "us-recession-by-end-of-2026",
+    endDate: new Date("2026-12-31T23:59:59Z"),
+    marketSlugPattern: "us-recession"
+  }
+];
+
+// Idempotent bootstrapper that ensures baseline events exist
+// Runs AFTER autoSeedIfEmpty and repairs partial data (events missing but markets present)
+async function ensureBaselinePalpitesData(): Promise<void> {
+  // Use shared promise to prevent concurrent execution
+  if (bootstrapPromise) {
+    console.log(`✓ Event bootstrap already running, waiting...`);
+    return bootstrapPromise;
+  }
+  
+  bootstrapPromise = (async () => {
+    try {
+      const { events: eventsTable, eventMarkets: eventMarketsTable, markets: marketsTable } = await import("@shared/schema");
+      
+      let eventsCreated = 0;
+      let linksCreated = 0;
+      
+      for (const eventDef of BASELINE_EVENTS) {
+        // Check if event exists by slug (idempotent)
+        let event = await db.query.events.findFirst({
+          where: eq(eventsTable.slug, eventDef.slug),
+        });
+        
+        if (!event) {
+          // Create the missing event
+          const [newEvent] = await db.insert(eventsTable).values({
+            slug: eventDef.slug,
+            title: eventDef.title,
+            description: eventDef.description,
+            category: eventDef.category,
+            flagIcon: eventDef.flagIcon,
+            polymarketSlug: eventDef.polymarketSlug,
+            endDate: eventDef.endDate,
+            totalVolume: "0.00",
+          }).returning();
+          
+          event = newEvent;
+          eventsCreated++;
+          console.log(`  ✅ Created event: ${eventDef.title}`);
+        }
+        
+        // Check if event has market links
+        const existingLinks = await db.query.eventMarkets.findMany({
+          where: eq(eventMarketsTable.eventId, event.id),
+        });
+        
+        if (existingLinks.length === 0) {
+          // Find and link matching markets
+          const allMarkets = await db.query.markets.findMany({
+            where: isNotNull(marketsTable.polymarketSlug),
+          });
+          
+          const pattern = new RegExp(eventDef.marketSlugPattern, 'i');
+          let order = 0;
+          
+          for (const market of allMarkets) {
+            if (market.polymarketSlug && pattern.test(market.polymarketSlug)) {
+              await db.insert(eventMarketsTable).values({
+                eventId: event.id,
+                marketId: market.id,
+                order: order++,
+              }).onConflictDoNothing();
+              linksCreated++;
+            }
+          }
+          
+          if (order > 0) {
+            console.log(`  📎 Linked ${order} markets to ${eventDef.slug}`);
+          }
+        }
+      }
+      
+      if (eventsCreated > 0 || linksCreated > 0) {
+        console.log(`✅ Event bootstrap complete: ${eventsCreated} events, ${linksCreated} links created`);
+      } else {
+        // Count current state for logging
+        const eventCount = await db.select({ count: sql<number>`count(*)` }).from(eventsTable);
+        const linkCount = await db.select({ count: sql<number>`count(*)` }).from(eventMarketsTable);
+        console.log(`✓ Database has ${eventCount[0]?.count ?? 0} events with ${linkCount[0]?.count ?? 0} market links`);
+      }
+      
+    } catch (error) {
+      console.error("❌ Event bootstrap failed:", error);
+    } finally {
+      bootstrapPromise = null;
+    }
+  })();
+  
+  return bootstrapPromise;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server FIRST (before any async operations)
   const server = createServer(app);
@@ -173,10 +310,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auto-seed on first boot (production) - Run in background to not block server startup
-  autoSeedIfEmpty().catch((error) => {
-    console.error("❌ Auto-seed failed:", error);
-    // Don't crash the server if seed fails
-  });
+  // Chain ensureBaselinePalpitesData AFTER autoSeedIfEmpty to avoid race conditions
+  autoSeedIfEmpty()
+    .then(() => ensureBaselinePalpitesData())
+    .catch((error) => {
+      console.error("❌ Auto-seed/baseline check failed:", error);
+      // Don't crash the server if seed fails
+    });
   
   // Start Polymarket mirror worker to sync odds for Palpites.AI markets
   // Run asynchronously to avoid blocking server startup and health checks
@@ -411,11 +551,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/polymarket/history/:slug - Get historical snapshots for a Polymarket market (PUBLIC)
   app.get("/api/polymarket/history/:slug", async (req, res) => {
     try {
-      // Feature flag gate: return empty if integration disabled
-      if (process.env.ENABLE_POLYMARKET !== 'true') {
-        return res.json([]);
-      }
-
       const { slug } = req.params;
       const range = (req.query.range as string) || '24H';
       
