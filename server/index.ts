@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { client } from "./db";
+import { client, testConnection } from "./db";
 import { stopEventSync } from "./mirror/event-sync-worker";
 import { blockchainService } from "./blockchain";
 
@@ -67,6 +67,13 @@ app.use((req, res, next) => {
     process.exit(1);
   }
 
+  // Test database connection with retries (handles Neon cold starts)
+  const dbConnected = await testConnection(5, 3000);
+  if (!dbConnected) {
+    console.error("[Server] ❌ Cannot connect to database after multiple retries");
+    console.error("[Server] The application will start but may have limited functionality");
+  }
+
   // Log blockchain configuration being used
   console.log("[Server] 📋 Blockchain Configuration:");
   console.log(`  - BRL3 Contract: ${process.env.BRL3_CONTRACT_ADDRESS || '0xa2a21D5800E4DA2ec41582C10532aE13BDd4be90'}`);
@@ -86,9 +93,15 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    let message = err.message || "Internal Server Error";
 
-    console.error(`[Error] ${status}: ${message}`, err.stack || err);
+    // Handle Neon database suspension errors with user-friendly message
+    if (message.includes('endpoint has been disabled') || message.includes('Neon')) {
+      message = "O sistema está iniciando. Por favor, atualize a página em alguns segundos.";
+      console.error(`[Database] Neon endpoint suspended, connection will retry automatically`);
+    } else {
+      console.error(`[Error] ${status}: ${message}`, err.stack || err);
+    }
     
     if (!res.headersSent) {
       res.status(status).json({ message });
