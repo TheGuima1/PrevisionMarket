@@ -1643,41 +1643,51 @@ export default function AdminPage() {
                 </Card>
               )}
 
+              {/* Loading state quando usuário selecionado mas dados ainda carregando */}
+              {selectedUserId && !userDetails && (
+                <Card className="bg-[#2A2640] border-white/10 p-12">
+                  <div className="flex flex-col items-center justify-center gap-4">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="text-white/60">Carregando detalhes do usuário...</p>
+                  </div>
+                </Card>
+              )}
+
               {/* Detalhes completos do usuário selecionado */}
-              {selectedUserId && userDetails && (
+              {selectedUserId && userDetails && userDetails.financials && (
                 <div className="space-y-6">
                   {/* Header com resumo financeiro */}
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <Card className="bg-[#2A2640] border-white/10 p-4">
                       <p className="text-white/60 text-xs mb-1">Saldo Atual</p>
                       <p className="text-white font-mono font-bold text-xl">
-                        {formatBRL3(userDetails.financials.currentBalanceBrl.toFixed(2))}
+                        {formatBRL3((userDetails.financials.currentBalanceBrl ?? 0).toFixed(2))}
                       </p>
                     </Card>
                     <Card className="bg-[#2A2640] border-white/10 p-4">
                       <p className="text-white/60 text-xs mb-1">Total Depositado</p>
                       <p className="text-green-500 font-mono font-bold text-xl">
-                        +{formatBRL3(userDetails.financials.totalDeposited.toFixed(2))}
+                        +{formatBRL3((userDetails.financials.totalDeposited ?? 0).toFixed(2))}
                       </p>
                     </Card>
                     <Card className="bg-[#2A2640] border-white/10 p-4">
                       <p className="text-white/60 text-xs mb-1">Total Sacado</p>
                       <p className="text-red-500 font-mono font-bold text-xl">
-                        -{formatBRL3(userDetails.financials.totalWithdrawn.toFixed(2))}
+                        -{formatBRL3((userDetails.financials.totalWithdrawn ?? 0).toFixed(2))}
                       </p>
                     </Card>
                     <Card className="bg-[#2A2640] border-white/10 p-4">
                       <p className="text-white/60 text-xs mb-1">Valor em Posições</p>
                       <p className="text-white font-mono font-bold text-xl">
-                        {formatBRL3(userDetails.financials.positionsValue.toFixed(2))}
+                        {formatBRL3((userDetails.financials.positionsValue ?? 0).toFixed(2))}
                       </p>
                     </Card>
                     <Card className="bg-[#2A2640] border-white/10 p-4">
                       <p className="text-white/60 text-xs mb-1">P&L (Lucro/Prejuízo)</p>
-                      <p className={`font-mono font-bold text-xl ${userDetails.financials.pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
-                        {userDetails.financials.pnl >= 0 ? "+" : ""}{formatBRL3(userDetails.financials.pnl.toFixed(2))}
+                      <p className={`font-mono font-bold text-xl ${(userDetails.financials.pnl ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                        {(userDetails.financials.pnl ?? 0) >= 0 ? "+" : ""}{formatBRL3((userDetails.financials.pnl ?? 0).toFixed(2))}
                         <span className="text-sm ml-1">
-                          ({userDetails.financials.pnlPercent >= 0 ? "+" : ""}{userDetails.financials.pnlPercent.toFixed(1)}%)
+                          ({(userDetails.financials.pnlPercent ?? 0) >= 0 ? "+" : ""}{(userDetails.financials.pnlPercent ?? 0).toFixed(1)}%)
                         </span>
                       </p>
                     </Card>
