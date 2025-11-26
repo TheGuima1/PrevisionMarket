@@ -96,9 +96,93 @@ interface PendingWithdrawal {
   };
 }
 
-interface UserDetails {
-  user: AdminUser;
+interface UserFullDetails {
+  user: {
+    id: string;
+    username: string | null;
+    email: string;
+    balanceBrl: string;
+    balanceUsdc: string;
+    isAdmin: boolean;
+    createdAt: Date;
+    fullName: string | null;
+    cpf: string | null;
+    birthDate: string | null;
+    phone: string | null;
+    addressStreet: string | null;
+    addressNumber: string | null;
+    addressComplement: string | null;
+    addressDistrict: string | null;
+    addressCity: string | null;
+    addressState: string | null;
+    addressZipCode: string | null;
+    kycTier: string;
+    kycStatus: string;
+    kycSubmittedAt: Date | null;
+    kycApprovedAt: Date | null;
+  };
   transactions: Transaction[];
+  deposits: Array<{
+    id: string;
+    amount: string;
+    currency: string;
+    status: string;
+    createdAt: Date;
+    approvedAt: Date | null;
+    rejectedAt: Date | null;
+    txHash: string | null;
+  }>;
+  withdrawals: Array<{
+    id: string;
+    amount: string;
+    currency: string;
+    pixKey: string;
+    status: string;
+    createdAt: Date;
+    approvedAt: Date | null;
+    rejectedAt: Date | null;
+    txHash: string | null;
+  }>;
+  positions: Array<{
+    id: string;
+    marketId: string;
+    yesShares: string;
+    noShares: string;
+    averageYesPrice: string | null;
+    averageNoPrice: string | null;
+    totalInvested: string;
+    marketTitle: string | null;
+    marketStatus: string | null;
+  }>;
+  orders: Array<{
+    id: string;
+    marketId: string;
+    type: string;
+    action: string;
+    status: string;
+    shares: string;
+    price: string;
+    totalCost: string;
+    feePaid: string;
+    createdAt: Date;
+  }>;
+  financials: {
+    totalDeposited: number;
+    totalWithdrawn: number;
+    currentBalanceBrl: number;
+    currentBalanceUsdc: number;
+    positionsValue: number;
+    totalInvestedInPositions: number;
+    pnl: number;
+    pnlPercent: number;
+  };
+}
+
+interface AdminUserExtended extends AdminUser {
+  fullName?: string | null;
+  cpf?: string | null;
+  kycTier?: string;
+  kycStatus?: string;
 }
 
 interface PolymarketPreview {
@@ -177,15 +261,18 @@ export default function AdminPage() {
     refetchInterval: 30000,
   });
 
-  const { data: allUsers } = useQuery<AdminUser[]>({
+  const { data: allUsers } = useQuery<AdminUserExtended[]>({
     queryKey: ["/api/admin/users"],
     refetchInterval: 60000,
   });
 
-  const { data: userDetails } = useQuery<UserDetails>({
+  const { data: userDetails } = useQuery<UserFullDetails>({
     queryKey: ["/api/admin/users", selectedUserId],
     enabled: !!selectedUserId,
   });
+
+  // User details tab state
+  const [userDetailTab, setUserDetailTab] = useState<"kyc" | "financeiro" | "transacoes" | "depositos" | "posicoes">("kyc");
 
   // Fee Revenue interface and query
   interface FeeRevenue {
@@ -1450,178 +1537,559 @@ export default function AdminPage() {
           {/* View: Usuários */}
           {currentView === "usuarios" && (
             <div className="space-y-6">
-              <h1 className="text-white text-3xl font-bold">Gerenciar Usuários</h1>
+              <div className="flex items-center justify-between">
+                <h1 className="text-white text-3xl font-bold">Gerenciar Usuários</h1>
+                {selectedUserId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedUserId(null)}
+                    className="border-white/20 text-white hover:bg-white/5"
+                    data-testid="button-back-to-list"
+                  >
+                    ← Voltar para lista
+                  </Button>
+                )}
+              </div>
 
-              <Card className="bg-[#2A2640] border-white/10 overflow-hidden">
-                <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                  <h3 className="text-white font-semibold text-lg">Todos os Usuários</h3>
-                  <Badge variant="secondary" className="bg-primary/20 text-primary">
-                    {allUsers?.length || 0} usuários
-                  </Badge>
-                </div>
+              {/* Lista de usuários - só mostra se nenhum usuário selecionado */}
+              {!selectedUserId && (
+                <Card className="bg-[#2A2640] border-white/10 overflow-hidden">
+                  <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                    <h3 className="text-white font-semibold text-lg">Todos os Usuários</h3>
+                    <Badge variant="secondary" className="bg-primary/20 text-primary">
+                      {allUsers?.length || 0} usuários
+                    </Badge>
+                  </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-[#1F1B2E]/50">
-                      <tr className="text-white/60 text-sm">
-                        <th className="px-6 py-4 text-left font-medium">Usuário</th>
-                        <th className="px-6 py-4 text-left font-medium">Email</th>
-                        <th className="px-6 py-4 text-left font-medium">Saldo BRL3</th>
-                        <th className="px-6 py-4 text-left font-medium">Cadastro</th>
-                        <th className="px-6 py-4 text-left font-medium">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {allUsers?.map((user) => (
-                        <tr
-                          key={user.id}
-                          className="hover:bg-white/5 cursor-pointer transition-colors"
-                          onClick={() => setSelectedUserId(user.id)}
-                          data-testid={`user-row-${user.id}`}
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                                <span className="text-primary font-semibold text-sm">
-                                  {(user.username || user.email).charAt(0).toUpperCase()}
-                                </span>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#1F1B2E]/50">
+                        <tr className="text-white/60 text-sm">
+                          <th className="px-6 py-4 text-left font-medium">Usuário</th>
+                          <th className="px-6 py-4 text-left font-medium">Email</th>
+                          <th className="px-6 py-4 text-left font-medium">Nome Completo</th>
+                          <th className="px-6 py-4 text-left font-medium">KYC</th>
+                          <th className="px-6 py-4 text-left font-medium">Saldo BRL3</th>
+                          <th className="px-6 py-4 text-left font-medium">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {allUsers?.map((user) => (
+                          <tr
+                            key={user.id}
+                            className="hover:bg-white/5 cursor-pointer transition-colors"
+                            onClick={() => setSelectedUserId(user.id)}
+                            data-testid={`user-row-${user.id}`}
+                          >
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                  <span className="text-primary font-semibold text-sm">
+                                    {(user.username || user.email).charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <span className="text-white font-medium">{user.username || "-"}</span>
                               </div>
-                              <span className="text-white font-medium">{user.username || user.email}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-white/60">{user.email}</td>
-                          <td className="px-6 py-4">
-                            <span className="text-white font-mono font-semibold">
-                              {formatBRL3(user.balanceBrl)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-white/60 text-sm">
-                            {new Date(user.createdAt).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td className="px-6 py-4">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedUserId(user.id);
-                              }}
-                              className="text-primary hover:text-primary"
-                              data-testid={`button-view-user-${user.id}`}
-                            >
-                              Ver Detalhes
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                      {(!allUsers || allUsers.length === 0) && (
-                        <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-white/40">
-                            Nenhum usuário cadastrado
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
+                            </td>
+                            <td className="px-6 py-4 text-white/60">{user.email}</td>
+                            <td className="px-6 py-4 text-white">{user.fullName || "-"}</td>
+                            <td className="px-6 py-4">
+                              <Badge 
+                                variant="secondary" 
+                                className={
+                                  user.kycStatus === "approved" 
+                                    ? "bg-green-500/20 text-green-500" 
+                                    : user.kycStatus === "pending"
+                                    ? "bg-yellow-500/20 text-yellow-500"
+                                    : "bg-white/10 text-white/60"
+                                }
+                              >
+                                {user.kycStatus === "approved" ? `Tier ${user.kycTier}` : 
+                                 user.kycStatus === "pending" ? "Pendente" : "Não iniciado"}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="text-white font-mono font-semibold">
+                                {formatBRL3(user.balanceBrl)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedUserId(user.id);
+                                }}
+                                className="text-primary hover:text-primary"
+                                data-testid={`button-view-user-${user.id}`}
+                              >
+                                Ver Detalhes
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                        {(!allUsers || allUsers.length === 0) && (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-12 text-center text-white/40">
+                              Nenhum usuário cadastrado
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              )}
 
-              {/* Detalhes do Usuário Selecionado */}
+              {/* Detalhes completos do usuário selecionado */}
               {selectedUserId && userDetails && (
-                <div className="grid md:grid-cols-2 gap-6">
-                  <Card className="bg-[#2A2640] border-white/10 p-6">
-                    <h3 className="text-white font-semibold text-lg mb-4">Informações do Usuário</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-white/60 text-sm mb-1">Nome de Usuário</p>
-                        <p className="text-white font-semibold text-xl">{userDetails.user.username}</p>
-                      </div>
+                <div className="space-y-6">
+                  {/* Header com resumo financeiro */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <Card className="bg-[#2A2640] border-white/10 p-4">
+                      <p className="text-white/60 text-xs mb-1">Saldo Atual</p>
+                      <p className="text-white font-mono font-bold text-xl">
+                        {formatBRL3(userDetails.financials.currentBalanceBrl.toFixed(2))}
+                      </p>
+                    </Card>
+                    <Card className="bg-[#2A2640] border-white/10 p-4">
+                      <p className="text-white/60 text-xs mb-1">Total Depositado</p>
+                      <p className="text-green-500 font-mono font-bold text-xl">
+                        +{formatBRL3(userDetails.financials.totalDeposited.toFixed(2))}
+                      </p>
+                    </Card>
+                    <Card className="bg-[#2A2640] border-white/10 p-4">
+                      <p className="text-white/60 text-xs mb-1">Total Sacado</p>
+                      <p className="text-red-500 font-mono font-bold text-xl">
+                        -{formatBRL3(userDetails.financials.totalWithdrawn.toFixed(2))}
+                      </p>
+                    </Card>
+                    <Card className="bg-[#2A2640] border-white/10 p-4">
+                      <p className="text-white/60 text-xs mb-1">Valor em Posições</p>
+                      <p className="text-white font-mono font-bold text-xl">
+                        {formatBRL3(userDetails.financials.positionsValue.toFixed(2))}
+                      </p>
+                    </Card>
+                    <Card className="bg-[#2A2640] border-white/10 p-4">
+                      <p className="text-white/60 text-xs mb-1">P&L (Lucro/Prejuízo)</p>
+                      <p className={`font-mono font-bold text-xl ${userDetails.financials.pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+                        {userDetails.financials.pnl >= 0 ? "+" : ""}{formatBRL3(userDetails.financials.pnl.toFixed(2))}
+                        <span className="text-sm ml-1">
+                          ({userDetails.financials.pnlPercent >= 0 ? "+" : ""}{userDetails.financials.pnlPercent.toFixed(1)}%)
+                        </span>
+                      </p>
+                    </Card>
+                  </div>
 
-                      <Separator className="bg-white/10" />
+                  {/* Abas de navegação */}
+                  <div className="flex gap-2 border-b border-white/10 pb-2">
+                    {[
+                      { id: "kyc" as const, label: "Dados Pessoais (KYC)" },
+                      { id: "financeiro" as const, label: "Financeiro" },
+                      { id: "transacoes" as const, label: "Transações" },
+                      { id: "depositos" as const, label: "Depósitos/Saques" },
+                      { id: "posicoes" as const, label: "Posições" },
+                    ].map((tab) => (
+                      <Button
+                        key={tab.id}
+                        variant={userDetailTab === tab.id ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setUserDetailTab(tab.id)}
+                        className={userDetailTab === tab.id ? "bg-primary text-white" : "text-white/60 hover:text-white"}
+                        data-testid={`tab-${tab.id}`}
+                      >
+                        {tab.label}
+                      </Button>
+                    ))}
+                  </div>
 
-                      <div>
-                        <p className="text-white/60 text-sm mb-1">Email</p>
-                        <p className="text-white">{userDetails.user.email}</p>
-                      </div>
-
-                      <Separator className="bg-white/10" />
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-white/60 text-sm mb-1">Saldo BRL3</p>
-                          <p className="text-white font-mono font-bold text-lg">
-                            {formatBRL3(userDetails.user.balanceBrl)}
-                          </p>
+                  {/* Conteúdo das abas */}
+                  {userDetailTab === "kyc" && (
+                    <Card className="bg-[#2A2640] border-white/10 p-6">
+                      <h3 className="text-white font-semibold text-lg mb-6">Dados Pessoais (KYC)</h3>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">Nome de Usuário</p>
+                            <p className="text-white font-semibold">{userDetails.user.username || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">Email</p>
+                            <p className="text-white">{userDetails.user.email}</p>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">Nome Completo</p>
+                            <p className="text-white font-semibold">{userDetails.user.fullName || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">CPF</p>
+                            <p className="text-white font-mono">{userDetails.user.cpf ? 
+                              userDetails.user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">Data de Nascimento</p>
+                            <p className="text-white">{userDetails.user.birthDate ? 
+                              new Date(userDetails.user.birthDate).toLocaleDateString('pt-BR') : "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">Telefone</p>
+                            <p className="text-white font-mono">{userDetails.user.phone ? 
+                              userDetails.user.phone.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3") : "-"}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-white/60 text-sm mb-1">Saldo USDC</p>
-                          <p className="text-white font-mono font-bold text-lg">
-                            {formatBRL3(userDetails.user.balanceUsdc)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Separator className="bg-white/10" />
-
-                      <div>
-                        <p className="text-white/60 text-sm mb-1">Cadastrado em</p>
-                        <p className="text-white">{formatDateTimeBR(new Date(userDetails.user.createdAt))}</p>
-                      </div>
-
-                      {userDetails.user.isAdmin && (
-                        <>
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">Endereço</p>
+                            <p className="text-white">
+                              {userDetails.user.addressStreet ? (
+                                <>
+                                  {userDetails.user.addressStreet}, {userDetails.user.addressNumber}
+                                  {userDetails.user.addressComplement && ` - ${userDetails.user.addressComplement}`}
+                                </>
+                              ) : "-"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">Bairro</p>
+                            <p className="text-white">{userDetails.user.addressDistrict || "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">Cidade/Estado</p>
+                            <p className="text-white">
+                              {userDetails.user.addressCity ? 
+                                `${userDetails.user.addressCity}/${userDetails.user.addressState}` : "-"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">CEP</p>
+                            <p className="text-white font-mono">{userDetails.user.addressZipCode ? 
+                              userDetails.user.addressZipCode.replace(/(\d{5})(\d{3})/, "$1-$2") : "-"}</p>
+                          </div>
                           <Separator className="bg-white/10" />
-                          <Badge className="bg-primary/20 text-primary border-primary/20">
-                            Administrador
-                          </Badge>
-                        </>
-                      )}
-                    </div>
-                  </Card>
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">Status KYC</p>
+                            <Badge 
+                              className={
+                                userDetails.user.kycStatus === "approved" 
+                                  ? "bg-green-500/20 text-green-500" 
+                                  : userDetails.user.kycStatus === "pending"
+                                  ? "bg-yellow-500/20 text-yellow-500"
+                                  : "bg-white/10 text-white/60"
+                              }
+                            >
+                              {userDetails.user.kycStatus === "approved" ? `Aprovado - Tier ${userDetails.user.kycTier}` : 
+                               userDetails.user.kycStatus === "pending" ? "Pendente de aprovação" : 
+                               userDetails.user.kycStatus === "rejected" ? "Rejeitado" : "Não iniciado"}
+                            </Badge>
+                          </div>
+                          <div>
+                            <p className="text-white/60 text-sm mb-1">Cadastrado em</p>
+                            <p className="text-white">{formatDateTimeBR(new Date(userDetails.user.createdAt))}</p>
+                          </div>
+                          {userDetails.user.isAdmin && (
+                            <Badge className="bg-primary/20 text-primary border-primary/20">
+                              Administrador
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  )}
 
-                  <Card className="bg-[#2A2640] border-white/10 p-6">
-                    <h3 className="text-white font-semibold text-lg mb-4">Transações Recentes</h3>
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {userDetails.transactions.map((tx) => (
-                        <div
-                          key={tx.id}
-                          className="p-3 bg-[#1F1B2E] border border-white/10 rounded-lg"
-                          data-testid={`transaction-${tx.id}`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <p className="text-white text-sm font-medium">
-                                {tx.type === "deposit_pix" && "Depósito PIX"}
-                                {tx.type === "deposit_usdc" && "Depósito USDC"}
-                                {tx.type === "withdrawal_pix" && "Saque PIX"}
-                                {tx.type === "withdrawal_usdc" && "Saque USDC"}
-                                {tx.type === "trade_buy" && "Compra"}
-                                {tx.type === "trade_sell" && "Venda"}
-                                {tx.type === "market_resolution" && "Resolução de Mercado"}
-                                {tx.type === "platform_fee" && "Taxa da Plataforma"}
-                              </p>
-                              <p className="text-white/60 text-xs mt-1">
-                                {new Date(tx.createdAt).toLocaleString('pt-BR')}
-                              </p>
-                            </div>
-                            <p className={`font-mono font-bold text-sm ${
-                              tx.type.startsWith("deposit") || tx.type === "market_resolution"
-                                ? "text-green-500" 
-                                : "text-red-500"
-                            }`}>
-                              {tx.type.startsWith("deposit") || tx.type === "market_resolution" ? "+" : "-"}
-                              {formatBRL3(tx.amount)}
+                  {userDetailTab === "financeiro" && (
+                    <Card className="bg-[#2A2640] border-white/10 p-6">
+                      <h3 className="text-white font-semibold text-lg mb-6">Resumo Financeiro</h3>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div className="p-4 bg-[#1F1B2E] border border-white/10 rounded-lg">
+                            <p className="text-white/60 text-sm mb-2">Saldo em Conta</p>
+                            <p className="text-white font-mono font-bold text-2xl">
+                              {formatBRL3(userDetails.financials.currentBalanceBrl.toFixed(2))}
+                            </p>
+                            <p className="text-white/40 text-sm mt-1">
+                              USDC: ${userDetails.financials.currentBalanceUsdc.toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="p-4 bg-[#1F1B2E] border border-white/10 rounded-lg">
+                            <p className="text-white/60 text-sm mb-2">Total Depositado</p>
+                            <p className="text-green-500 font-mono font-bold text-2xl">
+                              +{formatBRL3(userDetails.financials.totalDeposited.toFixed(2))}
+                            </p>
+                            <p className="text-white/40 text-sm mt-1">
+                              {userDetails.deposits.filter(d => d.status === "approved").length} depósitos aprovados
+                            </p>
+                          </div>
+                          <div className="p-4 bg-[#1F1B2E] border border-white/10 rounded-lg">
+                            <p className="text-white/60 text-sm mb-2">Total Sacado</p>
+                            <p className="text-red-500 font-mono font-bold text-2xl">
+                              -{formatBRL3(userDetails.financials.totalWithdrawn.toFixed(2))}
+                            </p>
+                            <p className="text-white/40 text-sm mt-1">
+                              {userDetails.withdrawals.filter(w => w.status === "approved").length} saques aprovados
                             </p>
                           </div>
                         </div>
-                      ))}
-                      {userDetails.transactions.length === 0 && (
-                        <div className="text-center py-8 text-white/40 text-sm">
-                          Nenhuma transação registrada
+                        <div className="space-y-4">
+                          <div className="p-4 bg-[#1F1B2E] border border-white/10 rounded-lg">
+                            <p className="text-white/60 text-sm mb-2">Investido em Posições</p>
+                            <p className="text-white font-mono font-bold text-2xl">
+                              {formatBRL3(userDetails.financials.totalInvestedInPositions.toFixed(2))}
+                            </p>
+                            <p className="text-white/40 text-sm mt-1">
+                              {userDetails.positions.length} posições ativas
+                            </p>
+                          </div>
+                          <div className="p-4 bg-[#1F1B2E] border border-white/10 rounded-lg">
+                            <p className="text-white/60 text-sm mb-2">Valor Atual das Posições</p>
+                            <p className="text-white font-mono font-bold text-2xl">
+                              {formatBRL3(userDetails.financials.positionsValue.toFixed(2))}
+                            </p>
+                          </div>
+                          <div className={`p-4 border rounded-lg ${userDetails.financials.pnl >= 0 ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20"}`}>
+                            <p className="text-white/60 text-sm mb-2">P&L (Lucro/Prejuízo)</p>
+                            <p className={`font-mono font-bold text-2xl ${userDetails.financials.pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+                              {userDetails.financials.pnl >= 0 ? "+" : ""}{formatBRL3(userDetails.financials.pnl.toFixed(2))}
+                            </p>
+                            <p className={`text-sm mt-1 ${userDetails.financials.pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+                              {userDetails.financials.pnlPercent >= 0 ? "+" : ""}{userDetails.financials.pnlPercent.toFixed(2)}% de retorno
+                            </p>
+                          </div>
                         </div>
-                      )}
+                      </div>
+                    </Card>
+                  )}
+
+                  {userDetailTab === "transacoes" && (
+                    <Card className="bg-[#2A2640] border-white/10 overflow-hidden">
+                      <div className="p-6 border-b border-white/10">
+                        <h3 className="text-white font-semibold text-lg">Todas as Transações</h3>
+                        <p className="text-white/60 text-sm">{userDetails.transactions.length} transações</p>
+                      </div>
+                      <div className="overflow-x-auto max-h-96">
+                        <table className="w-full">
+                          <thead className="bg-[#1F1B2E]/50 sticky top-0">
+                            <tr className="text-white/60 text-sm">
+                              <th className="px-6 py-3 text-left font-medium">Tipo</th>
+                              <th className="px-6 py-3 text-left font-medium">Valor</th>
+                              <th className="px-6 py-3 text-left font-medium">Moeda</th>
+                              <th className="px-6 py-3 text-left font-medium">Descrição</th>
+                              <th className="px-6 py-3 text-left font-medium">Data</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {userDetails.transactions.map((tx) => (
+                              <tr key={tx.id} className="hover:bg-white/5" data-testid={`tx-row-${tx.id}`}>
+                                <td className="px-6 py-4">
+                                  <Badge 
+                                    variant="secondary"
+                                    className={
+                                      tx.type.startsWith("deposit") ? "bg-green-500/20 text-green-500" :
+                                      tx.type.startsWith("withdrawal") ? "bg-red-500/20 text-red-500" :
+                                      tx.type === "trade_buy" ? "bg-blue-500/20 text-blue-500" :
+                                      tx.type === "trade_sell" ? "bg-purple-500/20 text-purple-500" :
+                                      "bg-white/10 text-white/60"
+                                    }
+                                  >
+                                    {tx.type === "deposit_pix" && "Depósito PIX"}
+                                    {tx.type === "deposit_usdc" && "Depósito USDC"}
+                                    {tx.type === "withdrawal_pix" && "Saque PIX"}
+                                    {tx.type === "withdrawal_usdc" && "Saque USDC"}
+                                    {tx.type === "trade_buy" && "Compra"}
+                                    {tx.type === "trade_sell" && "Venda"}
+                                    {tx.type === "market_resolution" && "Resolução"}
+                                    {tx.type === "platform_fee" && "Taxa"}
+                                  </Badge>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`font-mono font-bold ${
+                                    tx.type.startsWith("deposit") || tx.type === "market_resolution" || tx.type === "trade_sell"
+                                      ? "text-green-500" 
+                                      : "text-red-500"
+                                  }`}>
+                                    {tx.type.startsWith("deposit") || tx.type === "market_resolution" || tx.type === "trade_sell" ? "+" : "-"}
+                                    {formatBRL3(tx.amount)}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-white/60">{tx.currency}</td>
+                                <td className="px-6 py-4 text-white/60 text-sm max-w-xs truncate">{tx.description || "-"}</td>
+                                <td className="px-6 py-4 text-white/60 text-sm">
+                                  {new Date(tx.createdAt).toLocaleString('pt-BR')}
+                                </td>
+                              </tr>
+                            ))}
+                            {userDetails.transactions.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="px-6 py-12 text-center text-white/40">
+                                  Nenhuma transação registrada
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+                  )}
+
+                  {userDetailTab === "depositos" && (
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <Card className="bg-[#2A2640] border-white/10 overflow-hidden">
+                        <div className="p-6 border-b border-white/10">
+                          <h3 className="text-white font-semibold text-lg">Depósitos</h3>
+                          <p className="text-white/60 text-sm">{userDetails.deposits.length} depósitos</p>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                          {userDetails.deposits.map((dep) => (
+                            <div key={dep.id} className="p-4 border-b border-white/5 hover:bg-white/5" data-testid={`deposit-${dep.id}`}>
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="text-white font-mono font-bold">{formatBRL3(dep.amount)}</p>
+                                  <p className="text-white/60 text-xs mt-1">
+                                    {new Date(dep.createdAt).toLocaleString('pt-BR')}
+                                  </p>
+                                </div>
+                                <Badge 
+                                  variant="secondary"
+                                  className={
+                                    dep.status === "approved" ? "bg-green-500/20 text-green-500" :
+                                    dep.status === "pending" ? "bg-yellow-500/20 text-yellow-500" :
+                                    "bg-red-500/20 text-red-500"
+                                  }
+                                >
+                                  {dep.status === "approved" ? "Aprovado" : 
+                                   dep.status === "pending" ? "Pendente" : "Rejeitado"}
+                                </Badge>
+                              </div>
+                              {dep.txHash && (
+                                <p className="text-white/40 text-xs font-mono mt-2 truncate">
+                                  TX: {dep.txHash}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                          {userDetails.deposits.length === 0 && (
+                            <div className="p-8 text-center text-white/40">
+                              Nenhum depósito registrado
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+
+                      <Card className="bg-[#2A2640] border-white/10 overflow-hidden">
+                        <div className="p-6 border-b border-white/10">
+                          <h3 className="text-white font-semibold text-lg">Saques</h3>
+                          <p className="text-white/60 text-sm">{userDetails.withdrawals.length} saques</p>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                          {userDetails.withdrawals.map((wit) => (
+                            <div key={wit.id} className="p-4 border-b border-white/5 hover:bg-white/5" data-testid={`withdrawal-${wit.id}`}>
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="text-white font-mono font-bold">{formatBRL3(wit.amount)}</p>
+                                  <p className="text-white/60 text-xs mt-1">PIX: {wit.pixKey}</p>
+                                  <p className="text-white/40 text-xs">
+                                    {new Date(wit.createdAt).toLocaleString('pt-BR')}
+                                  </p>
+                                </div>
+                                <Badge 
+                                  variant="secondary"
+                                  className={
+                                    wit.status === "approved" ? "bg-green-500/20 text-green-500" :
+                                    wit.status === "pending" ? "bg-yellow-500/20 text-yellow-500" :
+                                    "bg-red-500/20 text-red-500"
+                                  }
+                                >
+                                  {wit.status === "approved" ? "Aprovado" : 
+                                   wit.status === "pending" ? "Pendente" : "Rejeitado"}
+                                </Badge>
+                              </div>
+                              {wit.txHash && (
+                                <p className="text-white/40 text-xs font-mono mt-2 truncate">
+                                  TX: {wit.txHash}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                          {userDetails.withdrawals.length === 0 && (
+                            <div className="p-8 text-center text-white/40">
+                              Nenhum saque registrado
+                            </div>
+                          )}
+                        </div>
+                      </Card>
                     </div>
-                  </Card>
+                  )}
+
+                  {userDetailTab === "posicoes" && (
+                    <Card className="bg-[#2A2640] border-white/10 overflow-hidden">
+                      <div className="p-6 border-b border-white/10">
+                        <h3 className="text-white font-semibold text-lg">Posições em Mercados</h3>
+                        <p className="text-white/60 text-sm">{userDetails.positions.length} posições</p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-[#1F1B2E]/50">
+                            <tr className="text-white/60 text-sm">
+                              <th className="px-6 py-3 text-left font-medium">Mercado</th>
+                              <th className="px-6 py-3 text-left font-medium">Shares YES</th>
+                              <th className="px-6 py-3 text-left font-medium">Shares NO</th>
+                              <th className="px-6 py-3 text-left font-medium">Total Investido</th>
+                              <th className="px-6 py-3 text-left font-medium">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {userDetails.positions.map((pos) => (
+                              <tr key={pos.id} className="hover:bg-white/5" data-testid={`position-${pos.id}`}>
+                                <td className="px-6 py-4 text-white max-w-xs truncate">{pos.marketTitle || pos.marketId}</td>
+                                <td className="px-6 py-4">
+                                  <span className="text-green-500 font-mono">
+                                    {parseFloat(pos.yesShares).toFixed(2)}
+                                  </span>
+                                  {pos.averageYesPrice && (
+                                    <span className="text-white/40 text-xs ml-2">
+                                      @{(parseFloat(pos.averageYesPrice) * 100).toFixed(0)}%
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="text-red-500 font-mono">
+                                    {parseFloat(pos.noShares).toFixed(2)}
+                                  </span>
+                                  {pos.averageNoPrice && (
+                                    <span className="text-white/40 text-xs ml-2">
+                                      @{(parseFloat(pos.averageNoPrice) * 100).toFixed(0)}%
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 text-white font-mono">
+                                  {formatBRL3(pos.totalInvested)}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <Badge 
+                                    variant="secondary"
+                                    className={
+                                      pos.marketStatus === "active" ? "bg-green-500/20 text-green-500" :
+                                      "bg-white/10 text-white/60"
+                                    }
+                                  >
+                                    {pos.marketStatus === "active" ? "Ativo" : "Resolvido"}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            ))}
+                            {userDetails.positions.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="px-6 py-12 text-center text-white/40">
+                                  Nenhuma posição em mercados
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+                  )}
                 </div>
               )}
             </div>

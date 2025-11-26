@@ -2012,7 +2012,7 @@ Your role:
     }
   });
 
-  // GET /api/admin/users - List all users
+  // GET /api/admin/users - List all users with KYC status
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const allUsers = await db.query.users.findMany({
@@ -2024,6 +2024,10 @@ Your role:
           balanceUsdc: true,
           isAdmin: true,
           createdAt: true,
+          fullName: true,
+          cpf: true,
+          kycTier: true,
+          kycStatus: true,
         },
         orderBy: (users, { desc }) => [desc(users.createdAt)],
       });
@@ -2035,37 +2039,126 @@ Your role:
     }
   });
 
-  // GET /api/admin/users/:id - Get user details with transactions
+  // GET /api/admin/users/:id - Get complete user details with KYC, transactions, deposits, withdrawals, positions
   app.get("/api/admin/users/:id", requireAdmin, async (req, res) => {
     try {
       const userId = req.params.id;
 
+      // Get full user data including all KYC fields
       const user = await db.query.users.findFirst({
         where: eq(users.id, userId),
-        columns: {
-          id: true,
-          username: true,
-          email: true,
-          balanceBrl: true,
-          balanceUsdc: true,
-          isAdmin: true,
-          createdAt: true,
-        },
       });
 
       if (!user) {
         return res.status(404).send("Usuário não encontrado.");
       }
 
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+
+      // Get all transactions
       const userTransactions = await db.query.transactions.findMany({
         where: eq(transactions.userId, userId),
         orderBy: (transactions, { desc }) => [desc(transactions.createdAt)],
-        limit: 100,
       });
 
+      // Get all deposits (pending and processed)
+      const userDeposits = await db.query.pendingDeposits.findMany({
+        where: eq(pendingDeposits.userId, userId),
+        orderBy: (pendingDeposits, { desc }) => [desc(pendingDeposits.createdAt)],
+      });
+
+      // Get all withdrawals (pending and processed)
+      const userWithdrawals = await db.query.pendingWithdrawals.findMany({
+        where: eq(pendingWithdrawals.userId, userId),
+        orderBy: (pendingWithdrawals, { desc }) => [desc(pendingWithdrawals.createdAt)],
+      });
+
+      // Get all positions with market details
+      const userPositions = await db.select({
+        id: positions.id,
+        marketId: positions.marketId,
+        yesShares: positions.yesShares,
+        noShares: positions.noShares,
+        averageYesPrice: positions.averageYesPrice,
+        averageNoPrice: positions.averageNoPrice,
+        totalInvested: positions.totalInvested,
+        createdAt: positions.createdAt,
+        updatedAt: positions.updatedAt,
+        marketTitle: markets.title,
+        marketStatus: markets.status,
+        yesReserve: markets.yesReserve,
+        noReserve: markets.noReserve,
+      })
+        .from(positions)
+        .leftJoin(markets, eq(positions.marketId, markets.id))
+        .where(eq(positions.userId, userId));
+
+      // Get all orders for this user
+      const userOrders = await db.query.orders.findMany({
+        where: eq(orders.userId, userId),
+        orderBy: (orders, { desc }) => [desc(orders.createdAt)],
+      });
+
+      // Calculate PnL (Profit and Loss)
+      // Total deposited = sum of approved deposits
+      const totalDeposited = userDeposits
+        .filter(d => d.status === "approved")
+        .reduce((sum, d) => sum + parseFloat(d.amount), 0);
+
+      // Total withdrawn = sum of approved withdrawals
+      const totalWithdrawn = userWithdrawals
+        .filter(w => w.status === "approved")
+        .reduce((sum, w) => sum + parseFloat(w.amount), 0);
+
+      // Current balance
+      const currentBalanceBrl = parseFloat(user.balanceBrl);
+      const currentBalanceUsdc = parseFloat(user.balanceUsdc);
+
+      // Calculate positions value (shares * current price)
+      let positionsValue = 0;
+      for (const pos of userPositions) {
+        if (pos.yesReserve && pos.noReserve) {
+          const yesReserve = parseFloat(pos.yesReserve);
+          const noReserve = parseFloat(pos.noReserve);
+          const total = yesReserve + noReserve;
+          if (total > 0) {
+            const currentYesPrice = noReserve / total; // Price = opposite reserve / total
+            const currentNoPrice = yesReserve / total;
+            const yesShares = parseFloat(pos.yesShares);
+            const noShares = parseFloat(pos.noShares);
+            positionsValue += (yesShares * currentYesPrice) + (noShares * currentNoPrice);
+          }
+        }
+      }
+
+      // PnL = (Current Balance + Positions Value + Total Withdrawn) - Total Deposited
+      const pnl = (currentBalanceBrl + positionsValue + totalWithdrawn) - totalDeposited;
+      const pnlPercent = totalDeposited > 0 ? (pnl / totalDeposited) * 100 : 0;
+
+      // Total invested in positions
+      const totalInvestedInPositions = userPositions.reduce(
+        (sum, p) => sum + parseFloat(p.totalInvested), 
+        0
+      );
+
       res.json({
-        user,
+        user: userWithoutPassword,
         transactions: userTransactions,
+        deposits: userDeposits,
+        withdrawals: userWithdrawals,
+        positions: userPositions,
+        orders: userOrders,
+        financials: {
+          totalDeposited,
+          totalWithdrawn,
+          currentBalanceBrl,
+          currentBalanceUsdc,
+          positionsValue,
+          totalInvestedInPositions,
+          pnl,
+          pnlPercent,
+        },
       });
     } catch (error) {
       console.error("Failed to fetch user details:", error);
